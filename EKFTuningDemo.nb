@@ -1,0 +1,3479 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.4' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[    152185,       3471]
+NotebookOptionsPosition[    148286,       3353]
+NotebookOutlinePosition[    149908,       3404]
+CellTagsIndexPosition[    149572,       3392]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Tuning An Extended Kalman Filter", "DemoTitle",
+ CellChangeTimes->{{3.672315768169778*^9, 3.672315779672196*^9}}],
+
+Cell["", "InitializationSection"],
+
+Cell[CellGroupData[{
+
+Cell["", "ManipulateSection"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+      "foldStream", ",", "reify", ",", "takeUntil", ",", "last", ",", 
+       "mapStream", ",", "pick", ",", "randn", ",", "dim", ",", "gen", ",", 
+       "eulerAccumulator", ",", "rk2Accumulator", ",", "rk4Accumulator"}], 
+      "}"}], ",", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"foldStream", "[", 
+        RowBox[{"f_", ",", "s_", ",", 
+         RowBox[{"Null", "[", "]"}]}], "]"}], ":=", 
+       RowBox[{"{", 
+        RowBox[{"s", ",", "Null"}], "}"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"foldStream", "[", 
+        RowBox[{"f_", ",", "s_", ",", 
+         RowBox[{"{", 
+          RowBox[{"z_", ",", "thunk_"}], "}"}]}], "]"}], ":=", 
+       RowBox[{"{", 
+        RowBox[{"s", ",", 
+         RowBox[{
+          RowBox[{"foldStream", "[", 
+           RowBox[{"f", ",", 
+            RowBox[{"f", "[", 
+             RowBox[{"s", ",", "z"}], "]"}], ",", 
+            RowBox[{"thunk", "[", "]"}]}], "]"}], "&"}]}], "}"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"reify", "[", 
+        RowBox[{"Null", "[", "]"}], "]"}], ":=", 
+       RowBox[{"{", "}"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"reify", "[", 
+        RowBox[{"{", 
+         RowBox[{"v_", ",", "Null"}], "}"}], "]"}], ":=", 
+       RowBox[{"{", "v", "}"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"reify", "[", 
+        RowBox[{"{", 
+         RowBox[{"v_", ",", "thunk_"}], "}"}], "]"}], ":=", 
+       RowBox[{"Join", "[", 
+        RowBox[{
+         RowBox[{"{", "v", "}"}], ",", 
+         RowBox[{"reify", "[", 
+          RowBox[{"thunk", "[", "]"}], "]"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"takeUntil", "[", 
+        RowBox[{
+         RowBox[{"Null", "[", "]"}], ",", "_"}], "]"}], ":=", 
+       RowBox[{"Null", "[", "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"takeUntil", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"v_", ",", "thunk_"}], "}"}], ",", "predicate_"}], "]"}], "/;", 
+        RowBox[{"predicate", "[", "v", "]"}]}], ":=", 
+       RowBox[{"Null", "[", "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"takeUntil", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"v_", ",", "thunk_"}], "}"}], ",", "predicate_"}], "]"}], ":=", 
+       RowBox[{"{", 
+        RowBox[{"v", ",", 
+         RowBox[{
+          RowBox[{"takeUntil", "[", 
+           RowBox[{
+            RowBox[{"thunk", "[", "]"}], ",", "predicate"}], "]"}], "&"}]}], 
+        "}"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"last", "[", 
+        RowBox[{"Null", "[", "]"}], "]"}], ":=", "Null"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"last", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"v_", ",", "thunk_"}], "}"}], "/;", 
+         RowBox[{
+          RowBox[{"thunk", "[", "]"}], "===", 
+          RowBox[{"Null", "[", "]"}]}]}], "]"}], ":=", "v"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"last", "[", 
+        RowBox[{"{", 
+         RowBox[{"v_", ",", "thunk_"}], "}"}], "]"}], ":=", 
+       RowBox[{"last", "[", 
+        RowBox[{"thunk", "[", "]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"mapStream", "[", 
+        RowBox[{
+         RowBox[{"Null", "[", "]"}], ",", "_"}], "]"}], ":=", 
+       RowBox[{"Null", "[", "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"mapStream", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"v_", ",", "thunk_"}], "}"}], ",", "f_"}], "]"}], ":=", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"f", "[", "v", "]"}], ",", 
+         RowBox[{
+          RowBox[{"mapStream", "[", 
+           RowBox[{
+            RowBox[{"thunk", "[", "]"}], ",", "f"}], "]"}], "&"}]}], "}"}]}], 
+      ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"pick", "[", "n_", "]"}], ":=", 
+       RowBox[{
+        RowBox[{"#", "\[LeftDoubleBracket]", "n", "\[RightDoubleBracket]"}], 
+        "&"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"pick", "[", 
+        RowBox[{"m_", ",", "n_"}], "]"}], ":=", 
+       RowBox[{
+        RowBox[{"#", "\[LeftDoubleBracket]", 
+         RowBox[{"m", ",", "n"}], "\[RightDoubleBracket]"}], "&"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"randn", "[", 
+        RowBox[{"sigma_:", "1.0"}], "]"}], ":=", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"Chop", "@", "sigma"}], "\[Equal]", "0.0"}], ",", "0.0", 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"RandomVariate", "[", 
+          RowBox[{"NormalDistribution", "[", 
+           RowBox[{"0.0", ",", "sigma"}], "]"}], "]"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"(*", " ", 
+       RowBox[{
+       "generate", " ", "a", " ", "random", " ", "sample", " ", "from", " ", 
+        "a", " ", "covariance", " ", "matrix"}], " ", "*)"}], 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"dim", "[", "squareMatrix_List", "]"}], ":=", 
+       RowBox[{"Length", "[", 
+        RowBox[{
+        "squareMatrix", "\[LeftDoubleBracket]", "1", 
+         "\[RightDoubleBracket]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"gen", "[", "P_", "]"}], ":=", 
+       RowBox[{"Module", "[", 
+        RowBox[{
+         RowBox[{"{", "\[Sigma]s", "}"}], ",", "\[IndentingNewLine]", 
+         RowBox[{
+          RowBox[{"\[Sigma]s", "=", 
+           RowBox[{"Sqrt", "/@", 
+            RowBox[{"Table", "[", 
+             RowBox[{
+              RowBox[{"P", "\[LeftDoubleBracket]", 
+               RowBox[{"i", ",", "i"}], "\[RightDoubleBracket]"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"i", ",", 
+                RowBox[{"dim", "[", "P", "]"}]}], "}"}]}], "]"}]}]}], ";", 
+          "\[IndentingNewLine]", 
+          RowBox[{"randn", "/@", "\[Sigma]s"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"eulerAccumulator", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"t_", ",", "x_"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"dt_", ",", "t_", ",", "Dx_"}], "}"}]}], "]"}], ":=", 
+       "\[IndentingNewLine]", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"t", "+", "dt"}], ",", 
+         RowBox[{"x", "+", 
+          RowBox[{"dt", " ", 
+           RowBox[{"Dx", "[", 
+            RowBox[{"x", ",", "t"}], "]"}]}]}]}], "}"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"rk2Accumulator", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"t_", ",", "x_"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"dt_", ",", "t_", ",", "Dx_"}], "}"}]}], "]"}], ":=", 
+       "\[IndentingNewLine]", 
+       RowBox[{"With", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"dx1", "=", 
+           RowBox[{"dt", " ", 
+            RowBox[{"Dx", "[", 
+             RowBox[{"x", ",", "t"}], "]"}]}]}], "}"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"With", "[", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"dx2", "=", 
+             RowBox[{"dt", " ", 
+              RowBox[{"Dx", "[", 
+               RowBox[{
+                RowBox[{"x", "+", 
+                 RowBox[{".5", "dx1"}]}], ",", 
+                RowBox[{"t", "+", 
+                 RowBox[{".5", "dt"}]}]}], "]"}]}]}], "}"}], ",", 
+           "\[IndentingNewLine]", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"t", "+", "dt"}], ",", 
+             RowBox[{"x", "+", 
+              RowBox[{
+               RowBox[{"(", 
+                RowBox[{"dx1", "+", "dx2"}], ")"}], "/", "2."}]}]}], "}"}]}], 
+          "]"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"rk4Accumulator", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"t_", ",", "x_"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"dt_", ",", "t_", ",", "Dx_"}], "}"}]}], "]"}], ":=", 
+       "\[IndentingNewLine]", 
+       RowBox[{"With", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"dx1", "=", 
+           RowBox[{"dt", " ", 
+            RowBox[{"Dx", "[", 
+             RowBox[{"x", ",", "t"}], "]"}]}]}], "}"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"With", "[", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"dx2", "=", 
+             RowBox[{"dt", " ", 
+              RowBox[{"Dx", "[", 
+               RowBox[{
+                RowBox[{"x", "+", 
+                 RowBox[{".5", "dx1"}]}], ",", 
+                RowBox[{"t", "+", 
+                 RowBox[{".5", "dt"}]}]}], "]"}]}]}], "}"}], ",", 
+           "\[IndentingNewLine]", 
+           RowBox[{"With", "[", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"dx3", "=", 
+               RowBox[{"dt", " ", 
+                RowBox[{"Dx", "[", 
+                 RowBox[{
+                  RowBox[{"x", "+", 
+                   RowBox[{".5", "dx2"}]}], ",", 
+                  RowBox[{"t", "+", 
+                   RowBox[{".5", "dt"}]}]}], "]"}]}]}], "}"}], ",", 
+             "\[IndentingNewLine]", 
+             RowBox[{"With", "[", 
+              RowBox[{
+               RowBox[{"{", 
+                RowBox[{"dx4", "=", 
+                 RowBox[{"dt", " ", 
+                  RowBox[{"Dx", "[", 
+                   RowBox[{
+                    RowBox[{"x", "+", "dx3"}], ",", 
+                    RowBox[{"t", "+", "dt"}]}], "]"}]}]}], "}"}], ",", 
+               "\[IndentingNewLine]", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"t", "+", "dt"}], ",", 
+                 RowBox[{"x", "+", 
+                  RowBox[{
+                   RowBox[{"(", 
+                    RowBox[{"dx1", "+", 
+                    RowBox[{"2.", "dx2"}], "+", 
+                    RowBox[{"2.", "dx3"}], "+", "dx4"}], ")"}], "/", 
+                   "6."}]}]}], "}"}]}], "]"}]}], "]"}]}], "]"}]}], "]"}]}], 
+      ";", "\[IndentingNewLine]", 
+      RowBox[{"With", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"g", "=", "32.2"}], ",", 
+          RowBox[{"A", "=", "0.0034"}], ",", 
+          RowBox[{"k", "=", "22000."}], ",", 
+          RowBox[{"beta", "=", "500."}]}], "}"}], ",", "\[IndentingNewLine]", 
+        
+        RowBox[{"Module", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+           "dragD", ",", "dragDStream", ",", "F21", ",", "F22", ",", "Phi", 
+            ",", "Xi", ",", "EKFDrag"}], "}"}], ",", "\[IndentingNewLine]", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"dragD", "[", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"x_", ",", "v_"}], "}"}], ",", "t_"}], "]"}], ":=", 
+            RowBox[{"{", 
+             RowBox[{"v", ",", 
+              RowBox[{"g", 
+               RowBox[{"(", 
+                RowBox[{
+                 RowBox[{"A", " ", 
+                  RowBox[{"Exp", "[", 
+                   RowBox[{
+                    RowBox[{"-", "x"}], "/", "k"}], "]"}], 
+                  RowBox[{
+                   SuperscriptBox["v", "2"], "/", 
+                   RowBox[{"(", 
+                    RowBox[{"2.", "beta"}], ")"}]}]}], "-", "1"}], ")"}]}]}], 
+             "}"}]}], ";", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"dragDStream", "[", 
+             RowBox[{"Delta", ":", 
+              RowBox[{"{", 
+               RowBox[{"dt_", ",", "t_", ",", "Dx_"}], "}"}]}], "]"}], ":=", 
+            RowBox[{"{", 
+             RowBox[{"Delta", ",", 
+              RowBox[{
+               RowBox[{"dragDStream", "[", 
+                RowBox[{"{", 
+                 RowBox[{"dt", ",", 
+                  RowBox[{"t", "+", "dt"}], ",", "Dx"}], "}"}], "]"}], 
+               "&"}]}], "}"}]}], ";", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"F21", "[", 
+             RowBox[{"x_", ",", "v_"}], "]"}], ":=", 
+            RowBox[{
+             RowBox[{"-", "A"}], " ", 
+             RowBox[{"Exp", "[", 
+              RowBox[{
+               RowBox[{"-", "x"}], "/", "k"}], "]"}], "g", " ", 
+             RowBox[{
+              SuperscriptBox["v", "2"], "/", 
+              RowBox[{"(", 
+               RowBox[{"2.", " ", "k", " ", "beta"}], ")"}]}]}]}], ";", 
+           "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"F22", "[", 
+             RowBox[{"x_", ",", "v_"}], "]"}], ":=", 
+            RowBox[{"A", " ", 
+             RowBox[{"Exp", "[", 
+              RowBox[{
+               RowBox[{"-", "x"}], "/", "k"}], "]"}], "g", " ", 
+             RowBox[{"v", "/", "beta"}]}]}], ";", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"Phi", "[", 
+             RowBox[{"dt_", ",", 
+              RowBox[{"{", 
+               RowBox[{"x_", ",", "v_"}], "}"}]}], "]"}], ":=", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"1", ",", "dt"}], "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{
+                RowBox[{"dt", "*", 
+                 RowBox[{"F21", "[", 
+                  RowBox[{"x", ",", "v"}], "]"}]}], ",", 
+                RowBox[{"1", "+", 
+                 RowBox[{"dt", "*", 
+                  RowBox[{"F22", "[", 
+                   RowBox[{"x", ",", "v"}], "]"}]}]}]}], "}"}]}], "}"}]}], 
+           ";", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"Xi", "[", 
+             RowBox[{"dt_", ",", 
+              RowBox[{"{", 
+               RowBox[{"x_", ",", "v_"}], "}"}]}], "]"}], ":=", 
+            RowBox[{"With", "[", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"f", "=", 
+                RowBox[{"F22", "[", 
+                 RowBox[{"x", ",", "v"}], "]"}]}], "}"}], ",", 
+              "\[IndentingNewLine]", 
+              RowBox[{"{", 
+               RowBox[{
+                RowBox[{"{", 
+                 RowBox[{
+                  RowBox[{
+                   RowBox[{"dt", "^", "3"}], "/", "3"}], ",", 
+                  RowBox[{
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"dt", "^", "2"}], "*", 
+                    RowBox[{"(", 
+                    RowBox[{"3", "+", 
+                    RowBox[{"2", "*", "dt", "*", "f"}]}], ")"}]}], ")"}], "/",
+                    "6"}]}], "}"}], ",", 
+                RowBox[{"{", 
+                 RowBox[{
+                  RowBox[{
+                   RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"dt", "^", "2"}], "*", 
+                    RowBox[{"(", 
+                    RowBox[{"3", "+", 
+                    RowBox[{"2", "*", "dt", "*", "f"}]}], ")"}]}], ")"}], "/",
+                    "6"}], ",", 
+                  RowBox[{"dt", "+", 
+                   RowBox[{
+                    RowBox[{"dt", "^", "2"}], "*", "f"}], "+", 
+                   RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"dt", "^", "3"}], "*", 
+                    RowBox[{"f", "^", "2"}]}], ")"}], "/", "3"}]}]}], "}"}]}],
+                "}"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"EKFDrag", "[", 
+              RowBox[{
+              "sigmaXi_", ",", "kZeta_", ",", "integrator_", ",", "fdt_", ",",
+                "idt_"}], "]"}], "[", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"x_", ",", "P_"}], "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"t_", ",", "A_", ",", "z_"}], "}"}]}], "]"}], ":=", 
+            "\[IndentingNewLine]", 
+            RowBox[{"Module", "[", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"x2", ",", "P2", ",", "kD", ",", "kK"}], "}"}], ",", 
+              "\[IndentingNewLine]", 
+              RowBox[{
+               RowBox[{"x2", "=", 
+                RowBox[{
+                 RowBox[{"last", "[", 
+                  RowBox[{"takeUntil", "[", 
+                   RowBox[{
+                    RowBox[{"foldStream", "[", 
+                    RowBox[{"integrator", ",", 
+                    RowBox[{"{", 
+                    RowBox[{"t", ",", "x"}], "}"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"dragDStream", "[", 
+                    RowBox[{"{", 
+                    RowBox[{"idt", ",", "t", ",", "dragD"}], "}"}], "]"}]}], 
+                    "]"}], ",", "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"First", "@", "#"}], ">", 
+                    RowBox[{"t", "+", "fdt"}]}], "&"}]}], "]"}], "]"}], 
+                 "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}], 
+               ";", "\[IndentingNewLine]", 
+               RowBox[{"P2", "=", 
+                RowBox[{
+                 RowBox[{
+                  SuperscriptBox["sigmaXi", "2"], 
+                  RowBox[{"Xi", "[", 
+                   RowBox[{"fdt", ",", "x"}], "]"}]}], "+", 
+                 RowBox[{
+                  RowBox[{"Phi", "[", 
+                   RowBox[{"fdt", ",", "x"}], "]"}], ".", "P", ".", 
+                  SuperscriptBox[
+                   RowBox[{"Phi", "[", 
+                    RowBox[{"fdt", ",", "x"}], "]"}], "\[Transpose]"]}]}]}], 
+               ";", "\[IndentingNewLine]", 
+               RowBox[{"kD", "=", 
+                RowBox[{"kZeta", "+", 
+                 RowBox[{"A", ".", "P2", ".", 
+                  SuperscriptBox["A", "\[Transpose]"]}]}]}], ";", 
+               "\[IndentingNewLine]", 
+               RowBox[{"kK", "=", 
+                RowBox[{"P2", ".", 
+                 SuperscriptBox["A", "\[Transpose]"], ".", 
+                 RowBox[{"Inverse", "[", "kD", "]"}]}]}], ";", 
+               "\[IndentingNewLine]", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"x2", "+", 
+                  RowBox[{"kK", ".", 
+                   RowBox[{"(", 
+                    RowBox[{"z", "-", 
+                    RowBox[{"A", ".", "x2"}]}], ")"}]}]}], ",", 
+                 RowBox[{"P2", "-", 
+                  RowBox[{"kK", ".", "kD", ".", 
+                   SuperscriptBox["kK", "\[Transpose]"]}]}]}], "}"}]}]}], 
+             "]"}]}], ";", "\[IndentingNewLine]", 
+           RowBox[{"Block", "[", 
+            RowBox[{
+             RowBox[{"{", "$IterationLimit", "}"}], ",", 
+             "\[IndentingNewLine]", 
+             RowBox[{"With", "[", 
+              RowBox[{
+               RowBox[{"{", 
+                RowBox[{"nStates", "=", "2"}], "}"}], ",", 
+               "\[IndentingNewLine]", 
+               RowBox[{"With", "[", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{
+                   RowBox[{"t0", "=", "0."}], ",", 
+                   RowBox[{"t1", "=", "30."}], ",", 
+                   RowBox[{"filterDt", "=", "0.1"}]}], "}"}], ",", 
+                 "\[IndentingNewLine]", 
+                 RowBox[{"With", "[", 
+                  RowBox[{
+                   RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"x0", "=", "200000"}], ",", 
+                    RowBox[{"v0", "=", 
+                    RowBox[{"-", "6000"}]}], ",", 
+                    RowBox[{"\[CapitalZeta]", "=", 
+                    RowBox[{
+                    SuperscriptBox["sigmaZeta", "2"], 
+                    RowBox[{"IdentityMatrix", "[", "1", "]"}]}]}], ",", 
+                    RowBox[{"P0", "=", 
+                    RowBox[{"1000000000000", 
+                    RowBox[{"IdentityMatrix", "[", "nStates", "]"}]}]}]}], 
+                    "}"}], ",", "\[IndentingNewLine]", 
+                   RowBox[{"Module", "[", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"fakes", ",", 
+                    RowBox[{"integrators", "=", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    "eulerAccumulator", ",", "rk2Accumulator", ",", 
+                    "rk4Accumulator"}], "}"}]}], ",", "\[IndentingNewLine]", 
+                    "integrationDt"}], "}"}], ",", "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"fakes", "[", "]"}], ":=", 
+                    RowBox[{"foldStream", "[", 
+                    RowBox[{"rk4Accumulator", ",", 
+                    RowBox[{"{", 
+                    RowBox[{"t0", ",", 
+                    RowBox[{"{", 
+                    RowBox[{"x0", ",", "v0"}], "}"}]}], "}"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"dragDStream", "[", 
+                    RowBox[{"{", 
+                    RowBox[{"filterDt", ",", "t0", ",", "dragD"}], "}"}], 
+                    "]"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+                    RowBox[{"integrationDt", "=", 
+                    RowBox[{"10.0", "^", "logIntegratorDt"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"SeedRandom", "[", "randomSeed", "]"}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"Module", "[", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    "ffs", ",", "rffs", ",", "ts", ",", "xvs", ",", "xss", 
+                    ",", "vss", ",", "txs", ",", "tvs", ",", "ps", ",", 
+                    "sigmaxs", ",", "sigmavs"}], "}"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{"xss", "=", 
+                    RowBox[{"ConstantArray", "[", 
+                    RowBox[{"0", ",", "nIterations"}], "]"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"vss", "=", 
+                    RowBox[{"ConstantArray", "[", 
+                    RowBox[{"0", ",", "nIterations"}], "]"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"ffs", "=", 
+                    RowBox[{"takeUntil", "[", 
+                    RowBox[{
+                    RowBox[{"fakes", "[", "]"}], ",", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"First", "@", "#"}], ">", "t1"}], "&"}]}], 
+                    "]"}]}], ";", "\[IndentingNewLine]", 
+                    RowBox[{"rffs", "=", 
+                    RowBox[{"reify", "@", "ffs"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"ts", "=", 
+                    RowBox[{
+                    RowBox[{"pick", "[", "1", "]"}], "/@", "rffs"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"txs", "=", 
+                    RowBox[{
+                    RowBox[{"pick", "[", 
+                    RowBox[{"2", ",", "1"}], "]"}], "/@", "rffs"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"tvs", "=", 
+                    RowBox[{
+                    RowBox[{"pick", "[", 
+                    RowBox[{"2", ",", "2"}], "]"}], "/@", "rffs"}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"xss", ",", "vss"}], "}"}], "=", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"Map", "[", "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"xvs", ",", "ps"}], "}"}], "=", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"Rest", "@", 
+                    RowBox[{"reify", "@", 
+                    RowBox[{"foldStream", "[", "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{"EKFDrag", "[", 
+                    RowBox[{"sigmaXi", ",", "\[CapitalZeta]", ",", 
+                    RowBox[{"integrators", "[", 
+                    RowBox[{"[", "integrator", "]"}], "]"}], ",", "filterDt", 
+                    ",", "integrationDt"}], "]"}], ",", "\[IndentingNewLine]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"0", ",", "0"}], "}"}], ",", "P0"}], "}"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"mapStream", "[", 
+                    RowBox[{"ffs", ",", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{
+                    "#", "\[LeftDoubleBracket]", "1", 
+                    "\[RightDoubleBracket]"}], ",", 
+                    RowBox[{"(", GridBox[{
+                    {"1", "0"}
+                    }], ")"}], ",", 
+                    RowBox[{
+                    RowBox[{"#", "\[LeftDoubleBracket]", 
+                    RowBox[{"2", ",", "1"}], "\[RightDoubleBracket]"}], "+", 
+                    RowBox[{"gen", "[", "\[CapitalZeta]", "]"}]}]}], "}"}], 
+                    "&"}]}], "]"}]}], "]"}]}]}]}]}], ";", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"sigmaxs", "=", 
+                    RowBox[{"Sqrt", "[", 
+                    RowBox[{
+                    RowBox[{"pick", "[", 
+                    RowBox[{"1", ",", "1"}], "]"}], "/@", "ps"}], "]"}]}], 
+                    ";", "\[IndentingNewLine]", 
+                    RowBox[{"sigmavs", "=", 
+                    RowBox[{"Sqrt", "[", 
+                    RowBox[{
+                    RowBox[{"pick", "[", 
+                    RowBox[{"2", ",", "2"}], "]"}], "/@", "ps"}], "]"}]}], 
+                    ";", "\[IndentingNewLine]", 
+                    RowBox[{"Transpose", "@", "xvs"}]}], ")"}], "&"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"Range", "[", "nIterations", "]"}]}], "]"}]}]}], 
+                    ";", "\[IndentingNewLine]", 
+                    RowBox[{"Grid", "[", 
+                    RowBox[{"{", "\[IndentingNewLine]", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"ListPlot", "[", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{"Transpose", "/@", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "#"}], "}"}], "&"}], "/@", "xss"}], 
+                    ")"}]}], ")"}], "~", "Join", "~", 
+                    RowBox[{"{", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "txs"}], "}"}]}], "}"}]}], ",", 
+                    RowBox[{"ImageSize", "\[Rule]", "Medium"}], ",", 
+                    RowBox[{"GridLines", "\[Rule]", "Full"}], ",", 
+                    RowBox[{"Frame", "\[Rule]", "True"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"FrameLabel", "\[Rule]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"\"\<h/[ft]\>\"", ",", "\"\<\>\""}], "}"}], ",", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<Time/[s]\>\"", ",", "\"\<Height vs. Time\>\""}], 
+                    "}"}]}], "}"}]}]}], "]"}], ",", 
+                    RowBox[{"ListPlot", "[", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{"Transpose", "/@", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "#"}], "}"}], "&"}], "/@", "vss"}], 
+                    ")"}]}], ")"}], "~", "Join", "~", 
+                    RowBox[{"{", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "tvs"}], "}"}]}], "}"}]}], ",", 
+                    RowBox[{"ImageSize", "\[Rule]", "Medium"}], ",", 
+                    RowBox[{"GridLines", "\[Rule]", "Full"}], ",", 
+                    RowBox[{"Frame", "\[Rule]", "True"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"FrameLabel", "\[Rule]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]\>\"", 
+                    ",", "\"\<\>\""}], "}"}], ",", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<Time/[s]\>\"", ",", "\"\<Speed vs. Time\>\""}], 
+                    "}"}]}], "}"}]}]}], "]"}]}], "}"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"ListPlot", "[", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{"Transpose", "/@", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", 
+                    RowBox[{"txs", "-", "#"}]}], "}"}], "&"}], "/@", "xss"}], 
+                    ")"}]}], ")"}], "~", "Join", "~", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "sigmaxs"}], "}"}]}], ",", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", 
+                    RowBox[{"-", "sigmaxs"}]}], "}"}]}]}], "}"}]}], ",", 
+                    RowBox[{"ImageSize", "\[Rule]", "Medium"}], ",", 
+                    RowBox[{"GridLines", "\[Rule]", "Full"}], ",", 
+                    RowBox[{"Frame", "\[Rule]", "True"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"FrameLabel", "\[Rule]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<\[CapitalDelta]h/[ft]\>\"", ",", "\"\<\>\""}], "}"}],
+                     ",", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<Time/[s]\>\"", ",", 
+                    "\"\<Height Residual vs. Time\>\""}], "}"}]}], "}"}]}]}], 
+                    "]"}], ",", 
+                    RowBox[{"ListPlot", "[", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{"Transpose", "/@", 
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", 
+                    RowBox[{"tvs", "-", "#"}]}], "}"}], "&"}], "/@", "vss"}], 
+                    ")"}]}], ")"}], "~", "Join", "~", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", "sigmavs"}], "}"}]}], ",", 
+                    RowBox[{"Transpose", "@", 
+                    RowBox[{"{", 
+                    RowBox[{"ts", ",", 
+                    RowBox[{"-", "sigmavs"}]}], "}"}]}]}], "}"}]}], ",", 
+                    RowBox[{"ImageSize", "\[Rule]", "Medium"}], ",", 
+                    RowBox[{"GridLines", "\[Rule]", "Full"}], ",", 
+                    RowBox[{"Frame", "\[Rule]", "True"}], ",", 
+                    "\[IndentingNewLine]", 
+                    RowBox[{"FrameLabel", "\[Rule]", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]\>\"", ",", "\"\<\>\""}], "}"}], ",", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    "\"\<Time/[s]\>\"", ",", 
+                    "\"\<Speed Residual vs. Time\>\""}], "}"}]}], "}"}]}]}], 
+                    "]"}]}], "}"}]}], "}"}], "]"}]}]}], "]"}]}]}], 
+                    "\[IndentingNewLine]", "]"}]}], "]"}]}], "]"}]}], "]"}]}],
+             "]"}]}]}], "]"}]}], "]"}]}]}], "]"}], ",", "\[IndentingNewLine]", 
+   RowBox[{"Grid", "[", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"sigmaZeta", ",", "26"}], "}"}], ",", "1", ",", "1000", 
+           ",", "5", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], "]"}], 
+        ",", 
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"sigmaXi", ",", "0"}], "}"}], ",", "0", ",", "1000", ",", 
+           "5", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], 
+         "]"}]}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"nIterations", ",", "2"}], "}"}], ",", "1", ",", "25", 
+           ",", "1", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], "]"}], 
+        ",", 
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"randomSeed", ",", "42"}], "}"}], ",", "42", ",", "142", 
+           ",", "1", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], 
+         "]"}]}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"integrator", ",", "1"}], "}"}], ",", "1", ",", "3", ",", 
+           "1", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], "]"}], 
+        ",", 
+        RowBox[{"Control", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"logIntegratorDt", ",", 
+             RowBox[{"-", "1"}]}], "}"}], ",", 
+           RowBox[{"-", "3"}], ",", 
+           RowBox[{"-", "1"}], ",", "1", ",", 
+           RowBox[{"Appearance", "\[Rule]", "\"\<Open\>\""}]}], "}"}], 
+         "]"}]}], "}"}]}], "}"}], "]"}]}], "]"}]], "Input",
+ CellChangeTimes->{
+  3.672316323818122*^9, {3.672316964107842*^9, 3.672316964209087*^9}, 
+   3.67231722473067*^9, {3.67231733246135*^9, 3.672317333714018*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`integrator$$ = 
+    1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+    2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+    0, $CellContext`sigmaZeta$$ = 26, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`sigmaZeta$$], 26}, 1, 1000, 5}, {{
+       Hold[$CellContext`sigmaXi$$], 0}, 0, 1000, 5}, {{
+       Hold[$CellContext`nIterations$$], 2}, 1, 25, 1}, {{
+       Hold[$CellContext`randomSeed$$], 42}, 42, 142, 1}, {{
+       Hold[$CellContext`integrator$$], 1}, 1, 3, 1}, {{
+       Hold[$CellContext`logIntegratorDt$$], -1}, -3, -1, 1}, {
+      Hold[
+       Grid[{{
+          Manipulate`Place[1], 
+          Manipulate`Place[2]}, {
+          Manipulate`Place[3], 
+          Manipulate`Place[4]}, {
+          Manipulate`Place[5], 
+          Manipulate`Place[6]}}]], Manipulate`Dump`ThisIsNotAControl}}, 
+    Typeset`size$$ = {728., {233.3544921875, 238.6455078125}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`sigmaZeta$21694$$ = 0, $CellContext`sigmaXi$21695$$ = 
+    0, $CellContext`nIterations$21696$$ = 0, $CellContext`randomSeed$21697$$ =
+     0, $CellContext`integrator$21698$$ = 
+    0, $CellContext`logIntegratorDt$21699$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     2, StandardForm, 
+      "Variables" :> {$CellContext`integrator$$ = 
+        1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+        2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+        0, $CellContext`sigmaZeta$$ = 26}, "ControllerVariables" :> {
+        Hold[$CellContext`sigmaZeta$$, $CellContext`sigmaZeta$21694$$, 0], 
+        Hold[$CellContext`sigmaXi$$, $CellContext`sigmaXi$21695$$, 0], 
+        Hold[$CellContext`nIterations$$, $CellContext`nIterations$21696$$, 0], 
+        Hold[$CellContext`randomSeed$$, $CellContext`randomSeed$21697$$, 0], 
+        Hold[$CellContext`integrator$$, $CellContext`integrator$21698$$, 0], 
+        Hold[$CellContext`logIntegratorDt$$, \
+$CellContext`logIntegratorDt$21699$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Module[{$CellContext`foldStream$, $CellContext`reify$, \
+$CellContext`takeUntil$, $CellContext`last$, $CellContext`mapStream$, \
+$CellContext`pick$, $CellContext`randn$, $CellContext`dim$, \
+$CellContext`gen$, $CellContext`eulerAccumulator$, \
+$CellContext`rk2Accumulator$, $CellContext`rk4Accumulator$}, \
+$CellContext`foldStream$[
+           Pattern[$CellContext`f, 
+            Blank[]], 
+           Pattern[$CellContext`s, 
+            Blank[]], 
+           Null[]] := {$CellContext`s, Null}; $CellContext`foldStream$[
+           Pattern[$CellContext`f$, 
+            Blank[]], 
+           Pattern[$CellContext`s$, 
+            Blank[]], {
+            Pattern[$CellContext`z$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             
+             Blank[]]}] := {$CellContext`s$, \
+$CellContext`foldStream$[$CellContext`f$, 
+            $CellContext`f$[$CellContext`s$, $CellContext`z$], 
+            $CellContext`thunk$[]]& }; $CellContext`reify$[
+           Null[]] := {}; $CellContext`reify$[{
+            Pattern[$CellContext`v, 
+             Blank[]], Null}] := {$CellContext`v}; $CellContext`reify$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := Join[{$CellContext`v$}, 
+           $CellContext`reify$[
+            $CellContext`thunk$[]]]; $CellContext`takeUntil$[
+           Null[], 
+           Blank[]] := Null[]; Condition[
+           $CellContext`takeUntil$[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, 
+            Pattern[$CellContext`predicate, 
+             Blank[]]], 
+           $CellContext`predicate[$CellContext`v]] := 
+         Null[]; $CellContext`takeUntil$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`predicate$, 
+            Blank[]]] := {$CellContext`v$, $CellContext`takeUntil$[
+            $CellContext`thunk$[], $CellContext`predicate$]& }; \
+$CellContext`last$[
+           Null[]] := Null; $CellContext`last$[
+           Condition[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, $CellContext`thunk[] === 
+            Null[]]] := $CellContext`v; $CellContext`last$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := $CellContext`last$[
+           $CellContext`thunk$[]]; $CellContext`mapStream$[
+           Null[], 
+           Blank[]] := Null[]; $CellContext`mapStream$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`f$, 
+            Blank[]]] := {
+           $CellContext`f$[$CellContext`v$], $CellContext`mapStream$[
+            $CellContext`thunk$[], $CellContext`f$]& }; $CellContext`pick$[
+           Pattern[$CellContext`n, 
+            Blank[]]] := Part[#, $CellContext`n]& ; $CellContext`pick$[
+           Pattern[$CellContext`m, 
+            Blank[]], 
+           Pattern[$CellContext`n, 
+            Blank[]]] := 
+         Part[#, $CellContext`m, $CellContext`n]& ; $CellContext`randn$[
+           Optional[
+            Pattern[$CellContext`sigma, 
+             Blank[]], 1.]] := If[Chop[$CellContext`sigma] == 0., 0., 
+           RandomVariate[
+            NormalDistribution[0., $CellContext`sigma]]]; $CellContext`dim$[
+           Pattern[$CellContext`squareMatrix, 
+            Blank[List]]] := Length[
+           Part[$CellContext`squareMatrix, 1]]; $CellContext`gen$[
+           Pattern[$CellContext`P$, 
+            Blank[]]] := 
+         Module[{$CellContext`\[Sigma]s$}, $CellContext`\[Sigma]s$ = Map[Sqrt, 
+              Table[
+               
+               Part[$CellContext`P$, $CellContext`i, $CellContext`i], \
+{$CellContext`i, 
+                $CellContext`dim$[$CellContext`P$]}]]; 
+           Map[$CellContext`randn$, $CellContext`\[Sigma]s$]]; \
+$CellContext`eulerAccumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             
+             Blank[]]}] := {$CellContext`t + $CellContext`dt, $CellContext`x + \
+$CellContext`dt $CellContext`Dx[$CellContext`x, $CellContext`t]}; \
+$CellContext`rk2Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, {$CellContext`t + $CellContext`dt, \
+$CellContext`x + ($CellContext`dx1 + $CellContext`dx2)/
+              2.}]]; $CellContext`rk4Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, 
+            
+            With[{$CellContext`dx3 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx2, $CellContext`t + 
+                 0.5 $CellContext`dt]}, 
+             
+             With[{$CellContext`dx4 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + $CellContext`dx3, $CellContext`t + \
+$CellContext`dt]}, {$CellContext`t + $CellContext`dt, $CellContext`x + \
+($CellContext`dx1 + 2. $CellContext`dx2 + 
+                 2. $CellContext`dx3 + $CellContext`dx4)/6.}]]]]; 
+        With[{$CellContext`g$ = 32.2, $CellContext`A$ = 
+           0.0034, $CellContext`k$ = 22000., $CellContext`beta$ = 500.}, 
+          
+          Module[{$CellContext`dragD$, $CellContext`dragDStream$, \
+$CellContext`F21$, $CellContext`F22$, $CellContext`Phi$, $CellContext`Xi$, \
+$CellContext`EKFDrag$}, $CellContext`dragD$[{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}, 
+              Pattern[$CellContext`t$, 
+               
+               Blank[]]] := {$CellContext`v$, $CellContext`g$ \
+($CellContext`A$ 
+                Exp[(-$CellContext`x$)/$CellContext`k$] ($CellContext`v$^2/(
+                 2. $CellContext`beta$)) - 1)}; $CellContext`dragDStream$[
+              Pattern[$CellContext`Delta$, {
+                Pattern[$CellContext`dt$, 
+                 Blank[]], 
+                Pattern[$CellContext`t$, 
+                 Blank[]], 
+                Pattern[$CellContext`Dx$, 
+                 
+                 Blank[]]}]] := {$CellContext`Delta$, \
+$CellContext`dragDStream$[{$CellContext`dt$, $CellContext`t$ + \
+$CellContext`dt$, $CellContext`Dx$}]& }; $CellContext`F21$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := (-$CellContext`A$) 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$^2/(2. $CellContext`k$ $CellContext`beta$)); $CellContext`F22$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := $CellContext`A$ 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$/$CellContext`beta$); $CellContext`Phi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := {{
+              1, $CellContext`dt$}, {$CellContext`dt$ \
+$CellContext`F21$[$CellContext`x$, $CellContext`v$], 
+               1 + $CellContext`dt$ $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}}; $CellContext`Xi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := 
+            With[{$CellContext`f$ = $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}, {{$CellContext`dt$^3/
+                3, ($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6}, {($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6, $CellContext`dt$ + $CellContext`dt$^2 $CellContext`f$ + \
+($CellContext`dt$^3 $CellContext`f$^2)/3}}]; $CellContext`EKFDrag$[
+              Pattern[$CellContext`sigmaXi$, 
+               Blank[]], 
+              Pattern[$CellContext`kZeta$, 
+               Blank[]], 
+              Pattern[$CellContext`integrator$, 
+               Blank[]], 
+              Pattern[$CellContext`fdt$, 
+               Blank[]], 
+              Pattern[$CellContext`idt$, 
+               Blank[]]][{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`P$, 
+                Blank[]]}, {
+               Pattern[$CellContext`t$, 
+                Blank[]], 
+               Pattern[$CellContext`A$, 
+                Blank[]], 
+               Pattern[$CellContext`z$, 
+                Blank[]]}] := 
+            Module[{$CellContext`x2$, $CellContext`P2$, $CellContext`kD$, \
+$CellContext`kK$}, $CellContext`x2$ = Part[
+                 $CellContext`last$[
+                  $CellContext`takeUntil$[
+                   $CellContext`foldStream$[$CellContext`integrator$, \
+{$CellContext`t$, $CellContext`x$}, 
+                    $CellContext`dragDStream$[{$CellContext`idt$, \
+$CellContext`t$, $CellContext`dragD$}]], 
+                   First[#] > $CellContext`t$ + $CellContext`fdt$& ]], 
+                 2]; $CellContext`P2$ = $CellContext`sigmaXi$^2 \
+$CellContext`Xi$[$CellContext`fdt$, $CellContext`x$] + Dot[
+                  $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$], \
+$CellContext`P$, 
+                  Transpose[
+                   $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$]]]; \
+$CellContext`kD$ = $CellContext`kZeta$ + 
+                Dot[$CellContext`A$, $CellContext`P2$, 
+                  Transpose[$CellContext`A$]]; $CellContext`kK$ = 
+               Dot[$CellContext`P2$, 
+                 Transpose[$CellContext`A$], 
+                 Inverse[$CellContext`kD$]]; {$CellContext`x2$ + 
+                Dot[$CellContext`kK$, $CellContext`z$ - 
+                  Dot[$CellContext`A$, $CellContext`x2$]], $CellContext`P2$ - 
+                Dot[$CellContext`kK$, $CellContext`kD$, 
+                 Transpose[$CellContext`kK$]]}]; Block[{$IterationLimit}, 
+             With[{$CellContext`nStates$ = 2}, 
+              
+              With[{$CellContext`t0$ = 0., $CellContext`t1$ = 
+                30., $CellContext`filterDt$ = 0.1}, 
+               
+               With[{$CellContext`x0$ = 
+                 200000, $CellContext`v0$ = -6000, \
+$CellContext`\[CapitalZeta]$ = $CellContext`sigmaZeta$$^2 
+                  IdentityMatrix[1], $CellContext`P0$ = 
+                 1000000000000 IdentityMatrix[$CellContext`nStates$]}, 
+                
+                Module[{$CellContext`fakes$, $CellContext`integrators$ = \
+{$CellContext`eulerAccumulator$, $CellContext`rk2Accumulator$, \
+$CellContext`rk4Accumulator$}, $CellContext`integrationDt$}, \
+$CellContext`fakes$[] := \
+$CellContext`foldStream$[$CellContext`rk4Accumulator$, {$CellContext`t0$, \
+{$CellContext`x0$, $CellContext`v0$}}, 
+                    $CellContext`dragDStream$[{$CellContext`filterDt$, \
+$CellContext`t0$, $CellContext`dragD$}]]; $CellContext`integrationDt$ = 
+                  10.^$CellContext`logIntegratorDt$$; 
+                 SeedRandom[$CellContext`randomSeed$$]; 
+                 Module[{$CellContext`ffs$, $CellContext`rffs$, \
+$CellContext`ts$, $CellContext`xvs$, $CellContext`xss$, $CellContext`vss$, \
+$CellContext`txs$, $CellContext`tvs$, $CellContext`ps$, \
+$CellContext`sigmaxs$, $CellContext`sigmavs$}, $CellContext`xss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`vss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`ffs$ = \
+$CellContext`takeUntil$[
+                    $CellContext`fakes$[], 
+                    First[#] > $CellContext`t1$& ]; $CellContext`rffs$ = \
+$CellContext`reify$[$CellContext`ffs$]; $CellContext`ts$ = Map[
+                    $CellContext`pick$[
+                    1], $CellContext`rffs$]; $CellContext`txs$ = Map[
+                    $CellContext`pick$[
+                    2, 1], $CellContext`rffs$]; $CellContext`tvs$ = Map[
+                    $CellContext`pick$[
+                    2, 2], $CellContext`rffs$]; {$CellContext`xss$, \
+$CellContext`vss$} = Transpose[
+                    Map[({$CellContext`xvs$, $CellContext`ps$} = Transpose[
+                    Rest[
+                    $CellContext`reify$[
+                    $CellContext`foldStream$[
+                    $CellContext`EKFDrag$[$CellContext`sigmaXi$$, \
+$CellContext`\[CapitalZeta]$, 
+                    
+                    Part[$CellContext`integrators$, \
+$CellContext`integrator$$], $CellContext`filterDt$, \
+$CellContext`integrationDt$], {{0, 0}, $CellContext`P0$}, 
+                    $CellContext`mapStream$[$CellContext`ffs$, {
+                    Part[#, 1], {{1, 0}}, 
+                    Part[#, 2, 
+                    1] + $CellContext`gen$[$CellContext`\[CapitalZeta]$]}& \
+]]]]]; $CellContext`sigmaxs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[
+                    1, 1], $CellContext`ps$]]; $CellContext`sigmavs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[2, 2], $CellContext`ps$]]; 
+                    Transpose[$CellContext`xvs$])& , 
+                    Range[$CellContext`nIterations$$]]]; Grid[{{
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`txs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"h/[ft]", ""}, {
+                    "Time/[s]", "Height vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`tvs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]", ""}, {
+                    "Time/[s]", "Speed vs. Time"}}]}, {
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`txs$ - #}& , \
+$CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmaxs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmaxs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"\[CapitalDelta]h/[ft]", ""}, {
+                    "Time/[s]", "Height Residual vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`tvs$ - #}& , \
+$CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmavs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmavs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]", ""}, {"Time/[s]", "Speed Residual vs. Time"}}]}}]]]]]]]]]], 
+      "Specifications" :> {{{$CellContext`sigmaZeta$$, 26}, 1, 1000, 5, 
+         Appearance -> "Open", ControlPlacement -> 
+         1}, {{$CellContext`sigmaXi$$, 0}, 0, 1000, 5, Appearance -> "Open", 
+         ControlPlacement -> 2}, {{$CellContext`nIterations$$, 2}, 1, 25, 1, 
+         Appearance -> "Open", ControlPlacement -> 
+         3}, {{$CellContext`randomSeed$$, 42}, 42, 142, 1, Appearance -> 
+         "Open", ControlPlacement -> 4}, {{$CellContext`integrator$$, 1}, 1, 
+         3, 1, Appearance -> "Open", ControlPlacement -> 
+         5}, {{$CellContext`logIntegratorDt$$, -1}, -3, -1, 1, Appearance -> 
+         "Open", ControlPlacement -> 6}, 
+        Grid[{{
+           Manipulate`Place[1], 
+           Manipulate`Place[2]}, {
+           Manipulate`Place[3], 
+           Manipulate`Place[4]}, {
+           Manipulate`Place[5], 
+           Manipulate`Place[6]}}]}, "Options" :> {}, 
+      "DefaultOptions" :> {ControllerLinking -> True}],
+     ImageSizeCache->{771., {348., 353.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{3.6723172306087112`*^9, 3.67231733489942*^9},
+ CellID->1760532979]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "ManipulateCaptionSection"],
+
+Cell[TextData[{
+ "An interactive version of an example from Zarchan & Musoff, ",
+ StyleBox["Fundamentals of Kalman Filtering",
+  FontSlant->"Italic"],
+ ", fourth edition: AIAA, chapter 7, for estimating height and speed of a \
+falling object that experiences aerodynamic drag. You may interactively \
+adjust observation noise (sigmaZeta), process noise (sigmaXi), number of \
+Monte-Carlo iterations, the random seed, the internal integrator for the \
+nonlinear differential equations of motion (euler, second-order Runge-Kutta, \
+fourth-order Runge-Kutta), and the logarithm of the internal integration time \
+step in seconds (-3, -2, -1). The filter diverges for many settings and \
+converges for some with varying levels of speed of execution. Convergence \
+means the dots stay mostly inside the one-sigma rails on the residuals plots. \
+The goal is to find the settings that yield convergence with the fastest \
+execution time. Some of the settings are sluggish (on purpose), so be patient \
+when clicking."
+}], "ManipulateCaption",
+ CellChangeTimes->{{3.672316408023155*^9, 3.6723167926698933`*^9}, {
+  3.672317466067827*^9, 3.672317467747848*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "ThumbnailSection"],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`integrator$$ = 
+    3, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+    7, $CellContext`randomSeed$$ = 101, $CellContext`sigmaXi$$ = 
+    0, $CellContext`sigmaZeta$$ = 21, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`sigmaZeta$$], 25}, 1, 1000, 5}, {{
+       Hold[$CellContext`sigmaXi$$], 0}, 0, 1000, 5}, {{
+       Hold[$CellContext`nIterations$$], 2}, 1, 25, 1}, {{
+       Hold[$CellContext`randomSeed$$], 42}, 42, 142, 1}, {{
+       Hold[$CellContext`integrator$$], 1}, 1, 3, 1}, {{
+       Hold[$CellContext`logIntegratorDt$$], -1}, -3, -1, 1}, {
+      Hold[
+       Grid[{{
+          Manipulate`Place[1], 
+          Manipulate`Place[2]}, {
+          Manipulate`Place[3], 
+          Manipulate`Place[4]}, {
+          Manipulate`Place[5], 
+          Manipulate`Place[6]}}]], Manipulate`Dump`ThisIsNotAControl}}, 
+    Typeset`size$$ = {728., {233.3544921875, 238.6455078125}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`sigmaZeta$9891$$ = 0, $CellContext`sigmaXi$9892$$ = 
+    0, $CellContext`nIterations$9893$$ = 0, $CellContext`randomSeed$9894$$ = 
+    0, $CellContext`integrator$9895$$ = 
+    0, $CellContext`logIntegratorDt$9896$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     2, StandardForm, 
+      "Variables" :> {$CellContext`integrator$$ = 
+        1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+        2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+        0, $CellContext`sigmaZeta$$ = 25}, "ControllerVariables" :> {
+        Hold[$CellContext`sigmaZeta$$, $CellContext`sigmaZeta$9891$$, 0], 
+        Hold[$CellContext`sigmaXi$$, $CellContext`sigmaXi$9892$$, 0], 
+        Hold[$CellContext`nIterations$$, $CellContext`nIterations$9893$$, 0], 
+        
+        Hold[$CellContext`randomSeed$$, $CellContext`randomSeed$9894$$, 0], 
+        Hold[$CellContext`integrator$$, $CellContext`integrator$9895$$, 0], 
+        Hold[$CellContext`logIntegratorDt$$, \
+$CellContext`logIntegratorDt$9896$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Module[{$CellContext`foldStream$, $CellContext`reify$, \
+$CellContext`takeUntil$, $CellContext`last$, $CellContext`mapStream$, \
+$CellContext`pick$, $CellContext`randn$, $CellContext`dim$, \
+$CellContext`gen$, $CellContext`eulerAccumulator$, \
+$CellContext`rk2Accumulator$, $CellContext`rk4Accumulator$}, \
+$CellContext`foldStream$[
+           Pattern[$CellContext`f, 
+            Blank[]], 
+           Pattern[$CellContext`s, 
+            Blank[]], 
+           Null[]] := {$CellContext`s, Null}; $CellContext`foldStream$[
+           Pattern[$CellContext`f$, 
+            Blank[]], 
+           Pattern[$CellContext`s$, 
+            Blank[]], {
+            Pattern[$CellContext`z$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             
+             Blank[]]}] := {$CellContext`s$, \
+$CellContext`foldStream$[$CellContext`f$, 
+            $CellContext`f$[$CellContext`s$, $CellContext`z$], 
+            $CellContext`thunk$[]]& }; $CellContext`reify$[
+           Null[]] := {}; $CellContext`reify$[{
+            Pattern[$CellContext`v, 
+             Blank[]], Null}] := {$CellContext`v}; $CellContext`reify$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := Join[{$CellContext`v$}, 
+           $CellContext`reify$[
+            $CellContext`thunk$[]]]; $CellContext`takeUntil$[
+           Null[], 
+           Blank[]] := Null[]; Condition[
+           $CellContext`takeUntil$[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, 
+            Pattern[$CellContext`predicate, 
+             Blank[]]], 
+           $CellContext`predicate[$CellContext`v]] := 
+         Null[]; $CellContext`takeUntil$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`predicate$, 
+            Blank[]]] := {$CellContext`v$, $CellContext`takeUntil$[
+            $CellContext`thunk$[], $CellContext`predicate$]& }; \
+$CellContext`last$[
+           Null[]] := Null; $CellContext`last$[
+           Condition[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, $CellContext`thunk[] === 
+            Null[]]] := $CellContext`v; $CellContext`last$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := $CellContext`last$[
+           $CellContext`thunk$[]]; $CellContext`mapStream$[
+           Null[], 
+           Blank[]] := Null[]; $CellContext`mapStream$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`f$, 
+            Blank[]]] := {
+           $CellContext`f$[$CellContext`v$], $CellContext`mapStream$[
+            $CellContext`thunk$[], $CellContext`f$]& }; $CellContext`pick$[
+           Pattern[$CellContext`n, 
+            Blank[]]] := Part[#, $CellContext`n]& ; $CellContext`pick$[
+           Pattern[$CellContext`m, 
+            Blank[]], 
+           Pattern[$CellContext`n, 
+            Blank[]]] := 
+         Part[#, $CellContext`m, $CellContext`n]& ; $CellContext`randn$[
+           Optional[
+            Pattern[$CellContext`sigma, 
+             Blank[]], 1.]] := If[Chop[$CellContext`sigma] == 0., 0., 
+           RandomVariate[
+            NormalDistribution[0., $CellContext`sigma]]]; $CellContext`dim$[
+           Pattern[$CellContext`squareMatrix, 
+            Blank[List]]] := Length[
+           Part[$CellContext`squareMatrix, 1]]; $CellContext`gen$[
+           Pattern[$CellContext`P$, 
+            Blank[]]] := 
+         Module[{$CellContext`\[Sigma]s$}, $CellContext`\[Sigma]s$ = Map[Sqrt, 
+              Table[
+               
+               Part[$CellContext`P$, $CellContext`i, $CellContext`i], \
+{$CellContext`i, 
+                $CellContext`dim$[$CellContext`P$]}]]; 
+           Map[$CellContext`randn$, $CellContext`\[Sigma]s$]]; \
+$CellContext`eulerAccumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             
+             Blank[]]}] := {$CellContext`t + $CellContext`dt, $CellContext`x + \
+$CellContext`dt $CellContext`Dx[$CellContext`x, $CellContext`t]}; \
+$CellContext`rk2Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, {$CellContext`t + $CellContext`dt, \
+$CellContext`x + ($CellContext`dx1 + $CellContext`dx2)/
+              2.}]]; $CellContext`rk4Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, 
+            
+            With[{$CellContext`dx3 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx2, $CellContext`t + 
+                 0.5 $CellContext`dt]}, 
+             
+             With[{$CellContext`dx4 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + $CellContext`dx3, $CellContext`t + \
+$CellContext`dt]}, {$CellContext`t + $CellContext`dt, $CellContext`x + \
+($CellContext`dx1 + 2. $CellContext`dx2 + 
+                 2. $CellContext`dx3 + $CellContext`dx4)/6.}]]]]; 
+        With[{$CellContext`g$ = 32.2, $CellContext`A$ = 
+           0.0034, $CellContext`k$ = 22000., $CellContext`beta$ = 500.}, 
+          
+          Module[{$CellContext`dragD$, $CellContext`dragDStream$, \
+$CellContext`F21$, $CellContext`F22$, $CellContext`Phi$, $CellContext`Xi$, \
+$CellContext`EKFDrag$}, $CellContext`dragD$[{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}, 
+              Pattern[$CellContext`t$, 
+               
+               Blank[]]] := {$CellContext`v$, $CellContext`g$ \
+($CellContext`A$ 
+                Exp[(-$CellContext`x$)/$CellContext`k$] ($CellContext`v$^2/(
+                 2. $CellContext`beta$)) - 1)}; $CellContext`dragDStream$[
+              Pattern[$CellContext`Delta$, {
+                Pattern[$CellContext`dt$, 
+                 Blank[]], 
+                Pattern[$CellContext`t$, 
+                 Blank[]], 
+                Pattern[$CellContext`Dx$, 
+                 
+                 Blank[]]}]] := {$CellContext`Delta$, \
+$CellContext`dragDStream$[{$CellContext`dt$, $CellContext`t$ + \
+$CellContext`dt$, $CellContext`Dx$}]& }; $CellContext`F21$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := (-$CellContext`A$) 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$^2/(2. $CellContext`k$ $CellContext`beta$)); $CellContext`F22$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := $CellContext`A$ 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$/$CellContext`beta$); $CellContext`Phi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := {{
+              1, $CellContext`dt$}, {$CellContext`dt$ \
+$CellContext`F21$[$CellContext`x$, $CellContext`v$], 
+               1 + $CellContext`dt$ $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}}; $CellContext`Xi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := 
+            With[{$CellContext`f$ = $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}, {{$CellContext`dt$^3/
+                3, ($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6}, {($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6, $CellContext`dt$ + $CellContext`dt$^2 $CellContext`f$ + \
+($CellContext`dt$^3 $CellContext`f$^2)/3}}]; $CellContext`EKFDrag$[
+              Pattern[$CellContext`sigmaXi$, 
+               Blank[]], 
+              Pattern[$CellContext`kZeta$, 
+               Blank[]], 
+              Pattern[$CellContext`integrator$, 
+               Blank[]], 
+              Pattern[$CellContext`fdt$, 
+               Blank[]], 
+              Pattern[$CellContext`idt$, 
+               Blank[]]][{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`P$, 
+                Blank[]]}, {
+               Pattern[$CellContext`t$, 
+                Blank[]], 
+               Pattern[$CellContext`A$, 
+                Blank[]], 
+               Pattern[$CellContext`z$, 
+                Blank[]]}] := 
+            Module[{$CellContext`x2$, $CellContext`P2$, $CellContext`kD$, \
+$CellContext`kK$}, $CellContext`x2$ = Part[
+                 $CellContext`last$[
+                  $CellContext`takeUntil$[
+                   $CellContext`foldStream$[$CellContext`integrator$, \
+{$CellContext`t$, $CellContext`x$}, 
+                    $CellContext`dragDStream$[{$CellContext`idt$, \
+$CellContext`t$, $CellContext`dragD$}]], 
+                   First[#] > $CellContext`t$ + $CellContext`fdt$& ]], 
+                 2]; $CellContext`P2$ = $CellContext`sigmaXi$^2 \
+$CellContext`Xi$[$CellContext`fdt$, $CellContext`x$] + Dot[
+                  $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$], \
+$CellContext`P$, 
+                  Transpose[
+                   $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$]]]; \
+$CellContext`kD$ = $CellContext`kZeta$ + 
+                Dot[$CellContext`A$, $CellContext`P2$, 
+                  Transpose[$CellContext`A$]]; $CellContext`kK$ = 
+               Dot[$CellContext`P2$, 
+                 Transpose[$CellContext`A$], 
+                 Inverse[$CellContext`kD$]]; {$CellContext`x2$ + 
+                Dot[$CellContext`kK$, $CellContext`z$ - 
+                  Dot[$CellContext`A$, $CellContext`x2$]], $CellContext`P2$ - 
+                Dot[$CellContext`kK$, $CellContext`kD$, 
+                 Transpose[$CellContext`kK$]]}]; Block[{$IterationLimit}, 
+             With[{$CellContext`nStates$ = 2}, 
+              With[{$CellContext`t0$ = 0., $CellContext`t1$ = 
+                30., $CellContext`filterDt$ = 0.1}, 
+               
+               With[{$CellContext`x0$ = 
+                 200000, $CellContext`v0$ = -6000, \
+$CellContext`\[CapitalZeta]$ = $CellContext`sigmaZeta$$^2 
+                  IdentityMatrix[1], $CellContext`P0$ = 
+                 1000000000000 IdentityMatrix[$CellContext`nStates$]}, 
+                
+                Module[{$CellContext`fakes$, $CellContext`integrators$ = \
+{$CellContext`eulerAccumulator$, $CellContext`rk2Accumulator$, \
+$CellContext`rk4Accumulator$}, $CellContext`integrationDt$}, \
+$CellContext`fakes$[] := \
+$CellContext`foldStream$[$CellContext`rk4Accumulator$, {$CellContext`t0$, \
+{$CellContext`x0$, $CellContext`v0$}}, 
+                    $CellContext`dragDStream$[{$CellContext`filterDt$, \
+$CellContext`t0$, $CellContext`dragD$}]]; $CellContext`integrationDt$ = 
+                  10.^$CellContext`logIntegratorDt$$; 
+                 SeedRandom[$CellContext`randomSeed$$]; 
+                 Module[{$CellContext`ffs$, $CellContext`rffs$, \
+$CellContext`ts$, $CellContext`xvs$, $CellContext`xss$, $CellContext`vss$, \
+$CellContext`txs$, $CellContext`tvs$, $CellContext`ps$, \
+$CellContext`sigmaxs$, $CellContext`sigmavs$}, $CellContext`xss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`vss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`ffs$ = \
+$CellContext`takeUntil$[
+                    $CellContext`fakes$[], 
+                    First[#] > $CellContext`t1$& ]; $CellContext`rffs$ = \
+$CellContext`reify$[$CellContext`ffs$]; $CellContext`ts$ = Map[
+                    $CellContext`pick$[
+                    1], $CellContext`rffs$]; $CellContext`txs$ = Map[
+                    $CellContext`pick$[
+                    2, 1], $CellContext`rffs$]; $CellContext`tvs$ = Map[
+                    $CellContext`pick$[
+                    2, 2], $CellContext`rffs$]; {$CellContext`xss$, \
+$CellContext`vss$} = Transpose[
+                    Map[({$CellContext`xvs$, $CellContext`ps$} = Transpose[
+                    Rest[
+                    $CellContext`reify$[
+                    $CellContext`foldStream$[
+                    $CellContext`EKFDrag$[$CellContext`sigmaXi$$, \
+$CellContext`\[CapitalZeta]$, 
+                    
+                    Part[$CellContext`integrators$, \
+$CellContext`integrator$$], $CellContext`filterDt$, \
+$CellContext`integrationDt$], {{0, 0}, $CellContext`P0$}, 
+                    $CellContext`mapStream$[$CellContext`ffs$, {
+                    Part[#, 1], {{1, 0}}, 
+                    Part[#, 2, 
+                    1] + $CellContext`gen$[$CellContext`\[CapitalZeta]$]}& \
+]]]]]; $CellContext`sigmaxs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[
+                    1, 1], $CellContext`ps$]]; $CellContext`sigmavs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[2, 2], $CellContext`ps$]]; 
+                    Transpose[$CellContext`xvs$])& , 
+                    Range[$CellContext`nIterations$$]]]; Grid[{{
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`txs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"h/[ft]", ""}, {
+                    "Time/[s]", "Height vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`tvs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]", ""}, {
+                    "Time/[s]", "Speed vs. Time"}}]}, {
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`txs$ - #}& , \
+$CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmaxs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmaxs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"\[CapitalDelta]h/[ft]", ""}, {
+                    "Time/[s]", "Height Residual vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`tvs$ - #}& , \
+$CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmavs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmavs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]", ""}, {"Time/[s]", "Speed Residual vs. Time"}}]}}]]]]]]]]]], 
+      "Specifications" :> {{{$CellContext`sigmaZeta$$, 25}, 1, 1000, 5, 
+         Appearance -> "Open", ControlPlacement -> 
+         1}, {{$CellContext`sigmaXi$$, 0}, 0, 1000, 5, Appearance -> "Open", 
+         ControlPlacement -> 2}, {{$CellContext`nIterations$$, 2}, 1, 25, 1, 
+         Appearance -> "Open", ControlPlacement -> 
+         3}, {{$CellContext`randomSeed$$, 42}, 42, 142, 1, Appearance -> 
+         "Open", ControlPlacement -> 4}, {{$CellContext`integrator$$, 1}, 1, 
+         3, 1, Appearance -> "Open", ControlPlacement -> 
+         5}, {{$CellContext`logIntegratorDt$$, -1}, -3, -1, 1, Appearance -> 
+         "Open", ControlPlacement -> 6}, 
+        Grid[{{
+           Manipulate`Place[1], 
+           Manipulate`Place[2]}, {
+           Manipulate`Place[3], 
+           Manipulate`Place[4]}, {
+           Manipulate`Place[5], 
+           Manipulate`Place[6]}}]}, "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{771., {348., 353.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellEditDuplicate->False,
+ GeneratedCell->False,
+ CellAutoOverwrite->False,
+ CellChangeTimes->{3.672317279583829*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "SnapshotsSection"],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`integrator$$ = 
+    1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+    2, $CellContext`randomSeed$$ = 43, $CellContext`sigmaXi$$ = 
+    0, $CellContext`sigmaZeta$$ = 26, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`sigmaZeta$$], 26}, 1, 1000, 5}, {{
+       Hold[$CellContext`sigmaXi$$], 0}, 0, 1000, 5}, {{
+       Hold[$CellContext`nIterations$$], 2}, 1, 25, 1}, {{
+       Hold[$CellContext`randomSeed$$], 42}, 42, 142, 1}, {{
+       Hold[$CellContext`integrator$$], 1}, 1, 3, 1}, {{
+       Hold[$CellContext`logIntegratorDt$$], -1}, -3, -1, 1}, {
+      Hold[
+       Grid[{{
+          Manipulate`Place[1], 
+          Manipulate`Place[2]}, {
+          Manipulate`Place[3], 
+          Manipulate`Place[4]}, {
+          Manipulate`Place[5], 
+          Manipulate`Place[6]}}]], Manipulate`Dump`ThisIsNotAControl}}, 
+    Typeset`size$$ = {728., {233.3544921875, 238.6455078125}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`sigmaZeta$21694$$ = 0, $CellContext`sigmaXi$21695$$ = 
+    0, $CellContext`nIterations$21696$$ = 0, $CellContext`randomSeed$21697$$ =
+     0, $CellContext`integrator$21698$$ = 
+    0, $CellContext`logIntegratorDt$21699$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     2, StandardForm, 
+      "Variables" :> {$CellContext`integrator$$ = 
+        1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+        2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+        0, $CellContext`sigmaZeta$$ = 26}, "ControllerVariables" :> {
+        Hold[$CellContext`sigmaZeta$$, $CellContext`sigmaZeta$21694$$, 0], 
+        Hold[$CellContext`sigmaXi$$, $CellContext`sigmaXi$21695$$, 0], 
+        Hold[$CellContext`nIterations$$, $CellContext`nIterations$21696$$, 0], 
+        Hold[$CellContext`randomSeed$$, $CellContext`randomSeed$21697$$, 0], 
+        Hold[$CellContext`integrator$$, $CellContext`integrator$21698$$, 0], 
+        Hold[$CellContext`logIntegratorDt$$, \
+$CellContext`logIntegratorDt$21699$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Module[{$CellContext`foldStream$, $CellContext`reify$, \
+$CellContext`takeUntil$, $CellContext`last$, $CellContext`mapStream$, \
+$CellContext`pick$, $CellContext`randn$, $CellContext`dim$, \
+$CellContext`gen$, $CellContext`eulerAccumulator$, \
+$CellContext`rk2Accumulator$, $CellContext`rk4Accumulator$}, \
+$CellContext`foldStream$[
+           Pattern[$CellContext`f, 
+            Blank[]], 
+           Pattern[$CellContext`s, 
+            Blank[]], 
+           Null[]] := {$CellContext`s, Null}; $CellContext`foldStream$[
+           Pattern[$CellContext`f$, 
+            Blank[]], 
+           Pattern[$CellContext`s$, 
+            Blank[]], {
+            Pattern[$CellContext`z$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             
+             Blank[]]}] := {$CellContext`s$, \
+$CellContext`foldStream$[$CellContext`f$, 
+            $CellContext`f$[$CellContext`s$, $CellContext`z$], 
+            $CellContext`thunk$[]]& }; $CellContext`reify$[
+           Null[]] := {}; $CellContext`reify$[{
+            Pattern[$CellContext`v, 
+             Blank[]], Null}] := {$CellContext`v}; $CellContext`reify$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := Join[{$CellContext`v$}, 
+           $CellContext`reify$[
+            $CellContext`thunk$[]]]; $CellContext`takeUntil$[
+           Null[], 
+           Blank[]] := Null[]; Condition[
+           $CellContext`takeUntil$[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, 
+            Pattern[$CellContext`predicate, 
+             Blank[]]], 
+           $CellContext`predicate[$CellContext`v]] := 
+         Null[]; $CellContext`takeUntil$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`predicate$, 
+            Blank[]]] := {$CellContext`v$, $CellContext`takeUntil$[
+            $CellContext`thunk$[], $CellContext`predicate$]& }; \
+$CellContext`last$[
+           Null[]] := Null; $CellContext`last$[
+           Condition[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, $CellContext`thunk[] === 
+            Null[]]] := $CellContext`v; $CellContext`last$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := $CellContext`last$[
+           $CellContext`thunk$[]]; $CellContext`mapStream$[
+           Null[], 
+           Blank[]] := Null[]; $CellContext`mapStream$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`f$, 
+            Blank[]]] := {
+           $CellContext`f$[$CellContext`v$], $CellContext`mapStream$[
+            $CellContext`thunk$[], $CellContext`f$]& }; $CellContext`pick$[
+           Pattern[$CellContext`n, 
+            Blank[]]] := Part[#, $CellContext`n]& ; $CellContext`pick$[
+           Pattern[$CellContext`m, 
+            Blank[]], 
+           Pattern[$CellContext`n, 
+            Blank[]]] := 
+         Part[#, $CellContext`m, $CellContext`n]& ; $CellContext`randn$[
+           Optional[
+            Pattern[$CellContext`sigma, 
+             Blank[]], 1.]] := If[Chop[$CellContext`sigma] == 0., 0., 
+           RandomVariate[
+            NormalDistribution[0., $CellContext`sigma]]]; $CellContext`dim$[
+           Pattern[$CellContext`squareMatrix, 
+            Blank[List]]] := Length[
+           Part[$CellContext`squareMatrix, 1]]; $CellContext`gen$[
+           Pattern[$CellContext`P$, 
+            Blank[]]] := 
+         Module[{$CellContext`\[Sigma]s$}, $CellContext`\[Sigma]s$ = Map[Sqrt, 
+              Table[
+               
+               Part[$CellContext`P$, $CellContext`i, $CellContext`i], \
+{$CellContext`i, 
+                $CellContext`dim$[$CellContext`P$]}]]; 
+           Map[$CellContext`randn$, $CellContext`\[Sigma]s$]]; \
+$CellContext`eulerAccumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             
+             Blank[]]}] := {$CellContext`t + $CellContext`dt, $CellContext`x + \
+$CellContext`dt $CellContext`Dx[$CellContext`x, $CellContext`t]}; \
+$CellContext`rk2Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, {$CellContext`t + $CellContext`dt, \
+$CellContext`x + ($CellContext`dx1 + $CellContext`dx2)/
+              2.}]]; $CellContext`rk4Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, 
+            
+            With[{$CellContext`dx3 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx2, $CellContext`t + 
+                 0.5 $CellContext`dt]}, 
+             
+             With[{$CellContext`dx4 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + $CellContext`dx3, $CellContext`t + \
+$CellContext`dt]}, {$CellContext`t + $CellContext`dt, $CellContext`x + \
+($CellContext`dx1 + 2. $CellContext`dx2 + 
+                 2. $CellContext`dx3 + $CellContext`dx4)/6.}]]]]; 
+        With[{$CellContext`g$ = 32.2, $CellContext`A$ = 
+           0.0034, $CellContext`k$ = 22000., $CellContext`beta$ = 500.}, 
+          
+          Module[{$CellContext`dragD$, $CellContext`dragDStream$, \
+$CellContext`F21$, $CellContext`F22$, $CellContext`Phi$, $CellContext`Xi$, \
+$CellContext`EKFDrag$}, $CellContext`dragD$[{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}, 
+              Pattern[$CellContext`t$, 
+               
+               Blank[]]] := {$CellContext`v$, $CellContext`g$ \
+($CellContext`A$ 
+                Exp[(-$CellContext`x$)/$CellContext`k$] ($CellContext`v$^2/(
+                 2. $CellContext`beta$)) - 1)}; $CellContext`dragDStream$[
+              Pattern[$CellContext`Delta$, {
+                Pattern[$CellContext`dt$, 
+                 Blank[]], 
+                Pattern[$CellContext`t$, 
+                 Blank[]], 
+                Pattern[$CellContext`Dx$, 
+                 
+                 Blank[]]}]] := {$CellContext`Delta$, \
+$CellContext`dragDStream$[{$CellContext`dt$, $CellContext`t$ + \
+$CellContext`dt$, $CellContext`Dx$}]& }; $CellContext`F21$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := (-$CellContext`A$) 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$^2/(2. $CellContext`k$ $CellContext`beta$)); $CellContext`F22$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := $CellContext`A$ 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$/$CellContext`beta$); $CellContext`Phi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := {{
+              1, $CellContext`dt$}, {$CellContext`dt$ \
+$CellContext`F21$[$CellContext`x$, $CellContext`v$], 
+               1 + $CellContext`dt$ $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}}; $CellContext`Xi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := 
+            With[{$CellContext`f$ = $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}, {{$CellContext`dt$^3/
+                3, ($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6}, {($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6, $CellContext`dt$ + $CellContext`dt$^2 $CellContext`f$ + \
+($CellContext`dt$^3 $CellContext`f$^2)/3}}]; $CellContext`EKFDrag$[
+              Pattern[$CellContext`sigmaXi$, 
+               Blank[]], 
+              Pattern[$CellContext`kZeta$, 
+               Blank[]], 
+              Pattern[$CellContext`integrator$, 
+               Blank[]], 
+              Pattern[$CellContext`fdt$, 
+               Blank[]], 
+              Pattern[$CellContext`idt$, 
+               Blank[]]][{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`P$, 
+                Blank[]]}, {
+               Pattern[$CellContext`t$, 
+                Blank[]], 
+               Pattern[$CellContext`A$, 
+                Blank[]], 
+               Pattern[$CellContext`z$, 
+                Blank[]]}] := 
+            Module[{$CellContext`x2$, $CellContext`P2$, $CellContext`kD$, \
+$CellContext`kK$}, $CellContext`x2$ = Part[
+                 $CellContext`last$[
+                  $CellContext`takeUntil$[
+                   $CellContext`foldStream$[$CellContext`integrator$, \
+{$CellContext`t$, $CellContext`x$}, 
+                    $CellContext`dragDStream$[{$CellContext`idt$, \
+$CellContext`t$, $CellContext`dragD$}]], 
+                   First[#] > $CellContext`t$ + $CellContext`fdt$& ]], 
+                 2]; $CellContext`P2$ = $CellContext`sigmaXi$^2 \
+$CellContext`Xi$[$CellContext`fdt$, $CellContext`x$] + Dot[
+                  $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$], \
+$CellContext`P$, 
+                  Transpose[
+                   $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$]]]; \
+$CellContext`kD$ = $CellContext`kZeta$ + 
+                Dot[$CellContext`A$, $CellContext`P2$, 
+                  Transpose[$CellContext`A$]]; $CellContext`kK$ = 
+               Dot[$CellContext`P2$, 
+                 Transpose[$CellContext`A$], 
+                 Inverse[$CellContext`kD$]]; {$CellContext`x2$ + 
+                Dot[$CellContext`kK$, $CellContext`z$ - 
+                  Dot[$CellContext`A$, $CellContext`x2$]], $CellContext`P2$ - 
+                Dot[$CellContext`kK$, $CellContext`kD$, 
+                 Transpose[$CellContext`kK$]]}]; Block[{$IterationLimit}, 
+             With[{$CellContext`nStates$ = 2}, 
+              
+              With[{$CellContext`t0$ = 0., $CellContext`t1$ = 
+                30., $CellContext`filterDt$ = 0.1}, 
+               
+               With[{$CellContext`x0$ = 
+                 200000, $CellContext`v0$ = -6000, \
+$CellContext`\[CapitalZeta]$ = $CellContext`sigmaZeta$$^2 
+                  IdentityMatrix[1], $CellContext`P0$ = 
+                 1000000000000 IdentityMatrix[$CellContext`nStates$]}, 
+                
+                Module[{$CellContext`fakes$, $CellContext`integrators$ = \
+{$CellContext`eulerAccumulator$, $CellContext`rk2Accumulator$, \
+$CellContext`rk4Accumulator$}, $CellContext`integrationDt$}, \
+$CellContext`fakes$[] := \
+$CellContext`foldStream$[$CellContext`rk4Accumulator$, {$CellContext`t0$, \
+{$CellContext`x0$, $CellContext`v0$}}, 
+                    $CellContext`dragDStream$[{$CellContext`filterDt$, \
+$CellContext`t0$, $CellContext`dragD$}]]; $CellContext`integrationDt$ = 
+                  10.^$CellContext`logIntegratorDt$$; 
+                 SeedRandom[$CellContext`randomSeed$$]; 
+                 Module[{$CellContext`ffs$, $CellContext`rffs$, \
+$CellContext`ts$, $CellContext`xvs$, $CellContext`xss$, $CellContext`vss$, \
+$CellContext`txs$, $CellContext`tvs$, $CellContext`ps$, \
+$CellContext`sigmaxs$, $CellContext`sigmavs$}, $CellContext`xss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`vss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`ffs$ = \
+$CellContext`takeUntil$[
+                    $CellContext`fakes$[], 
+                    First[#] > $CellContext`t1$& ]; $CellContext`rffs$ = \
+$CellContext`reify$[$CellContext`ffs$]; $CellContext`ts$ = Map[
+                    $CellContext`pick$[
+                    1], $CellContext`rffs$]; $CellContext`txs$ = Map[
+                    $CellContext`pick$[
+                    2, 1], $CellContext`rffs$]; $CellContext`tvs$ = Map[
+                    $CellContext`pick$[
+                    2, 2], $CellContext`rffs$]; {$CellContext`xss$, \
+$CellContext`vss$} = Transpose[
+                    Map[({$CellContext`xvs$, $CellContext`ps$} = Transpose[
+                    Rest[
+                    $CellContext`reify$[
+                    $CellContext`foldStream$[
+                    $CellContext`EKFDrag$[$CellContext`sigmaXi$$, \
+$CellContext`\[CapitalZeta]$, 
+                    
+                    Part[$CellContext`integrators$, \
+$CellContext`integrator$$], $CellContext`filterDt$, \
+$CellContext`integrationDt$], {{0, 0}, $CellContext`P0$}, 
+                    $CellContext`mapStream$[$CellContext`ffs$, {
+                    Part[#, 1], {{1, 0}}, 
+                    Part[#, 2, 
+                    1] + $CellContext`gen$[$CellContext`\[CapitalZeta]$]}& \
+]]]]]; $CellContext`sigmaxs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[
+                    1, 1], $CellContext`ps$]]; $CellContext`sigmavs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[2, 2], $CellContext`ps$]]; 
+                    Transpose[$CellContext`xvs$])& , 
+                    Range[$CellContext`nIterations$$]]]; Grid[{{
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`txs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"h/[ft]", ""}, {
+                    "Time/[s]", "Height vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`tvs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]", ""}, {
+                    "Time/[s]", "Speed vs. Time"}}]}, {
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`txs$ - #}& , \
+$CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmaxs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmaxs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"\[CapitalDelta]h/[ft]", ""}, {
+                    "Time/[s]", "Height Residual vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`tvs$ - #}& , \
+$CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmavs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmavs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]", ""}, {"Time/[s]", "Speed Residual vs. Time"}}]}}]]]]]]]]]], 
+      "Specifications" :> {{{$CellContext`sigmaZeta$$, 26}, 1, 1000, 5, 
+         Appearance -> "Open", ControlPlacement -> 
+         1}, {{$CellContext`sigmaXi$$, 0}, 0, 1000, 5, Appearance -> "Open", 
+         ControlPlacement -> 2}, {{$CellContext`nIterations$$, 2}, 1, 25, 1, 
+         Appearance -> "Open", ControlPlacement -> 
+         3}, {{$CellContext`randomSeed$$, 42}, 42, 142, 1, Appearance -> 
+         "Open", ControlPlacement -> 4}, {{$CellContext`integrator$$, 1}, 1, 
+         3, 1, Appearance -> "Open", ControlPlacement -> 
+         5}, {{$CellContext`logIntegratorDt$$, -1}, -3, -1, 1, Appearance -> 
+         "Open", ControlPlacement -> 6}, 
+        Grid[{{
+           Manipulate`Place[1], 
+           Manipulate`Place[2]}, {
+           Manipulate`Place[3], 
+           Manipulate`Place[4]}, {
+           Manipulate`Place[5], 
+           Manipulate`Place[6]}}]}, "Options" :> {}, 
+      "DefaultOptions" :> {ControllerLinking -> True}],
+     ImageSizeCache->{771., {348., 353.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellEditDuplicate->False,
+ GeneratedCell->False,
+ CellAutoOverwrite->False,
+ CellChangeTimes->{3.672317371759254*^9}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`integrator$$ = 
+    3, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+    5, $CellContext`randomSeed$$ = 101, $CellContext`sigmaXi$$ = 
+    0, $CellContext`sigmaZeta$$ = 21, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`sigmaZeta$$], 25}, 1, 1000, 5}, {{
+       Hold[$CellContext`sigmaXi$$], 0}, 0, 1000, 5}, {{
+       Hold[$CellContext`nIterations$$], 2}, 1, 25, 1}, {{
+       Hold[$CellContext`randomSeed$$], 42}, 42, 142, 1}, {{
+       Hold[$CellContext`integrator$$], 1}, 1, 3, 1}, {{
+       Hold[$CellContext`logIntegratorDt$$], -1}, -3, -1, 1}, {
+      Hold[
+       Grid[{{
+          Manipulate`Place[1], 
+          Manipulate`Place[2]}, {
+          Manipulate`Place[3], 
+          Manipulate`Place[4]}, {
+          Manipulate`Place[5], 
+          Manipulate`Place[6]}}]], Manipulate`Dump`ThisIsNotAControl}}, 
+    Typeset`size$$ = {728., {233.3544921875, 238.6455078125}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`sigmaZeta$9891$$ = 0, $CellContext`sigmaXi$9892$$ = 
+    0, $CellContext`nIterations$9893$$ = 0, $CellContext`randomSeed$9894$$ = 
+    0, $CellContext`integrator$9895$$ = 
+    0, $CellContext`logIntegratorDt$9896$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     2, StandardForm, 
+      "Variables" :> {$CellContext`integrator$$ = 
+        1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+        2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+        0, $CellContext`sigmaZeta$$ = 25}, "ControllerVariables" :> {
+        Hold[$CellContext`sigmaZeta$$, $CellContext`sigmaZeta$9891$$, 0], 
+        Hold[$CellContext`sigmaXi$$, $CellContext`sigmaXi$9892$$, 0], 
+        Hold[$CellContext`nIterations$$, $CellContext`nIterations$9893$$, 0], 
+        
+        Hold[$CellContext`randomSeed$$, $CellContext`randomSeed$9894$$, 0], 
+        Hold[$CellContext`integrator$$, $CellContext`integrator$9895$$, 0], 
+        Hold[$CellContext`logIntegratorDt$$, \
+$CellContext`logIntegratorDt$9896$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Module[{$CellContext`foldStream$, $CellContext`reify$, \
+$CellContext`takeUntil$, $CellContext`last$, $CellContext`mapStream$, \
+$CellContext`pick$, $CellContext`randn$, $CellContext`dim$, \
+$CellContext`gen$, $CellContext`eulerAccumulator$, \
+$CellContext`rk2Accumulator$, $CellContext`rk4Accumulator$}, \
+$CellContext`foldStream$[
+           Pattern[$CellContext`f, 
+            Blank[]], 
+           Pattern[$CellContext`s, 
+            Blank[]], 
+           Null[]] := {$CellContext`s, Null}; $CellContext`foldStream$[
+           Pattern[$CellContext`f$, 
+            Blank[]], 
+           Pattern[$CellContext`s$, 
+            Blank[]], {
+            Pattern[$CellContext`z$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             
+             Blank[]]}] := {$CellContext`s$, \
+$CellContext`foldStream$[$CellContext`f$, 
+            $CellContext`f$[$CellContext`s$, $CellContext`z$], 
+            $CellContext`thunk$[]]& }; $CellContext`reify$[
+           Null[]] := {}; $CellContext`reify$[{
+            Pattern[$CellContext`v, 
+             Blank[]], Null}] := {$CellContext`v}; $CellContext`reify$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := Join[{$CellContext`v$}, 
+           $CellContext`reify$[
+            $CellContext`thunk$[]]]; $CellContext`takeUntil$[
+           Null[], 
+           Blank[]] := Null[]; Condition[
+           $CellContext`takeUntil$[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, 
+            Pattern[$CellContext`predicate, 
+             Blank[]]], 
+           $CellContext`predicate[$CellContext`v]] := 
+         Null[]; $CellContext`takeUntil$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`predicate$, 
+            Blank[]]] := {$CellContext`v$, $CellContext`takeUntil$[
+            $CellContext`thunk$[], $CellContext`predicate$]& }; \
+$CellContext`last$[
+           Null[]] := Null; $CellContext`last$[
+           Condition[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, $CellContext`thunk[] === 
+            Null[]]] := $CellContext`v; $CellContext`last$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := $CellContext`last$[
+           $CellContext`thunk$[]]; $CellContext`mapStream$[
+           Null[], 
+           Blank[]] := Null[]; $CellContext`mapStream$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`f$, 
+            Blank[]]] := {
+           $CellContext`f$[$CellContext`v$], $CellContext`mapStream$[
+            $CellContext`thunk$[], $CellContext`f$]& }; $CellContext`pick$[
+           Pattern[$CellContext`n, 
+            Blank[]]] := Part[#, $CellContext`n]& ; $CellContext`pick$[
+           Pattern[$CellContext`m, 
+            Blank[]], 
+           Pattern[$CellContext`n, 
+            Blank[]]] := 
+         Part[#, $CellContext`m, $CellContext`n]& ; $CellContext`randn$[
+           Optional[
+            Pattern[$CellContext`sigma, 
+             Blank[]], 1.]] := If[Chop[$CellContext`sigma] == 0., 0., 
+           RandomVariate[
+            NormalDistribution[0., $CellContext`sigma]]]; $CellContext`dim$[
+           Pattern[$CellContext`squareMatrix, 
+            Blank[List]]] := Length[
+           Part[$CellContext`squareMatrix, 1]]; $CellContext`gen$[
+           Pattern[$CellContext`P$, 
+            Blank[]]] := 
+         Module[{$CellContext`\[Sigma]s$}, $CellContext`\[Sigma]s$ = Map[Sqrt, 
+              Table[
+               
+               Part[$CellContext`P$, $CellContext`i, $CellContext`i], \
+{$CellContext`i, 
+                $CellContext`dim$[$CellContext`P$]}]]; 
+           Map[$CellContext`randn$, $CellContext`\[Sigma]s$]]; \
+$CellContext`eulerAccumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             
+             Blank[]]}] := {$CellContext`t + $CellContext`dt, $CellContext`x + \
+$CellContext`dt $CellContext`Dx[$CellContext`x, $CellContext`t]}; \
+$CellContext`rk2Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, {$CellContext`t + $CellContext`dt, \
+$CellContext`x + ($CellContext`dx1 + $CellContext`dx2)/
+              2.}]]; $CellContext`rk4Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, 
+            
+            With[{$CellContext`dx3 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx2, $CellContext`t + 
+                 0.5 $CellContext`dt]}, 
+             
+             With[{$CellContext`dx4 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + $CellContext`dx3, $CellContext`t + \
+$CellContext`dt]}, {$CellContext`t + $CellContext`dt, $CellContext`x + \
+($CellContext`dx1 + 2. $CellContext`dx2 + 
+                 2. $CellContext`dx3 + $CellContext`dx4)/6.}]]]]; 
+        With[{$CellContext`g$ = 32.2, $CellContext`A$ = 
+           0.0034, $CellContext`k$ = 22000., $CellContext`beta$ = 500.}, 
+          
+          Module[{$CellContext`dragD$, $CellContext`dragDStream$, \
+$CellContext`F21$, $CellContext`F22$, $CellContext`Phi$, $CellContext`Xi$, \
+$CellContext`EKFDrag$}, $CellContext`dragD$[{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}, 
+              Pattern[$CellContext`t$, 
+               
+               Blank[]]] := {$CellContext`v$, $CellContext`g$ \
+($CellContext`A$ 
+                Exp[(-$CellContext`x$)/$CellContext`k$] ($CellContext`v$^2/(
+                 2. $CellContext`beta$)) - 1)}; $CellContext`dragDStream$[
+              Pattern[$CellContext`Delta$, {
+                Pattern[$CellContext`dt$, 
+                 Blank[]], 
+                Pattern[$CellContext`t$, 
+                 Blank[]], 
+                Pattern[$CellContext`Dx$, 
+                 
+                 Blank[]]}]] := {$CellContext`Delta$, \
+$CellContext`dragDStream$[{$CellContext`dt$, $CellContext`t$ + \
+$CellContext`dt$, $CellContext`Dx$}]& }; $CellContext`F21$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := (-$CellContext`A$) 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$^2/(2. $CellContext`k$ $CellContext`beta$)); $CellContext`F22$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := $CellContext`A$ 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$/$CellContext`beta$); $CellContext`Phi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := {{
+              1, $CellContext`dt$}, {$CellContext`dt$ \
+$CellContext`F21$[$CellContext`x$, $CellContext`v$], 
+               1 + $CellContext`dt$ $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}}; $CellContext`Xi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := 
+            With[{$CellContext`f$ = $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}, {{$CellContext`dt$^3/
+                3, ($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6}, {($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6, $CellContext`dt$ + $CellContext`dt$^2 $CellContext`f$ + \
+($CellContext`dt$^3 $CellContext`f$^2)/3}}]; $CellContext`EKFDrag$[
+              Pattern[$CellContext`sigmaXi$, 
+               Blank[]], 
+              Pattern[$CellContext`kZeta$, 
+               Blank[]], 
+              Pattern[$CellContext`integrator$, 
+               Blank[]], 
+              Pattern[$CellContext`fdt$, 
+               Blank[]], 
+              Pattern[$CellContext`idt$, 
+               Blank[]]][{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`P$, 
+                Blank[]]}, {
+               Pattern[$CellContext`t$, 
+                Blank[]], 
+               Pattern[$CellContext`A$, 
+                Blank[]], 
+               Pattern[$CellContext`z$, 
+                Blank[]]}] := 
+            Module[{$CellContext`x2$, $CellContext`P2$, $CellContext`kD$, \
+$CellContext`kK$}, $CellContext`x2$ = Part[
+                 $CellContext`last$[
+                  $CellContext`takeUntil$[
+                   $CellContext`foldStream$[$CellContext`integrator$, \
+{$CellContext`t$, $CellContext`x$}, 
+                    $CellContext`dragDStream$[{$CellContext`idt$, \
+$CellContext`t$, $CellContext`dragD$}]], 
+                   First[#] > $CellContext`t$ + $CellContext`fdt$& ]], 
+                 2]; $CellContext`P2$ = $CellContext`sigmaXi$^2 \
+$CellContext`Xi$[$CellContext`fdt$, $CellContext`x$] + Dot[
+                  $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$], \
+$CellContext`P$, 
+                  Transpose[
+                   $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$]]]; \
+$CellContext`kD$ = $CellContext`kZeta$ + 
+                Dot[$CellContext`A$, $CellContext`P2$, 
+                  Transpose[$CellContext`A$]]; $CellContext`kK$ = 
+               Dot[$CellContext`P2$, 
+                 Transpose[$CellContext`A$], 
+                 Inverse[$CellContext`kD$]]; {$CellContext`x2$ + 
+                Dot[$CellContext`kK$, $CellContext`z$ - 
+                  Dot[$CellContext`A$, $CellContext`x2$]], $CellContext`P2$ - 
+                Dot[$CellContext`kK$, $CellContext`kD$, 
+                 Transpose[$CellContext`kK$]]}]; Block[{$IterationLimit}, 
+             With[{$CellContext`nStates$ = 2}, 
+              With[{$CellContext`t0$ = 0., $CellContext`t1$ = 
+                30., $CellContext`filterDt$ = 0.1}, 
+               
+               With[{$CellContext`x0$ = 
+                 200000, $CellContext`v0$ = -6000, \
+$CellContext`\[CapitalZeta]$ = $CellContext`sigmaZeta$$^2 
+                  IdentityMatrix[1], $CellContext`P0$ = 
+                 1000000000000 IdentityMatrix[$CellContext`nStates$]}, 
+                
+                Module[{$CellContext`fakes$, $CellContext`integrators$ = \
+{$CellContext`eulerAccumulator$, $CellContext`rk2Accumulator$, \
+$CellContext`rk4Accumulator$}, $CellContext`integrationDt$}, \
+$CellContext`fakes$[] := \
+$CellContext`foldStream$[$CellContext`rk4Accumulator$, {$CellContext`t0$, \
+{$CellContext`x0$, $CellContext`v0$}}, 
+                    $CellContext`dragDStream$[{$CellContext`filterDt$, \
+$CellContext`t0$, $CellContext`dragD$}]]; $CellContext`integrationDt$ = 
+                  10.^$CellContext`logIntegratorDt$$; 
+                 SeedRandom[$CellContext`randomSeed$$]; 
+                 Module[{$CellContext`ffs$, $CellContext`rffs$, \
+$CellContext`ts$, $CellContext`xvs$, $CellContext`xss$, $CellContext`vss$, \
+$CellContext`txs$, $CellContext`tvs$, $CellContext`ps$, \
+$CellContext`sigmaxs$, $CellContext`sigmavs$}, $CellContext`xss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`vss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`ffs$ = \
+$CellContext`takeUntil$[
+                    $CellContext`fakes$[], 
+                    First[#] > $CellContext`t1$& ]; $CellContext`rffs$ = \
+$CellContext`reify$[$CellContext`ffs$]; $CellContext`ts$ = Map[
+                    $CellContext`pick$[
+                    1], $CellContext`rffs$]; $CellContext`txs$ = Map[
+                    $CellContext`pick$[
+                    2, 1], $CellContext`rffs$]; $CellContext`tvs$ = Map[
+                    $CellContext`pick$[
+                    2, 2], $CellContext`rffs$]; {$CellContext`xss$, \
+$CellContext`vss$} = Transpose[
+                    Map[({$CellContext`xvs$, $CellContext`ps$} = Transpose[
+                    Rest[
+                    $CellContext`reify$[
+                    $CellContext`foldStream$[
+                    $CellContext`EKFDrag$[$CellContext`sigmaXi$$, \
+$CellContext`\[CapitalZeta]$, 
+                    
+                    Part[$CellContext`integrators$, \
+$CellContext`integrator$$], $CellContext`filterDt$, \
+$CellContext`integrationDt$], {{0, 0}, $CellContext`P0$}, 
+                    $CellContext`mapStream$[$CellContext`ffs$, {
+                    Part[#, 1], {{1, 0}}, 
+                    Part[#, 2, 
+                    1] + $CellContext`gen$[$CellContext`\[CapitalZeta]$]}& \
+]]]]]; $CellContext`sigmaxs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[
+                    1, 1], $CellContext`ps$]]; $CellContext`sigmavs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[2, 2], $CellContext`ps$]]; 
+                    Transpose[$CellContext`xvs$])& , 
+                    Range[$CellContext`nIterations$$]]]; Grid[{{
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`txs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"h/[ft]", ""}, {
+                    "Time/[s]", "Height vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`tvs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]", ""}, {
+                    "Time/[s]", "Speed vs. Time"}}]}, {
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`txs$ - #}& , \
+$CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmaxs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmaxs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"\[CapitalDelta]h/[ft]", ""}, {
+                    "Time/[s]", "Height Residual vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`tvs$ - #}& , \
+$CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmavs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmavs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]", ""}, {"Time/[s]", "Speed Residual vs. Time"}}]}}]]]]]]]]]], 
+      "Specifications" :> {{{$CellContext`sigmaZeta$$, 25}, 1, 1000, 5, 
+         Appearance -> "Open", ControlPlacement -> 
+         1}, {{$CellContext`sigmaXi$$, 0}, 0, 1000, 5, Appearance -> "Open", 
+         ControlPlacement -> 2}, {{$CellContext`nIterations$$, 2}, 1, 25, 1, 
+         Appearance -> "Open", ControlPlacement -> 
+         3}, {{$CellContext`randomSeed$$, 42}, 42, 142, 1, Appearance -> 
+         "Open", ControlPlacement -> 4}, {{$CellContext`integrator$$, 1}, 1, 
+         3, 1, Appearance -> "Open", ControlPlacement -> 
+         5}, {{$CellContext`logIntegratorDt$$, -1}, -3, -1, 1, Appearance -> 
+         "Open", ControlPlacement -> 6}, 
+        Grid[{{
+           Manipulate`Place[1], 
+           Manipulate`Place[2]}, {
+           Manipulate`Place[3], 
+           Manipulate`Place[4]}, {
+           Manipulate`Place[5], 
+           Manipulate`Place[6]}}]}, "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{771., {348., 353.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellEditDuplicate->False,
+ GeneratedCell->False,
+ CellAutoOverwrite->False,
+ CellChangeTimes->{3.6723179464431877`*^9},
+ CellID->463981159],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`integrator$$ = 
+    1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+    5, $CellContext`randomSeed$$ = 101, $CellContext`sigmaXi$$ = 
+    80, $CellContext`sigmaZeta$$ = 26, Typeset`show$$ = True, 
+    Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`sigmaZeta$$], 26}, 1, 1000, 5}, {{
+       Hold[$CellContext`sigmaXi$$], 0}, 0, 1000, 5}, {{
+       Hold[$CellContext`nIterations$$], 2}, 1, 25, 1}, {{
+       Hold[$CellContext`randomSeed$$], 42}, 42, 142, 1}, {{
+       Hold[$CellContext`integrator$$], 1}, 1, 3, 1}, {{
+       Hold[$CellContext`logIntegratorDt$$], -1}, -3, -1, 1}, {
+      Hold[
+       Grid[{{
+          Manipulate`Place[1], 
+          Manipulate`Place[2]}, {
+          Manipulate`Place[3], 
+          Manipulate`Place[4]}, {
+          Manipulate`Place[5], 
+          Manipulate`Place[6]}}]], Manipulate`Dump`ThisIsNotAControl}}, 
+    Typeset`size$$ = {728., {233.3544921875, 238.6455078125}}, 
+    Typeset`update$$ = 0, Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`sigmaZeta$21694$$ = 0, $CellContext`sigmaXi$21695$$ = 
+    0, $CellContext`nIterations$21696$$ = 0, $CellContext`randomSeed$21697$$ =
+     0, $CellContext`integrator$21698$$ = 
+    0, $CellContext`logIntegratorDt$21699$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     2, StandardForm, 
+      "Variables" :> {$CellContext`integrator$$ = 
+        1, $CellContext`logIntegratorDt$$ = -1, $CellContext`nIterations$$ = 
+        2, $CellContext`randomSeed$$ = 42, $CellContext`sigmaXi$$ = 
+        0, $CellContext`sigmaZeta$$ = 26}, "ControllerVariables" :> {
+        Hold[$CellContext`sigmaZeta$$, $CellContext`sigmaZeta$21694$$, 0], 
+        Hold[$CellContext`sigmaXi$$, $CellContext`sigmaXi$21695$$, 0], 
+        Hold[$CellContext`nIterations$$, $CellContext`nIterations$21696$$, 0], 
+        Hold[$CellContext`randomSeed$$, $CellContext`randomSeed$21697$$, 0], 
+        Hold[$CellContext`integrator$$, $CellContext`integrator$21698$$, 0], 
+        Hold[$CellContext`logIntegratorDt$$, \
+$CellContext`logIntegratorDt$21699$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Module[{$CellContext`foldStream$, $CellContext`reify$, \
+$CellContext`takeUntil$, $CellContext`last$, $CellContext`mapStream$, \
+$CellContext`pick$, $CellContext`randn$, $CellContext`dim$, \
+$CellContext`gen$, $CellContext`eulerAccumulator$, \
+$CellContext`rk2Accumulator$, $CellContext`rk4Accumulator$}, \
+$CellContext`foldStream$[
+           Pattern[$CellContext`f, 
+            Blank[]], 
+           Pattern[$CellContext`s, 
+            Blank[]], 
+           Null[]] := {$CellContext`s, Null}; $CellContext`foldStream$[
+           Pattern[$CellContext`f$, 
+            Blank[]], 
+           Pattern[$CellContext`s$, 
+            Blank[]], {
+            Pattern[$CellContext`z$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             
+             Blank[]]}] := {$CellContext`s$, \
+$CellContext`foldStream$[$CellContext`f$, 
+            $CellContext`f$[$CellContext`s$, $CellContext`z$], 
+            $CellContext`thunk$[]]& }; $CellContext`reify$[
+           Null[]] := {}; $CellContext`reify$[{
+            Pattern[$CellContext`v, 
+             Blank[]], Null}] := {$CellContext`v}; $CellContext`reify$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := Join[{$CellContext`v$}, 
+           $CellContext`reify$[
+            $CellContext`thunk$[]]]; $CellContext`takeUntil$[
+           Null[], 
+           Blank[]] := Null[]; Condition[
+           $CellContext`takeUntil$[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, 
+            Pattern[$CellContext`predicate, 
+             Blank[]]], 
+           $CellContext`predicate[$CellContext`v]] := 
+         Null[]; $CellContext`takeUntil$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`predicate$, 
+            Blank[]]] := {$CellContext`v$, $CellContext`takeUntil$[
+            $CellContext`thunk$[], $CellContext`predicate$]& }; \
+$CellContext`last$[
+           Null[]] := Null; $CellContext`last$[
+           Condition[{
+             Pattern[$CellContext`v, 
+              Blank[]], 
+             Pattern[$CellContext`thunk, 
+              Blank[]]}, $CellContext`thunk[] === 
+            Null[]]] := $CellContext`v; $CellContext`last$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}] := $CellContext`last$[
+           $CellContext`thunk$[]]; $CellContext`mapStream$[
+           Null[], 
+           Blank[]] := Null[]; $CellContext`mapStream$[{
+            Pattern[$CellContext`v$, 
+             Blank[]], 
+            Pattern[$CellContext`thunk$, 
+             Blank[]]}, 
+           Pattern[$CellContext`f$, 
+            Blank[]]] := {
+           $CellContext`f$[$CellContext`v$], $CellContext`mapStream$[
+            $CellContext`thunk$[], $CellContext`f$]& }; $CellContext`pick$[
+           Pattern[$CellContext`n, 
+            Blank[]]] := Part[#, $CellContext`n]& ; $CellContext`pick$[
+           Pattern[$CellContext`m, 
+            Blank[]], 
+           Pattern[$CellContext`n, 
+            Blank[]]] := 
+         Part[#, $CellContext`m, $CellContext`n]& ; $CellContext`randn$[
+           Optional[
+            Pattern[$CellContext`sigma, 
+             Blank[]], 1.]] := If[Chop[$CellContext`sigma] == 0., 0., 
+           RandomVariate[
+            NormalDistribution[0., $CellContext`sigma]]]; $CellContext`dim$[
+           Pattern[$CellContext`squareMatrix, 
+            Blank[List]]] := Length[
+           Part[$CellContext`squareMatrix, 1]]; $CellContext`gen$[
+           Pattern[$CellContext`P$, 
+            Blank[]]] := 
+         Module[{$CellContext`\[Sigma]s$}, $CellContext`\[Sigma]s$ = Map[Sqrt, 
+              Table[
+               
+               Part[$CellContext`P$, $CellContext`i, $CellContext`i], \
+{$CellContext`i, 
+                $CellContext`dim$[$CellContext`P$]}]]; 
+           Map[$CellContext`randn$, $CellContext`\[Sigma]s$]]; \
+$CellContext`eulerAccumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             
+             Blank[]]}] := {$CellContext`t + $CellContext`dt, $CellContext`x + \
+$CellContext`dt $CellContext`Dx[$CellContext`x, $CellContext`t]}; \
+$CellContext`rk2Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, {$CellContext`t + $CellContext`dt, \
+$CellContext`x + ($CellContext`dx1 + $CellContext`dx2)/
+              2.}]]; $CellContext`rk4Accumulator$[{
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`x, 
+             Blank[]]}, {
+            Pattern[$CellContext`dt, 
+             Blank[]], 
+            Pattern[$CellContext`t, 
+             Blank[]], 
+            Pattern[$CellContext`Dx, 
+             Blank[]]}] := 
+         With[{$CellContext`dx1 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x, $CellContext`t]}, 
+           
+           With[{$CellContext`dx2 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx1, $CellContext`t + 
+                0.5 $CellContext`dt]}, 
+            
+            With[{$CellContext`dx3 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + 0.5 $CellContext`dx2, $CellContext`t + 
+                 0.5 $CellContext`dt]}, 
+             
+             With[{$CellContext`dx4 = $CellContext`dt \
+$CellContext`Dx[$CellContext`x + $CellContext`dx3, $CellContext`t + \
+$CellContext`dt]}, {$CellContext`t + $CellContext`dt, $CellContext`x + \
+($CellContext`dx1 + 2. $CellContext`dx2 + 
+                 2. $CellContext`dx3 + $CellContext`dx4)/6.}]]]]; 
+        With[{$CellContext`g$ = 32.2, $CellContext`A$ = 
+           0.0034, $CellContext`k$ = 22000., $CellContext`beta$ = 500.}, 
+          
+          Module[{$CellContext`dragD$, $CellContext`dragDStream$, \
+$CellContext`F21$, $CellContext`F22$, $CellContext`Phi$, $CellContext`Xi$, \
+$CellContext`EKFDrag$}, $CellContext`dragD$[{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}, 
+              Pattern[$CellContext`t$, 
+               
+               Blank[]]] := {$CellContext`v$, $CellContext`g$ \
+($CellContext`A$ 
+                Exp[(-$CellContext`x$)/$CellContext`k$] ($CellContext`v$^2/(
+                 2. $CellContext`beta$)) - 1)}; $CellContext`dragDStream$[
+              Pattern[$CellContext`Delta$, {
+                Pattern[$CellContext`dt$, 
+                 Blank[]], 
+                Pattern[$CellContext`t$, 
+                 Blank[]], 
+                Pattern[$CellContext`Dx$, 
+                 
+                 Blank[]]}]] := {$CellContext`Delta$, \
+$CellContext`dragDStream$[{$CellContext`dt$, $CellContext`t$ + \
+$CellContext`dt$, $CellContext`Dx$}]& }; $CellContext`F21$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := (-$CellContext`A$) 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$^2/(2. $CellContext`k$ $CellContext`beta$)); $CellContext`F22$[
+              Pattern[$CellContext`x$, 
+               Blank[]], 
+              Pattern[$CellContext`v$, 
+               Blank[]]] := $CellContext`A$ 
+             Exp[(-$CellContext`x$)/$CellContext`k$] $CellContext`g$ \
+($CellContext`v$/$CellContext`beta$); $CellContext`Phi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := {{
+              1, $CellContext`dt$}, {$CellContext`dt$ \
+$CellContext`F21$[$CellContext`x$, $CellContext`v$], 
+               1 + $CellContext`dt$ $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}}; $CellContext`Xi$[
+              Pattern[$CellContext`dt$, 
+               Blank[]], {
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`v$, 
+                Blank[]]}] := 
+            With[{$CellContext`f$ = $CellContext`F22$[$CellContext`x$, \
+$CellContext`v$]}, {{$CellContext`dt$^3/
+                3, ($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6}, {($CellContext`dt$^2 (3 + 
+                  2 $CellContext`dt$ $CellContext`f$))/
+                6, $CellContext`dt$ + $CellContext`dt$^2 $CellContext`f$ + \
+($CellContext`dt$^3 $CellContext`f$^2)/3}}]; $CellContext`EKFDrag$[
+              Pattern[$CellContext`sigmaXi$, 
+               Blank[]], 
+              Pattern[$CellContext`kZeta$, 
+               Blank[]], 
+              Pattern[$CellContext`integrator$, 
+               Blank[]], 
+              Pattern[$CellContext`fdt$, 
+               Blank[]], 
+              Pattern[$CellContext`idt$, 
+               Blank[]]][{
+               Pattern[$CellContext`x$, 
+                Blank[]], 
+               Pattern[$CellContext`P$, 
+                Blank[]]}, {
+               Pattern[$CellContext`t$, 
+                Blank[]], 
+               Pattern[$CellContext`A$, 
+                Blank[]], 
+               Pattern[$CellContext`z$, 
+                Blank[]]}] := 
+            Module[{$CellContext`x2$, $CellContext`P2$, $CellContext`kD$, \
+$CellContext`kK$}, $CellContext`x2$ = Part[
+                 $CellContext`last$[
+                  $CellContext`takeUntil$[
+                   $CellContext`foldStream$[$CellContext`integrator$, \
+{$CellContext`t$, $CellContext`x$}, 
+                    $CellContext`dragDStream$[{$CellContext`idt$, \
+$CellContext`t$, $CellContext`dragD$}]], 
+                   First[#] > $CellContext`t$ + $CellContext`fdt$& ]], 
+                 2]; $CellContext`P2$ = $CellContext`sigmaXi$^2 \
+$CellContext`Xi$[$CellContext`fdt$, $CellContext`x$] + Dot[
+                  $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$], \
+$CellContext`P$, 
+                  Transpose[
+                   $CellContext`Phi$[$CellContext`fdt$, $CellContext`x$]]]; \
+$CellContext`kD$ = $CellContext`kZeta$ + 
+                Dot[$CellContext`A$, $CellContext`P2$, 
+                  Transpose[$CellContext`A$]]; $CellContext`kK$ = 
+               Dot[$CellContext`P2$, 
+                 Transpose[$CellContext`A$], 
+                 Inverse[$CellContext`kD$]]; {$CellContext`x2$ + 
+                Dot[$CellContext`kK$, $CellContext`z$ - 
+                  Dot[$CellContext`A$, $CellContext`x2$]], $CellContext`P2$ - 
+                Dot[$CellContext`kK$, $CellContext`kD$, 
+                 Transpose[$CellContext`kK$]]}]; Block[{$IterationLimit}, 
+             With[{$CellContext`nStates$ = 2}, 
+              
+              With[{$CellContext`t0$ = 0., $CellContext`t1$ = 
+                30., $CellContext`filterDt$ = 0.1}, 
+               
+               With[{$CellContext`x0$ = 
+                 200000, $CellContext`v0$ = -6000, \
+$CellContext`\[CapitalZeta]$ = $CellContext`sigmaZeta$$^2 
+                  IdentityMatrix[1], $CellContext`P0$ = 
+                 1000000000000 IdentityMatrix[$CellContext`nStates$]}, 
+                
+                Module[{$CellContext`fakes$, $CellContext`integrators$ = \
+{$CellContext`eulerAccumulator$, $CellContext`rk2Accumulator$, \
+$CellContext`rk4Accumulator$}, $CellContext`integrationDt$}, \
+$CellContext`fakes$[] := \
+$CellContext`foldStream$[$CellContext`rk4Accumulator$, {$CellContext`t0$, \
+{$CellContext`x0$, $CellContext`v0$}}, 
+                    $CellContext`dragDStream$[{$CellContext`filterDt$, \
+$CellContext`t0$, $CellContext`dragD$}]]; $CellContext`integrationDt$ = 
+                  10.^$CellContext`logIntegratorDt$$; 
+                 SeedRandom[$CellContext`randomSeed$$]; 
+                 Module[{$CellContext`ffs$, $CellContext`rffs$, \
+$CellContext`ts$, $CellContext`xvs$, $CellContext`xss$, $CellContext`vss$, \
+$CellContext`txs$, $CellContext`tvs$, $CellContext`ps$, \
+$CellContext`sigmaxs$, $CellContext`sigmavs$}, $CellContext`xss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`vss$ = 
+                    ConstantArray[
+                    0, $CellContext`nIterations$$]; $CellContext`ffs$ = \
+$CellContext`takeUntil$[
+                    $CellContext`fakes$[], 
+                    First[#] > $CellContext`t1$& ]; $CellContext`rffs$ = \
+$CellContext`reify$[$CellContext`ffs$]; $CellContext`ts$ = Map[
+                    $CellContext`pick$[
+                    1], $CellContext`rffs$]; $CellContext`txs$ = Map[
+                    $CellContext`pick$[
+                    2, 1], $CellContext`rffs$]; $CellContext`tvs$ = Map[
+                    $CellContext`pick$[
+                    2, 2], $CellContext`rffs$]; {$CellContext`xss$, \
+$CellContext`vss$} = Transpose[
+                    Map[({$CellContext`xvs$, $CellContext`ps$} = Transpose[
+                    Rest[
+                    $CellContext`reify$[
+                    $CellContext`foldStream$[
+                    $CellContext`EKFDrag$[$CellContext`sigmaXi$$, \
+$CellContext`\[CapitalZeta]$, 
+                    
+                    Part[$CellContext`integrators$, \
+$CellContext`integrator$$], $CellContext`filterDt$, \
+$CellContext`integrationDt$], {{0, 0}, $CellContext`P0$}, 
+                    $CellContext`mapStream$[$CellContext`ffs$, {
+                    Part[#, 1], {{1, 0}}, 
+                    Part[#, 2, 
+                    1] + $CellContext`gen$[$CellContext`\[CapitalZeta]$]}& \
+]]]]]; $CellContext`sigmaxs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[
+                    1, 1], $CellContext`ps$]]; $CellContext`sigmavs$ = Sqrt[
+                    Map[
+                    $CellContext`pick$[2, 2], $CellContext`ps$]]; 
+                    Transpose[$CellContext`xvs$])& , 
+                    Range[$CellContext`nIterations$$]]]; Grid[{{
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`txs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"h/[ft]", ""}, {
+                    "Time/[s]", "Height vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    Map[{$CellContext`ts$, #}& , $CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`tvs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\!\(\*OverscriptBox[\(h\), \(.\)]\)/[ft/s]", ""}, {
+                    "Time/[s]", "Speed vs. Time"}}]}, {
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`txs$ - #}& , \
+$CellContext`xss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmaxs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmaxs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{"\[CapitalDelta]h/[ft]", ""}, {
+                    "Time/[s]", "Height Residual vs. Time"}}], 
+                    ListPlot[
+                    Join[
+                    Map[Transpose, 
+                    
+                    Map[{$CellContext`ts$, $CellContext`tvs$ - #}& , \
+$CellContext`vss$]], {
+                    Transpose[{$CellContext`ts$, $CellContext`sigmavs$}], 
+                    Transpose[{$CellContext`ts$, -$CellContext`sigmavs$}]}], 
+                    ImageSize -> Medium, GridLines -> Full, Frame -> True, 
+                    FrameLabel -> {{
+                    "\[CapitalDelta]\!\(\*OverscriptBox[\(h\), \
+\(.\)]\)/[ft/s]", ""}, {"Time/[s]", "Speed Residual vs. Time"}}]}}]]]]]]]]]], 
+      "Specifications" :> {{{$CellContext`sigmaZeta$$, 26}, 1, 1000, 5, 
+         Appearance -> "Open", ControlPlacement -> 
+         1}, {{$CellContext`sigmaXi$$, 0}, 0, 1000, 5, Appearance -> "Open", 
+         ControlPlacement -> 2}, {{$CellContext`nIterations$$, 2}, 1, 25, 1, 
+         Appearance -> "Open", ControlPlacement -> 
+         3}, {{$CellContext`randomSeed$$, 42}, 42, 142, 1, Appearance -> 
+         "Open", ControlPlacement -> 4}, {{$CellContext`integrator$$, 1}, 1, 
+         3, 1, Appearance -> "Open", ControlPlacement -> 
+         5}, {{$CellContext`logIntegratorDt$$, -1}, -3, -1, 1, Appearance -> 
+         "Open", ControlPlacement -> 6}, 
+        Grid[{{
+           Manipulate`Place[1], 
+           Manipulate`Place[2]}, {
+           Manipulate`Place[3], 
+           Manipulate`Place[4]}, {
+           Manipulate`Place[5], 
+           Manipulate`Place[6]}}]}, "Options" :> {}, 
+      "DefaultOptions" :> {ControllerLinking -> True}],
+     ImageSizeCache->{771., {348., 353.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellEditDuplicate->False,
+ GeneratedCell->False,
+ CellAutoOverwrite->False,
+ CellChangeTimes->{3.672317371759254*^9},
+ CellID->1686515329]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "DetailsSection"],
+
+Cell["\<\
+The example uses advanced functional programming over lazy streams to \
+integrate in constant memory and to modularize the integrators and other \
+components. The code has many reusable parts and is worthy of study \
+independently of the application to Kalman filtering.\
+\>", "DetailNotes",
+ CellChangeTimes->{{3.672317528631577*^9, 3.672317565424979*^9}, {
+  3.6723176164717693`*^9, 3.672317654683145*^9}, {3.672318131882635*^9, 
+  3.6723181826914043`*^9}},
+ CellID->1176202542]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "ControlSuggestionsSection"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Resize Images"]}],
+  "\"Click inside an image to reveal its orange resize frame.\\nDrag any of \
+the orange resize handles to resize the image.\""]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"ResizeImages"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Rotate and Zoom in 3D"]}],
+  RowBox[{
+   "\"Drag a 3D graphic to rotate it. Starting the drag near the center \
+tumbles\\nthe graphic; starting near a corner turns it parallel to the plane \
+of the screen.\\nHold down \"", 
+    FrameBox[
+    "Ctrl", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], "\" (or \"", 
+    FrameBox[
+    "Cmd", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], 
+    "\" on Mac) and drag up and down to zoom.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"RotateAndZoomIn3D"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Drag Locators"]}],
+  RowBox[{"\"Drag any locator (\"", 
+    GraphicsBox[
+     LocatorBox[
+      Scaled[{0.5, 0.5}]], ImageSize -> 20], 
+    "\", etc.) to move it around.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"DragLocators"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Create and Delete Locators"]}],
+  RowBox[{"\"Insert a new locator in the graphic by holding down the \"", 
+    FrameBox[
+    "Alt", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], 
+    "\" key\\nand clicking where you want it to be. Delete a locator by \
+clicking it\\nwhile holding down the \"", 
+    FrameBox[
+    "Alt", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], "\" key.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"CreateAndDeleteLocators"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Slider Zoom"]}],
+  RowBox[{"\"Hold down the \"", 
+    FrameBox[
+    "Alt", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], 
+    "\" key while moving a slider to make fine adjustments in the slider \
+value.\\nHold \"", 
+    FrameBox[
+    "Ctrl", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], "\" and/or \"", 
+    FrameBox[
+    "Shift", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], "\" at the same time as \"", 
+    FrameBox[
+    "Alt", Background -> GrayLevel[0.9], FrameMargins -> 2, FrameStyle -> 
+     GrayLevel[0.9]], 
+    "\" to make ever finer adjustments.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"SliderZoom"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Gamepad Controls"]}],
+  "\"Control this Demonstration with a gamepad or other\\nhuman interface \
+device connected to your computer.\""]], "ControlSuggestions",
+ CellChangeTimes->{3.35696210375764*^9, 3.3895522232313623`*^9},
+ FontFamily->"Verdana",
+ CellTags->"GamepadControls"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Automatic Animation"]}],
+  RowBox[{"\"Animate a slider in this Demonstration by clicking the\"", 
+    AdjustmentBox[
+     Cell[
+      GraphicsData[
+      "CompressedBitmap", 
+       "eJzzTSzJSM1NLMlMTlRwL0osyMhMLlZwyy8CCjEzMjAwcIKwAgOI/R/IhBKc\n\
+/4EAyGAG0f+nTZsGwgysIJIRKsWKLAXGIHFmEpUgLADxWUAkI24jZs+eTaEt\n\
+IG+wQKRmzJgBlYf5lhEA30OqWA=="], "Graphics", ImageSize -> {9, 9}, ImageMargins -> 
+      0, CellBaseline -> Baseline], BoxBaselineShift -> 0.1839080459770115, 
+     BoxMargins -> {{0., 0.}, {-0.1839080459770115, 0.1839080459770115}}], 
+    "\"button\\nnext to the slider, and then clicking the play button that \
+appears.\\nAnimate all controls by selecting \"", 
+    StyleBox["Autorun", FontWeight -> "Bold"], "\" from the\"", 
+    AdjustmentBox[
+     Cell[
+      GraphicsData[
+      "CompressedBitmap", 
+       "eJyNULENwyAQfEySIlMwTVJlCGRFsosokeNtqBmDBagoaZjAI1C8/8GUUUC6\n\
+57h7cQ8PvU7Pl17nUav7oj/TPH7V7b2QJAUAXBkKmCPRowxICy64bRvGGNF7\n\
+X8CctGoDSN4xhIDGGDhzFXwUh3/ClBKrDQPmnGXtI6u0OOd+tZBVUqy1xSaH\n\
+UqiK6pPe4XdEdAz6563tx/gejuORGMxJaz8mdpJn7hc="], "Graphics", 
+      ImageSize -> {10, 10}, ImageMargins -> 0, CellBaseline -> Baseline], 
+     BoxBaselineShift -> 0.1839080459770115, 
+     BoxMargins -> {{0., 0.}, {-0.1839080459770115, 0.1839080459770115}}], 
+    "\"menu.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"AutomaticAnimation"],
+
+Cell[BoxData[
+ TooltipBox[
+  RowBox[{
+   CheckboxBox[False], Cell[" Bookmark Animation"]}],
+  RowBox[{
+   "\"See a prepared animation of this Demonstration by selecting\\n\"", 
+    StyleBox["Animate Bookmarks", FontWeight -> "Bold"], "\" from the\"", 
+    AdjustmentBox[
+     Cell[
+      GraphicsData[
+      "CompressedBitmap", 
+       "eJyNULENwyAQfEySIlMwTVJlCGRFsosokeNtqBmDBagoaZjAI1C8/8GUUUC6\n\
+57h7cQ8PvU7Pl17nUav7oj/TPH7V7b2QJAUAXBkKmCPRowxICy64bRvGGNF7\n\
+X8CctGoDSN4xhIDGGDhzFXwUh3/ClBKrDQPmnGXtI6u0OOd+tZBVUqy1xSaH\n\
+UqiK6pPe4XdEdAz6563tx/gejuORGMxJaz8mdpJn7hc="], "Graphics", 
+      ImageSize -> {10, 10}, ImageMargins -> 0, CellBaseline -> Baseline], 
+     BoxBaselineShift -> 0.1839080459770115, 
+     BoxMargins -> {{0., 0.}, {-0.1839080459770115, 0.1839080459770115}}], 
+    "\"menu.\""}]]], "ControlSuggestions",
+ FontFamily->"Verdana",
+ CellTags->"BookmarkAnimation"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["", "SearchTermsSection"],
+
+Cell["Kalman filter", "SearchTerms",
+ CellChangeTimes->{{3.672317515281035*^9, 3.672317521554289*^9}, {
+  3.672317717437352*^9, 3.672317729189447*^9}},
+ CellID->181124563],
+
+Cell["extended Kalman filter", "SearchTerms",
+ CellChangeTimes->{{3.6723177071337767`*^9, 3.6723177353812017`*^9}},
+ CellID->117360528],
+
+Cell["functional programming", "SearchTerms",
+ CellChangeTimes->{{3.672317690254311*^9, 3.672317694126048*^9}, {
+  3.6723177372529984`*^9, 3.6723177401249437`*^9}},
+ CellID->408754096],
+
+Cell["lazy streams", "SearchTerms",
+ CellChangeTimes->{{3.672318528524805*^9, 3.6723185316352377`*^9}},
+ CellID->428879022],
+
+Cell["integration", "SearchTerms",
+ CellChangeTimes->{{3.672318535339299*^9, 3.67231853670724*^9}},
+ CellID->2007648819]
+}, Open  ]],
+
+Cell["", "RelatedLinksSection"],
+
+Cell[CellGroupData[{
+
+Cell["", "AuthorSection"],
+
+Cell["Contributed by: Brian C. Beckman", "Author",
+ CellChangeTimes->{
+  3.35696210375764*^9, {3.432333043774981*^9, 3.432333045441087*^9}, {
+   3.672317671050191*^9, 3.672317676303694*^9}}]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{861, 1266},
+WindowMargins->{{6, Automatic}, {Automatic, 1}},
+FrontEndVersion->"10.4 for Mac OS X x86 (32-bit, 64-bit Kernel) (April 11, \
+2016)",
+StyleDefinitions->FrontEnd`FileName[{"Wolfram"}, "Demonstration.nb", 
+  CharacterEncoding -> "UTF-8"]
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{
+ "AutomaticAnimation"->{
+  Cell[144823, 3258, 1442, 30, 29, "ControlSuggestions",
+   CellTags->"AutomaticAnimation"]},
+ "BookmarkAnimation"->{
+  Cell[146268, 3290, 886, 20, 29, "ControlSuggestions",
+   CellTags->"BookmarkAnimation"]},
+ "CreateAndDeleteLocators"->{
+  Cell[143025, 3209, 615, 14, 29, "ControlSuggestions",
+   CellTags->"CreateAndDeleteLocators"]},
+ "DragLocators"->{
+  Cell[142704, 3197, 318, 10, 29, "ControlSuggestions",
+   CellTags->"DragLocators"]},
+ "GamepadControls"->{
+  Cell[144473, 3248, 347, 8, 29, "ControlSuggestions",
+   CellTags->"GamepadControls"]},
+ "ResizeImages"->{
+  Cell[141747, 3170, 290, 7, 29, "ControlSuggestions",
+   CellTags->"ResizeImages"]},
+ "RotateAndZoomIn3D"->{
+  Cell[142040, 3179, 661, 16, 29, "ControlSuggestions",
+   CellTags->"RotateAndZoomIn3D"]},
+ "SliderZoom"->{
+  Cell[143643, 3225, 827, 21, 29, "ControlSuggestions",
+   CellTags->"SliderZoom"]}
+ }
+*)
+(*CellTagsIndex
+CellTagsIndex->{
+ {"AutomaticAnimation", 148671, 3365},
+ {"BookmarkAnimation", 148789, 3368},
+ {"CreateAndDeleteLocators", 148911, 3371},
+ {"DragLocators", 149028, 3374},
+ {"GamepadControls", 149137, 3377},
+ {"ResizeImages", 149245, 3380},
+ {"RotateAndZoomIn3D", 149355, 3383},
+ {"SliderZoom", 149464, 3386}
+ }
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 119, 1, 76, "DemoTitle"],
+Cell[702, 25, 33, 0, 275, "InitializationSection"],
+Cell[CellGroupData[{
+Cell[760, 29, 29, 0, 201, "ManipulateSection"],
+Cell[CellGroupData[{
+Cell[814, 33, 34841, 850, 1752, "Input"],
+Cell[35658, 885, 20799, 442, 713, "Output",
+ CellID->1760532979]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[56506, 1333, 36, 0, 181, "ManipulateCaptionSection"],
+Cell[56545, 1335, 1152, 18, 135, "ManipulateCaption"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[57734, 1358, 28, 0, 179, "ThumbnailSection"],
+Cell[57765, 1360, 20783, 443, 713, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[78585, 1808, 28, 0, 149, "SnapshotsSection"],
+Cell[78616, 1810, 20832, 444, 713, "Output"],
+Cell[99451, 2256, 20805, 444, 713, "Output",
+ CellID->463981159],
+Cell[120259, 2702, 20855, 445, 713, "Output",
+ CellID->1686515329]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[141151, 3152, 26, 0, 357, "DetailsSection"],
+Cell[141180, 3154, 490, 9, 55, "DetailNotes",
+ CellID->1176202542]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[141707, 3168, 37, 0, 131, "ControlSuggestionsSection"],
+Cell[141747, 3170, 290, 7, 29, "ControlSuggestions",
+ CellTags->"ResizeImages"],
+Cell[142040, 3179, 661, 16, 29, "ControlSuggestions",
+ CellTags->"RotateAndZoomIn3D"],
+Cell[142704, 3197, 318, 10, 29, "ControlSuggestions",
+ CellTags->"DragLocators"],
+Cell[143025, 3209, 615, 14, 29, "ControlSuggestions",
+ CellTags->"CreateAndDeleteLocators"],
+Cell[143643, 3225, 827, 21, 29, "ControlSuggestions",
+ CellTags->"SliderZoom"],
+Cell[144473, 3248, 347, 8, 29, "ControlSuggestions",
+ CellTags->"GamepadControls"],
+Cell[144823, 3258, 1442, 30, 29, "ControlSuggestions",
+ CellTags->"AutomaticAnimation"],
+Cell[146268, 3290, 886, 20, 29, "ControlSuggestions",
+ CellTags->"BookmarkAnimation"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[147191, 3315, 30, 0, 165, "SearchTermsSection"],
+Cell[147224, 3317, 171, 3, 23, "SearchTerms",
+ CellID->181124563],
+Cell[147398, 3322, 135, 2, 23, "SearchTerms",
+ CellID->117360528],
+Cell[147536, 3326, 184, 3, 23, "SearchTerms",
+ CellID->408754096],
+Cell[147723, 3331, 123, 2, 23, "SearchTerms",
+ CellID->428879022],
+Cell[147849, 3335, 120, 2, 23, "SearchTerms",
+ CellID->2007648819]
+}, Open  ]],
+Cell[147984, 3340, 31, 0, 149, "RelatedLinksSection"],
+Cell[CellGroupData[{
+Cell[148040, 3344, 25, 0, 137, "AuthorSection"],
+Cell[148068, 3346, 190, 3, 23, "Author"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
