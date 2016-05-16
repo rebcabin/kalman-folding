@@ -1,0 +1,1714 @@
+% Created 2016-05-14 Sat 11:19
+\documentclass[10pt,oneside,x11names]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{palatino}
+\usepackage{siunitx}
+\usepackage{esdiff}
+\usepackage{xfrac}
+\usepackage{nicefrac}
+\usepackage{faktor}
+\usepackage[euler-digits,euler-hat-accent]{eulervm}
+\author{Brian Beckman}
+\date{\textit{<2016-05-03 Tue>}}
+\title{Kalman Folding 3: Derivations (WORKING DRAFT)\\\medskip
+\large Extracting Models from Data, One Observation at a Time}
+\hypersetup{
+ pdfauthor={Brian Beckman},
+ pdftitle={Kalman Folding 3: Derivations (WORKING DRAFT)},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
+\section{Abstract}
+\label{sec:orgheadline1}
+
+In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} we present basic, static Kalman filtering
+as a functional fold, highlighting the unique advantages of this form for
+deploying test-hardened code verbatim in harsh, mission-critical environments.
+The examples in that paper are all static, meaning that the states of the model
+do not depend on the independent variable, often physical time.
+
+Here, we present mathematical derivations of the basic, static filter. These are
+semi-formal sketches that leave many details to the reader, but highlight all
+important points that must be rigorously proved. These derivations have several
+novel arguments and we strive for much higher clarity and simplicity than is
+found in most treatments of the topic.
+
+\section{Kalman Folding in the Wolfram Language}
+\label{sec:orgheadline2}
+
+In this series of papers, we use the Wolfram language\footnote{\url{http://reference.wolfram.com/language/}} because it excels
+at concise expression of mathematical code. All examples in these papers can be
+directly transcribed to any modern mainstream language that supports closures.
+For example, it is easy to write them in C++11 and beyond, Python, any modern
+Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many can be written
+without full closures; function pointers will suffice, so they are easy to write
+in C. It's also not difficult to add extra arguments to simulate just enough
+closure-like support in C to write the rest of the examples in that language.
+
+
+In \emph{Kalman Folding},\footnotemark[1]{} we found the following small formulation for the
+accumulator function of a fold that implements the static Kalman filter:
+
+\begin{equation}
+\label{eqn:kalman-cume-definition}
+\text{kalmanStatic}
+\left(
+\mathbold{Z}
+\right)
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) =
+\left\{
+\mathbold{x}+
+\mathbold{K}\,
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right),
+\mathbold{P}-
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal
+\right\}
+\end{equation}
+
+\noindent where
+
+\begin{align}
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+
+\noindent and all quantities are matrices:
+
+\begin{itemize}
+\item \(\mathbold{z}\) is a  \({b}\times{1}\) column vector containing one multidimensional observation
+\item \(\mathbold{x}\) is an \({n}\times{1}\) column vector of \emph{model states}
+\item \(\mathbold{Z}\) is a  \({b}\times{b}\) matrix, the covariance of
+observation noise
+\item \(\mathbold{P}\) is an \({n}\times{n}\) matrix, the theoretical
+covariance of \(\mathbold{x}\)
+\item \(\mathbold{A}\) is a  \({b}\times{n}\) matrix, the \emph{observation partials}
+\item \(\mathbold{D}\) is a  \({b}\times{b}\) matrix, the Kalman denominator
+\item \(\mathbold{K}\) is an \({n}\times{b}\) matrix, the Kalman gain
+\end{itemize}
+
+In physical or engineering applications, these quantities carry physical
+dimensions of units of measure in addition to their matrix dimensions as numbers
+of rows and columns. 
+If the physical and matrix dimensions of 
+\(\mathbold{x}\) 
+are
+\(\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})\)
+and of 
+\(\mathbold{z}\) 
+are
+\(\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})\), then
+
+\begin{equation}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
+\end{array}
+\end{equation}
+
+Dimensional arguments, regarding both matrix dimensions and physical dimensions,
+are invaluable for checking the derivations that follow.
+
+\section{Derivations}
+\label{sec:orgheadline14}
+
+Here, we derive equations \ref{eqn:kalman-cume-definition},
+\ref{eqn:kalman-gain-definition} and \ref{eqn:kalman-denominator-definition}.
+Again, these derivations are just sketches designed for clarity. 
+These derivations only cover the
+static Kalman filter, where \(\mathbold{x}\) are
+fixed, constant, static states of the model. See Bar-Shalom\footnote{Bar-Shalom, Yaakov, \emph{et al}. Estimation with applications to tracking and navigation. New York: Wiley, 2001.} for
+derivations of the time-dependent Kalman filter and part 2 of this series\footnote{B. Beckman, \emph{Kalman Folding 2: Tracking and System Dynamics}, to appear.} for
+intuitive arguments.
+
+The plan is first to develop expressions for the prior estimate
+\(\tilde{\mathbold{x}}\) and covariance \(\tilde{\mathbold{P}}\), then expressions
+for the posterior versions \(\hat{\mathbold{x}}\) and \(\hat{\mathbold{P}}\),
+defining the Kalman gain \(\mathbold{K}\) and the denominator matrix
+\(\mathbold{D}\) along the way. Finally, we derive the convenient expressions for \(\mathbold{K}\)
+and \(\mathbold{D}\) that appear in equations \ref{eqn:kalman-cume-definition},
+\ref{eqn:kalman-gain-definition}, and \ref{eqn:kalman-denominator-definition}. 
+
+\subsection{Notation}
+\label{sec:orgheadline3}
+
+The word \emph{vector} alone means \emph{column vector} by default. If a quantity is a row
+vector, we explicitly say so.
+In general, lower-case boldface symbols like \(\mathbold{x}\) denote column
+vectors.
+Row vectors include a superscript \emph{transpose} symbol, as in
+\(\mathbold{a}^\intercal\).
+We write literal vectors in square brackets, as in
+\(\left[a, b, \ldots\right]^\intercal\) for a column vector or
+\(\left[a, b, \ldots\right]\) for a row vector or when we don't care whether
+it's a column or row.
+
+
+Upper-case
+boldface symbols like \(\mathbold{M}\) denote matrices. Because vectors are
+special cases of matrices, some matrices are also vectors. We may use an
+upper-case symbol to denote a vector, but we do not use a lower-case symbol to
+denote a non-vector matrix.
+
+Juxtaposition, as in
+\(\mathbold{A}\,\mathbold{x}\) or \(\mathbold{A}\,\mathbold{B}\), means matrix multiplication.
+We occasionally use a center dot or \(\times\) symbol to clarify matrix
+multiplication, as in \(\mathbold{A}\cdot\mathbold{x}\) or
+\(\mathbold{A}\times\mathbold{x}\). 
+
+
+We freely and frequently exploit the following facts without pointing out when
+we use them.
+\begin{itemize}
+\item For any matrix \(\mathbold{M}\), \(\left(\mathbold{M}^\intercal\right)^\intercal = \mathbold{M}\)
+\item For any invertible matrix \(\mathbold{M}\), \(\left(\mathbold{M}^{-1}\right)^{-1} = \mathbold{M}\)
+\item For any two matrices \(\mathbold{A}\) and
+\(\mathbold{B}\),
+\(\left(\mathbold{A}\,\mathbold{B}\right)^\intercal=\mathbold{B}^\intercal\mathbold{A}^\intercal\)
+\item \(\left(\mathbold{A}\,\mathbold{B}\right)^{-1}=\mathbold{B}^{-1}\mathbold{A}^{-1}\)
+  when the matrices are invertible
+\item \(\mathbold{P}^\intercal\) = \(\mathbold{P}\) if and only if \(\mathbold{P}\) is
+symmetric
+\end{itemize}
+
+For any matrix \(\mathbold{M}\), \(\mathbold{M}^2\) means
+\(\mathbold{M}^\intercal\mathbold{M}\), the transpose of the matrix times the
+matrix. Such squared matrices are always square and symmetric.
+This notation pertains to vectors, as well, because they are just
+special cases of matrices. Thus,
+\(\mathbold{x}^2=\mathbold{x}^\intercal\mathbold{x}\), the Euclidean
+\(\mbox{2-\textrm{norm}}\) of \(\mathbold{x}\), a scalar; and
+\((\mathbold{x}^\intercal)^2 =
+(\mathbold{x}^\intercal)^\intercal\cdot
+\mathbold{x}^\intercal=
+\mathbold{x}\,\mathbold{x}^\intercal\)
+is the outer product of \(\mathbold{x}\) with itself. That outer product is an
+\(n\times{n}\) square, symmetric matrix, where \(n\) is the dimensionality of \(\mathbold{x}\). 
+
+When \(\mathbold{M}^2\) is invertible, \(\mathbold{M}^{-2}\)
+means the inverse of \(\mathbold{M}^2\), namely
+\(\left(\mathbold{M}^\intercal\mathbold{M}\right)^{-1}\).
+
+We use the term \emph{tall} to mean a matrix with more rows than columns, that is, an
+\(m\times{n}\)
+matrix when
+\(m>n\). When discussing
+\(m\times{n}\)
+matrices, we  usually assume that
+\(m>n\).
+We use the term \emph{wide} to mean a matrix with
+more columns than rows, as in an \(n\times{m}\) matrix. We use the term \emph{small} to
+mean \(n\times{n}\), and \emph{large} to mean \(m\times{m}\). 
+
+\subsection{Definitions}
+\label{sec:orgheadline4}
+
+\begin{description}
+\item[{\(t\)}] is the independent variable. In many applications, \(t\) represents physical
+time, or an integer index mapped to physical time. It is known and
+non-random. We treat it as a scalar, here, though it is possible to extend
+the theory to a vector \(t\).
+
+\item[{\(\mathbold{x}\)}] is the (column) vector of \(n\) unknown, constant \emph{states}
+of the model. It's a random variable, and we compute estimates and
+covariances \emph{via} expectation values over its distribution. This symbol
+also means an algebraic variable standing for some particular estimate of
+the states.
+
+\item[{\(\mathbold{A}\,\mathbold{x}\)}] the \emph{model}; it predicts an observation at
+time \(t\) given an estimate of the states \(\mathbold{x}\) and a current
+partials matrix \(\mathbold{A}\) that depends on \(t\). The model is a
+column vector of dimensionality \(b\times{1}\), the dimensionality of an
+observation \(\mathbold{z}\).
+
+\item[{\(\mathbold{A}\)}] is the \emph{current partials matrix}, the partial derivative of
+the model with respect to the unknown states \(\mathbold{x}\), evaluated
+at the current value of the independent variable \(t\). We could write
+\(\mathbold{A}\) as \(\mathbold{A}(t)\), and perhaps we should; it's an
+aesthetic judgment not to write the \(t\) dependence explicitly because it
+would make the derivations so much longer and harder to read.  Because the
+model is \emph{linear}, the partials do not depend on \(\mathbold{x}\). 
+\(\mathbold{A}\) is known, non-random, and depends only on \(t\). Generally,
+its dimensionality
+is \(b\times{n}\), where \(b\) is the dimensionality of an 
+observation \(\mathbold{z}\).
+
+\item[{\(\tilde{\mathbold{A}}\)}] is the \emph{prior partials matrix}, a matrix that stacks
+all the prior rows of \(\mathbold{A}\) that precede the current row. It is
+known, non-random, and \(m b\times{n}\), where \(m\) is the number of prior
+observations, \(b\) is the dimensionality of an 
+observation \(\mathbold{z}\), and \(n\) is the dimensionality of the states
+\(\mathbold{x}\).  Thus
+\(\tilde{\mathbold{A}}\) is tall in the typical \emph{overdetermined} case where
+\(m>n\), more observations than states. We do not actually
+realize \(\tilde{\mathbold{A}}\) in computer memory because Kalman keeps
+\emph{all information} in the running covariance matrix. \(\tilde{\mathbold{A}}\)
+is just a
+useful abstraction in the derivations below.
+
+\item[{\(\mathbold{z}\)}] is the \emph{current observation}. It is known and non-random.
+Its dimensionality is \(b\times{1}\), \(b\) perhaps suggesting `bundle.'
+
+\item[{\(\tilde{\mathbold{z}}\)}] is a stack or \emph{batch} of all prior observations. It
+is known, non-random, \(m b\times{1}\). It's a useful abstraction in the
+derivations below. It's not necessary to actually realize it in computer
+memory because we use all its information incrementally by folding.
+
+\item[{\({\tilde{\mathbold{x}}}\)}] the \emph{prior estimate}, the estimate of
+\(\mathbold{x}\) given all information we have prior to the current
+observation. It is known, non-random, \(n\times{1}\).
+
+\item[{\({\hat{\mathbold{x}}}\)}] the \emph{posterior estimate}, the estimate of
+\(\mathbold{x}\) given (1) the prior estimate \({\tilde{\mathbold{x}}}\), (2)
+the current partials \(\mathbold{A}\), and (3) the current observation
+\(\mathbold{z}\). It is known, non-random, \(n\times{1}\). It satisfies
+\emph{the Kalman update equation}:
+\end{description}
+
+\begin{equation}
+\label{eqn:kalman-update-equation}
+{\hat{\mathbold{x}}} =
+{\tilde{\mathbold{x}}} +
+\mathbold{K}
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+{\tilde{\mathbold{x}}}
+\right)
+\end{equation}
+
+\noindent which is equivalent to  the recurrence
+\(\mathbold{x}\leftarrow\mathbold{x}+\mathbold{K}\,(z-\mathbold{A}\,\mathbold{x})\)
+used in part 1 of this series.
+
+\begin{description}
+\item[{\({\tilde{\mathbold{P}}}\)}] \emph{covariance of the priors}, equals
+\(\mathbold{Z}\left(
+     {\tilde{\mathbold{A}}}^\intercal\,
+     {\tilde{\mathbold{A}}}
+     \right)^{-1}\stackrel{\text{\tiny def}}{=}
+     \mathbold{Z}\,{\tilde{\mathbold{A}}}^{-2}\)
+(proof sketch
+below). This is called just \(\mathbold{P}\) in part one of this series.
+It is known, non-random, \(n\times{n}\).
+
+\item[{\({\hat{\mathbold{P}}}\)}] \emph{posterior covariance}, satisfies
+\({\hat{\mathbold{P}}}\,
+     {\mathbold{A}}^\intercal=
+     \mathbold{Z}\,\mathbold{K}=
+     \mathbold{Z}\,{\tilde{\mathbold{P}}}\,\mathbold{A}^\intercal\,\mathbold{D}^{-1}\)
+(proof sketch below). We calculate it from the prior covariance
+\(\tilde{\mathbold{P}}\), the observation-noise covariance \(\mathbold{Z}\), and the new
+partials matrix \(\mathbold{A}\). 
+It is known, non-random, \(n\times{n}\).
+
+\item[{\(\mathbold{A}\,{\tilde{\mathbold{x}}}\)}] the \emph{predicted observation} given
+the prior estimate \({\tilde{\mathbold{x}}}\) and the current partials matrix
+\(\mathbold{A}\). It is a particular evaluation of the model. It is known,
+non-random, \(b\times{1}\).
+
+\item[{\(\mathbold{z}-\mathbold{A}\,{\tilde{\mathbold{x}}}\)}] the measurement
+\emph{residual}, the difference between the current observation and the
+predicted observation.
+
+\item[{\(\mathbold{\zeta}\)}] \emph{observation noise}, random, column-vector variable with
+zero mean and unit covariance. Its dimensionality is \(b\times{1}\), that of
+the observation \(\mathbold{z}\). Its
+mean is
+\(E
+     \left[
+     \mathbold{\zeta}
+     \right]=
+     \mathbold{0}\) and its covariance is
+\(E
+     \left[
+     \mathbold{\zeta}\,
+     \mathbold{\zeta}^\intercal
+     \right]=
+     \mathbold{Z}\): known, non-random \(b\times{b}\).
+
+\item[{\(\mathbold{Z}\)}] covariance of the observation noise, \(E
+     \left[
+     \mathbold{\zeta}\,
+     \mathbold{\zeta}^\intercal
+     \right]=
+     \mathbold{Z}\): known, non-random \(b\times{b}\).
+
+\item[{\(\tilde{\mathbold{z}} = \tilde{\mathbold{A}}\,{\mathbold{x}} + \mathbold{\zeta}\)}] the
+\emph{observation equation}.
+\(\tilde{\mathbold{z}}\) is known, non-random, \(m b\times{1}\);
+\(\tilde{\mathbold{A}}\) is known, non-random, \(m b\times{n}\); \({\mathbold{x}}\)
+is unknown, random, \(n\times{1}\); \(\mathbold{\zeta}\) is unknown, random,
+\(m b\times{1}\).
+
+\item[{\(\mathbold{K}\)}] \emph{Kalman gain}
+\(=
+     {\tilde{\mathbold{P}}}\,
+     \mathbold{A}^\intercal\,
+     {\mathbold{D}}^{-1}\) (proof
+sketch below).
+Non-random, \(n\times{b}\).
+
+\item[{\(\mathbold{D}\)}] \emph{Kalman denominator}
+     \(=
+     \mathbold{Z}+
+     \mathbold{A}\,
+     {\tilde{\mathbold{P}}}\,
+     \mathbold{A}^\intercal\)
+     (proof sketch below). Non-random, \$b\texttimes{}\{b\}\$f.
+\end{description}
+
+\subsection{Demonstration that Prior Covariance \({\tilde{\mathbold{P}}} = \mathbold{Z}\,\tilde{\mathbold{A}}^{-2}\)}
+\label{sec:orgheadline9}
+
+The fact that the prior covariance, \(\tilde{\mathbold{P}}\), equals
+\(\mathbold{Z}\,
+\tilde{\mathbold{A}}^{-2}\), which is a tall matrix that stacks all \(m\) prior model
+partial derivatives, means that all the information about the model is carried
+along in one, small \(n\times{n}\) matrix. This is the secret to Kalman's
+constant-memory usage.
+
+\subsubsection{Covariance of a Random Vector Variable}
+\label{sec:orgheadline5}
+
+The covariance of any random column-vector variable \(\mathbold{y}\) is defined as the
+expectation value
+\(E
+\left[
+\mathbold{y}\,
+\mathbold{y}^\intercal
+\right]
+=
+E
+\left[
+({\mathbold{y}^\intercal})^2
+\right]\)
+\noindent This is the expectation value of an outer product of a column vector
+\(\mathbold{y}\) and its transpose, \(\mathbold{y}^\intercal\). Therefore, it is a
+\(q\times{q}\) matrix, where \(q\times{1}\) is the dimensionality of \(\mathbold{y}\).
+
+\subsubsection{Prior Estimate \({\tilde{\mathbold{x}}}\)}
+\label{sec:orgheadline6}
+
+One of our random variables is \(\mathbold{x}\), the column vector of unknown
+states. To calculate its estimate, assume we know the values of all \(m\) past
+partials \({\tilde{\mathbold{A}}}\) (tall, \(m b\times{n}\)) and observations
+\(\tilde{\mathbold{z}}\) (tall, \(m b\times{1}\)).
+
+Relate \(\mathbold{x}\) to the known observations \({\tilde{\mathbold{z}}}\) and the known
+partials \({\tilde{\mathbold{A}}}\) through the normally distributed random noise column
+vector \(\mathbold{\zeta}\) and the observation equation:
+
+\begin{equation}
+\label{eqn:observation-equation}
+{\tilde{\mathbold{z}}}={\tilde{\mathbold{A}}}\,\mathbold{x}+\mathbold{\zeta}
+\end{equation}
+
+\subsubsection{Sum of Squared Residuals}
+\label{sec:orgheadline7}
+
+Consider the
+following \emph{performance functional}, computed over the population of
+\(\mathbold{x}\).
+
+\begin{equation*}
+J(\mathbold{x})
+\stackrel{\text{\tiny def}}{=}
+\zeta^2=
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^2=
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^\intercal
+\cdot
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)
+\end{equation*}
+
+\noindent \(J(\mathbold{x})\) is a scalar: the sum of squared residuals. A
+\emph{residual} is a difference between an actual and a predicted observation. To
+find the \(\mathbold{x}\) that minimizes \(J(\mathbold{x})\), we could take the
+classic, school approach of setting to zero the partial derivatives of
+\(J(\mathbold{x})\) with respect to \(\mathbold{x}\) and solving the resulting
+equations for \(\mathbold{x}\). The following is an easier way. Multiply the
+residuals across by the wide matrix \({\tilde{\mathbold{A}}}^\intercal\):
+
+\begin{equation*}
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}} - 
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x}
+\end{equation*}
+
+\noindent producing an \mbox{$n$-vector}, and then construct a
+modified performance functional:
+
+\begin{equation*}
+J'(\mathbold{x})
+\stackrel{\text{\tiny def}}{=}
+\left(
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}} -
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x}
+\right)^2
+=
+\left(
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}} -
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x}
+\right)^\intercal
+\cdot
+\left(
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}} -
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x}\right)
+\end{equation*}
+
+\noindent \(J(\mathbold{x})\) is minimum with respect to \(\mathbold{x}\) if and
+only if (iff) \(J'(\mathbold{x})\) is minimum. Because \(J'(\mathbold{x})\) is
+non-negative, when \(J'(\mathbold{x})\) \emph{can} be zero, its minimum \emph{must} be
+zero. \(J'(\mathbold{x})\) is zero iff \({\tilde{\mathbold{A}}}^2\), an \(n\times{n}\)
+square matrix, is invertible (non-singular) and
+
+\begin{equation*}
+\mathbold{x}=
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}}
+\end{equation*}
+
+\noindent because then
+
+\begin{equation*}
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}}=
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x}
+\end{equation*}
+
+We call such a solution for \(\mathbold{x}\) the \emph{least-squares estimate} of
+\(\mathbold{x}\), the estimate of
+\(\mathbold{x}\) based on all prior observations.
+From now on, we write it as \({\tilde{\mathbold{x}}}\)
+
+\begin{equation}
+\label{eqn:least-squares-estimate}
+\tilde{\mathbold{x}}
+\stackrel{\text{\tiny def}}{=}
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+{\tilde{\mathbold{z}}} 
+\end{equation}
+
+With this solution, we get a new expression for the performance functional
+\(J(\mathbold{x})\) that is  useful below. First note that 
+
+\begin{alignat}{6}
+\notag
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{A}}}^{-2}
+&=
+\mathbold{1}
+&& \text{}
+\\
+\notag
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+&=
+{\tilde{\mathbold{A}}}^\intercal
+&& 
+\quad\text{Multiply on right by }\tilde{\mathbold{A}}^\intercal
+\\
+\notag
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{A}}}\,
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+&=
+{\tilde{\mathbold{A}}}^\intercal
+&&
+\quad\text{Expand definition of }{\tilde{\mathbold{A}}}^2
+\\
+\label{eqn:aa2at-is-one}
+\therefore
+{\tilde{\mathbold{A}}}\,
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal
+&=
+\mathbold{1}
+&&
+\quad\text{Arbitrariness of }\tilde{\mathbold{A}}^\intercal\text{on left}
+\end{alignat}
+
+\noindent Therefore
+
+\begin{alignat}{6}
+\notag
+J(\mathbold{x})
+&=
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^\intercal
+\cdot
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)
+\\
+\notag
+&=
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^\intercal
+{\tilde{\mathbold{A}}}\,
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)
+&&
+\quad\text{insert }\mathbold{1}\text{ from equation \ref{eqn:aa2at-is-one}}
+\\
+\notag
+&=
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^\intercal
+{\tilde{\mathbold{A}}}\,
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)
+&&
+\quad\text{insert }\mathbold{1} = {\tilde{\mathbold{A}}}^2\,{\tilde{\mathbold{A}}}^{-2}
+\\
+\notag
+&=
+\left[
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)^\intercal
+{\tilde{\mathbold{A}}}\,
+{\tilde{\mathbold{A}}}^{-2}
+\right]
+{\tilde{\mathbold{A}}}^2
+\left[
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal
+\left(
+{\tilde{\mathbold{z}}}-
+{\tilde{\mathbold{A}}}\,
+\mathbold{x}
+\right)
+\right]
+&&
+\quad\text{Regroup}
+\\
+\label{eqn:performance-functional-reformed}
+&=
+(\tilde{\mathbold{x}}-\mathbold{x})^\intercal\,
+{\tilde{\mathbold{A}}^2}\,
+(\tilde{\mathbold{x}}-\mathbold{x})
+&&
+\quad\text{Definition of }{\tilde{\mathbold{x}}}
+\end{alignat}
+
+\noindent using the fact that  \({\tilde{\mathbold{A}}^2}\) is symmetric. This has
+physical dimensions \(\mathcal{Z}^2\) where \(\mathcal{Z}\) are the physical
+dimensions of the observations \(\mathbold{z}\).
+
+\subsubsection{Prior Covariance \(\tilde{\mathbold{P}}\)}
+\label{sec:orgheadline8}
+
+We now want the covariance of the \emph{residuals}, the differences between
+our least-squares estimate \(\tilde{\mathbold{x}}\) and the random vector
+\(\mathbold{x}\):
+
+\begin{align}
+\label{eqn:covariance-of-x}
+\tilde{\mathbold{P}}
+\stackrel{\text{\tiny def}}{=}
+E
+\left[
+(\tilde{\mathbold{x}}-x)
+(\tilde{\mathbold{x}}-x)^\intercal
+\right]
+\end{align}
+
+\noindent  Get \(\tilde{\mathbold{x}}-\mathbold{x}\)
+from the observations and partials at hand as follows:
+
+\begin{alignat}{6}
+\notag
+{\tilde{\mathbold{z}}}
+&=
+{\tilde{\mathbold{A}}}\,
+\mathbold{x} + 
+\mathbold{\zeta}
+&&
+\quad\text{Equation \ref{eqn:observation-equation}}
+\\
+\notag
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}}
+&=
+\mathbold{x} + 
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal\,
+\mathbold{\zeta}
+&&
+\quad\text{Multiply on left by }{\tilde{\mathbold{A}}}^{-2}\,\tilde{\mathbold{A}}^\intercal
+\\
+\notag
+\tilde{\mathbold{x}}
+&=
+\mathbold{x} +
+{\tilde{\mathbold{A}}}^{-2}\,
+{\tilde{\mathbold{A}}}^\intercal\,
+\mathbold{\zeta}
+&&
+\quad\text{Definition of }{\tilde{\mathbold{x}}}
+\\
+\notag
+\therefore
+\tilde{\mathbold{x}} -
+\mathbold{x} &=
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+\mathbold{\zeta}
+\end{alignat}
+
+\noindent
+Now rewrite equation \ref{eqn:covariance-of-x}:
+
+\begin{align}
+\notag
+E
+\left[
+(\tilde{\mathbold{x}}-x)
+(\tilde{\mathbold{x}}-x)^\intercal
+\right] &=
+E
+\left[
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+\mathbold{\zeta}\,
+\mathbold{\zeta}^\intercal
+({\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal
+\mathbold{\zeta})^\intercal
+\right] \\
+\label{eqn:almost-final-covariance}
+&=
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal\,
+E\left[
+\mathbold{\zeta}\,
+\mathbold{\zeta}^\intercal
+\right]
+({\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal)^\intercal
+\end{align}
+
+\noindent  Noise \(\mathbold{\zeta}\) is Gaussian, normal, with variance \(\mathbold{Z}\).
+Equation \ref{eqn:almost-final-covariance} collapses to
+
+\begin{align*} 
+\tilde{\mathbold{P}} =
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal\,
+E\left[
+\mathbold{\zeta}\,\mathbold{\zeta}^\intercal
+\right]
+({\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal)^\intercal 
+&= 
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal\,
+\mathbold{Z}\,
+({\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal)^\intercal \\
+&= 
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^\intercal\,
+\mathbold{Z}\,
+{\tilde{\mathbold{A}}}
+({\tilde{\mathbold{A}}}^{-2})^\intercal \\
+&= 
+\mathbold{Z}\,
+{\tilde{\mathbold{A}}}^{-2}
+{\tilde{\mathbold{A}}}^2
+({\tilde{\mathbold{A}}}^{-2})^\intercal \\
+&=
+\mathbold{Z}\,
+({\tilde{\mathbold{A}}}^{-2})^\intercal \\
+&=
+\mathbold{Z}\,
+{\tilde{\mathbold{A}}}^{-2} 
+\end{align*}
+
+\noindent because \({\tilde{\mathbold{A}}}^{-2}\) is symmetric and
+because \(\mathbold{Z}\)
+is diagonal and thus commutes with all other matrix products
+of compatible matrix dimension. We can now rewrite
+the definition of the least squares estimate in equation \ref{eqn:least-squares-estimate}:
+
+\begin{equation}
+\label{eqn:estimate-of-the-priors}
+{\tilde{\mathbold{x}}}=
+\mathbold{Z}^{-1}\,
+{\tilde{\mathbold{P}}}\,
+{\tilde{\mathbold{A}}}^\intercal\,
+{\tilde{\mathbold{z}}}
+\end{equation}
+
+\subsection{Posterior Estimate \(\hat{\mathbold{x}}\) and Covariance \(\hat{\mathbold{P}}\)}
+\label{sec:orgheadline13}
+
+To effect incremental updates of \(\mathbold{x}\) and \(\mathbold{P}\), we need the
+posterior estimate \(\hat{\mathbold{x}}\) and covariance \(\hat{\mathbold{P}}\) in
+terms of the priors \(\tilde{\mathbold{x}}\), \(\tilde{\mathbold{P}}\), and the new
+partials \(\mathbold{A}\) and observation \(\mathbold{z}\). This is exactly what our
+\emph{kalmanStatic} function from equation \ref{eqn:kalman-cume-definition} does, of course,
+in functional form, but we derive the posteriors from scratch to seek
+opportunities to define \(\mathbold{K}\) and \(\mathbold{D}\) and radically shorten
+the expressions. 
+
+First, define a new performance functional \(J_1(\mathbold{x})\) as the sum of the 
+performance of the priors \(\tilde{J}(\mathbold{x})\) from equation
+\ref{eqn:performance-functional-reformed}, now written with tildes overhead,
+and a new term
+\(J_2(\mathbold{x})\) for the
+performance of the new data:
+
+\begin{alignat}{6}
+J_1(\mathbold{x})
+& \stackrel{\text{\tiny def}}{=}
+{\tilde{J}}(\mathbold{x}) +
+J_2(\mathbold{x})
+\\
+\notag
+{\tilde{J}}(\mathbold{x})
+&\stackrel{\text{\tiny def}}{=}
+(\tilde{\mathbold{x}}-\mathbold{x})^\intercal\,
+{\tilde{\mathbold{A}}^2}\,
+(\tilde{\mathbold{x}}-\mathbold{x})
+&&
+\quad\text{Equation \ref{eqn:performance-functional-reformed}}
+\\
+\label{eqn:performance-of-new-data}
+J_2(\mathbold{x})
+&\stackrel{\text{\tiny def}}{=}
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right)^2
+\\
+\notag
+&=
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right)^\intercal
+\cdot
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right)
+\\
+\notag
+&=
+\mathbold{z}^2 -
+2\,
+\mathbold{z}\,
+\mathbold{A}\,
+\mathbold{x} +
+\left(
+\mathbold{A}\,
+\mathbold{x}
+\right)^2
+\end{alignat}
+
+This time, I don't have a handy trick for minimizing the performance functional.
+Let's find the minimizing \(\mathbold{x}\) the classic way: by solving
+\(d\,J_1(\mathbold{x})/d\,\mathbold{x}=0\). The usual way to write a vector
+derivative is with the \emph{nabla} operator \(\nabla\), which produces \emph{gradient}
+vectors from scalar functions.
+
+\begin{align*}
+\nabla{}\,f(\mathbold{x}) &\stackrel{\text{\tiny def}}{=}
+\begin{bmatrix}
+df(\mathbold{x})/dx_0\\
+df(\mathbold{x})/dx_1\\
+\vdots\\
+df(\mathbold{x})/dx_{n-1}
+\end{bmatrix}
+\end{align*}
+
+The particular scalar function we're differentiating is, of course, the new
+performance functional
+\(J_1(\mathbold{x})=
+{\tilde{J}}(\mathbold{x})+
+J_2(\mathbold{x})\). Because
+\({\tilde{\mathbold{A}}^2}\) is symmetric,
+
+\begin{align*}
+\nabla{}\,
+{\tilde{J}}(\mathbold{x}) &=
+\nabla{}
+\left(
+(\tilde{\mathbold{x}}-\mathbold{x})^\intercal\,
+{\tilde{\mathbold{A}}^2}\,
+(\tilde{\mathbold{x}}-\mathbold{x})
+\right) \\ &=
+-2\,
+{\tilde{\mathbold{A}}^2}\,
+(\tilde{\mathbold{x}}-\mathbold{x})
+\end{align*}
+
+\noindent and we similarly compute the gradient of
+\(J_2(\mathbold{x})\), which contains the new observation and partials:
+
+\begin{align*}
+\nabla\,
+J_2(\mathbold{x})
+&=
+\nabla
+\left(
+\mathbold{z}^2 -
+2\,
+\mathbold{z}\,
+\mathbold{A}\,
+\mathbold{x} +
+\left(
+\mathbold{A}\,
+\mathbold{x}
+\right)^2
+\right)
+\\
+&=
+2\,
+\mathbold{A}^\intercal
+\left(
+\mathbold{A}\,
+\mathbold{x} -
+\mathbold{z}
+\right)
+\\
+&=
+2\,
+\left(
+\mathbold{A}^2\,
+\mathbold{x}-
+\mathbold{A}^\intercal\,
+\mathbold{z}
+\right)
+\end{align*}
+
+\noindent We can solve the resulting equation on sight, writing the new estimate
+with an overhat. We skip many
+intermediate steps that become obvious if you reproduce the derivation by hand. Be
+aware that \(\mathbold{A}^2\) is an outer product, thus a matrix, in the common
+case of scalar observations, where \(b = 1\) and
+\(\mathbold{A}\) is a row.
+
+\begin{align*}
+\nabla{}\,
+J_1(\mathbold{x}) 
+&= 
+\nabla{}\,
+{\tilde{J}}
+(\mathbold{x}) + 
+\nabla{}\,
+J_2(\mathbold{x}) 
+= 0
+\\
+&=
+{\tilde{\mathbold{A}}}^2\,
+\mathbold{x} -
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{x}}} +
+\mathbold{A}^2\,
+\mathbold{x} - 
+\mathbold{A}^\intercal{}\,
+\mathbold{z}
+\\
+&
+\Leftrightarrow
+x=\hat{x}
+\stackrel{\text{\tiny def}}{=}
+\left(
+{\tilde{\mathbold{A}}}^2 + 
+\mathbold{A}^2
+\right)^{-1}
+\cdot
+\left(
+\mathbold{A}^\intercal\,
+\mathbold{z} + 
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{x}}}
+\right)
+\end{align*}
+
+Look how pretty this is. Equation \ref{eqn:estimate-of-the-priors} for the
+priors gave us the form
+\(\tilde{\mathbold{x}}= \mathbold{Z}^{-1}\,\tilde{\mathbold{P}}\,
+\tilde{\mathbold{A}}^\intercal\, \mathbold{z}\), a scaled covariance times a transform
+of the observations by the partials, transposed. The new estimate has exactly
+the same form if we regard the first matrix factor \(\left(
+{\tilde{\mathbold{A}}}^2 + \mathbold{A}^2 \right)^{-1}\) as \(\mathbold{Z}^{-1}\) times a covariance and if
+we regard \emph{all} the priors \({\tilde{\mathbold{A}}}\,{\tilde{\mathbold{x}}}\) as a \emph{single}
+additional observation to add to the current \(\mathbold{z}\). This is really
+close to the recurrent  form we want. We get there by some
+rewrites. First, define the new covariance as the inverse of the sum of the
+old inverse covariance
+\({\tilde{\mathbold{P}}}^{-1}=
+\mathbold{Z}^{-1}\,{\tilde{\mathbold{A}}}^{2}\)
+and the new inverse covariance
+\(\mathbold{Z}^{-1}\,{\mathbold{A}}^{2}\):
+
+\begin{equation}
+\label{eqn:new-p-hat-definition}
+{\hat{\mathbold{P}}}
+\stackrel{\text{\tiny def}}{=}
+\mathbold{Z}\,
+\left(
+{\tilde{\mathbold{A}}}^2 + \mathbold{A}^2
+\right)^{-1}
+\end{equation}
+
+\noindent We can write this as a reciprocal because \(\mathbold{Z}\) is diagonal, and see that it looks
+just like the classic `sum of resistors' formula:
+
+\begin{equation*}
+\frac{1}{\hat{\mathbold{P}}}
+=
+\frac{{\tilde{\mathbold{A}}}^2}{\mathbold{Z}} + 
+\frac{\mathbold{A}^2}{\mathbold{Z}}
+=
+\frac{1}{\tilde{\mathbold{P}}} + 
+\frac{\mathbold{A}^2}{\mathbold{Z}}
+\end{equation*}
+
+\noindent or
+
+\begin{equation*}
+\frac{1}{\hat{\mathbold{P}}} -
+\frac{\mathbold{A}^2}{\mathbold{Z}}
+=
+\frac{1}{\tilde{\mathbold{P}}} 
+\end{equation*}
+
+
+\noindent but, defining
+
+\begin{equation}
+\label{eqn:kalman-gain-new-definition}
+\mathbold{K}
+\stackrel{\text{\tiny def}}{=}
+\mathbold{Z}^{-1}\,
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal
+\end{equation}
+
+\noindent we have
+
+\begin{equation*}
+\mathbold{Z}\,
+\mathbold{K} =
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal
+\end{equation*}
+
+\noindent so
+
+\begin{align*}
+\mathbold{Z}\,
+\mathbold{K}\,
+\mathbold{A} &=
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^2
+\\
+{\hat{\mathbold{P}}}^{-1}\,
+\mathbold{K}\,
+\mathbold{A}\,
+&=
+\frac{\mathbold{A}^2}{\mathbold{Z}}
+\end{align*}
+
+\noindent Therefore
+
+\begin{align}
+\notag
+{\hat{\mathbold{P}}}^{-1}\,
+(
+\mathbold{1}-
+\mathbold{K}\,
+\mathbold{A}
+)
+&=
+{\tilde{\mathbold{P}}}^{-1} 
+\\
+\label{eqn:derivation-of-p-is-l-p}
+{\hat{\mathbold{P}}} &=
+\mathbold{L}\,
+{\tilde{\mathbold{P}}}
+\end{align}
+
+\noindent where
+
+\begin{equation}
+\label{eqn:definition-of-l}
+\mathbold{L}\stackrel{\text{\tiny def}}{=}
+\mathbold{1}-
+\mathbold{K}\,
+\mathbold{A}
+\end{equation}
+
+We have
+one of our three equivalent expressions for the posterior covariance, which we
+can write as a recurrence:
+
+\begin{equation}
+{{\mathbold{P}}} \leftarrow
+\mathbold{L}\,
+{{\mathbold{P}}}
+\end{equation}
+
+
+\noindent Note the following identity for the future:
+
+\begin{equation}
+\label{eqn:pr2andpa2-is-1}
+{\hat{\mathbold{P}}}\,
+{\tilde{\mathbold{A}}}^2+
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}}^2 = \mathbold{Z}
+\end{equation}
+
+\noindent Now rewrite \({\hat{\mathbold{x}}}\),  noting that
+equation \ref{eqn:pr2andpa2-is-1} implies that 
+\(\mathbold{Z}\,
+\mathbold{L}
+=
+\mathbold{Z}\,
+(
+\mathbold{1}-
+\mathbold{K}\,
+\mathbold{A}
+)=
+(
+\mathbold{Z}-
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^2
+)=
+{\hat{\mathbold{P}}}\,
+{\tilde{\mathbold{A}}}^2\).
+
+\begin{align*}
+\hat{\mathbold{x}}
+&=
+\left(
+{\tilde{\mathbold{A}}}^2 + \mathbold{A}^2
+\right)
+^{-1}
+\cdot
+\left(
+\mathbold{A}^\intercal\,
+z +
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{x}}}
+\right)
+\\
+&=
+\mathbold{Z}^{-1}
+\left(
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal\,
+z +
+{\hat{\mathbold{P}}}\,
+{\tilde{\mathbold{A}}}^2\,
+{\tilde{\mathbold{x}}}
+\right)
+\\
+&=
+\mathbold{K}\,
+z +
+\left(
+\mathbold{1} -
+\mathbold{K}\,
+\mathbold{A}
+\right)\,
+{\tilde{\mathbold{x}}}
+\\
+\therefore
+\hat{\mathbold{x}}
+&=
+\tilde{\mathbold{x}}
++
+\mathbold{K}\,
+\left(
+z-
+\mathbold{A}\,
+\tilde{\mathbold{x}}
+\right)
+\end{align*}
+
+We have the update recurrence for the vector estimate \(\mathbold{x}\). There remain
+two more covariance formulas to derive, namely
+
+\begin{equation}
+\label{eqn:p-is-lplt-plus-kzkt}
+\mathbold{P}\leftarrow
+\mathbold{L}\,
+\mathbold{P}\,
+\mathbold{L}^\intercal +
+\mathbold{K}\,
+\mathbold{Z}\,
+\mathbold{K}^\intercal
+\end{equation}
+
+\noindent and the canonical form,
+
+\begin{equation}
+\label{eqn:p-is-p-minus-kdkt}
+\mathbold{P}\leftarrow
+\mathbold{P} -
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal
+\end{equation}
+
+\subsubsection{Minimizing \(J_1({\mathbold{x}})\)}
+\label{sec:orgheadline10}
+
+The new covariance is defined as
+
+\begin{equation}
+{\hat{\mathbold{P}}} =
+E
+\left[
+({\hat{\mathbold{x}}}-\mathbold{x})
+({\hat{\mathbold{x}}}-\mathbold{x})^\intercal
+\right]
+\end{equation}
+
+\noindent Get a new expression for \({\hat{\mathbold{x}}}\):
+
+\begin{equation}
+{\hat{\mathbold{x}}} =
+{\tilde{\mathbold{x}}}+
+\mathbold{K}\,
+(\mathbold{z}-
+\mathbold{A}\,
+{\tilde{\mathbold{x}}}) =
+\mathbold{K}\,
+\mathbold{z} +
+\mathbold{L}\,
+{\tilde{\mathbold{x}}}
+\end{equation}
+
+\noindent where, again
+
+\begin{equation}
+\mathbold{L}
+=
+(\mathbold{1}-
+\mathbold{K}\,
+\mathbold{A})
+=
+\mathbold{Z}^{-1}
+{\hat{\mathbold{P}}}\,
+{\tilde{\mathbold{A}}}^2
+\end{equation}
+
+\noindent
+Remembering the observation equation
+(\ref{eqn:observation-equation}), write a single instance of it
+\(\mathbold{z} =
+\mathbold{A}\,
+\mathbold{x}+
+\mathbold{\zeta}\) and find
+
+\begin{align}
+\notag
+{\hat{\mathbold{x}}}
+&=
+\mathbold{K}\,
+\mathbold{A}\,
+\mathbold{x} +
+\mathbold{K}\,
+\mathbold{\zeta} +
+\mathbold{L}\,
+{\tilde{\mathbold{x}}}
+\\
+\notag
+&=
+\left(
+\mathbold{1}-
+\mathbold{L}
+\right)\,
+\mathbold{x} +
+\mathbold{K}\,
+\mathbold{\zeta} +
+\mathbold{L}\,
+{\tilde{\mathbold{x}}}
+\\
+&\Rightarrow
+\left(
+{\hat{\mathbold{x}}}-
+\mathbold{x}
+\right)=
+\mathbold{L}\,
+\left(
+{\tilde{\mathbold{x}}}-
+\mathbold{x}
+\right) +
+\mathbold{K}\,
+\mathbold{\zeta}
+\end{align}
+
+\noindent Remembering that
+\(E
+\left[
+\mathbold{\zeta}
+\right]=\mathbold{0}\), 
+\(E
+\left[
+\mathbold{\zeta}\,
+\mathbold{\zeta}^\intercal
+\right]=\mathbold{Z}\) and skipping
+intermediate steps, find that 
+
+\begin{equation}
+{\hat{\mathbold{P}}} = 
+\mathbold{L}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{L}^\intercal + 
+\mathbold{K}\,
+\mathbold{Z}\,
+\mathbold{K}^\intercal
+\end{equation}
+
+\noindent We leave it to the reader to check, with reference to equations
+\ref{eqn:dimensional-breakdown}, that the physical dimensions work out. This
+completes the derivation of the recurrence equation \ref{eqn:p-is-lplt-plus-kzkt}. 
+
+To get the last form, we need a couple of  small lemmas:
+
+\subsubsection{Lemma: \({\mathbold{K}}\,{\mathbold{A}}\,{\tilde{\mathbold{P}}}\,{\mathbold{A}^\intercal}={\tilde{\mathbold{P}}}\,{\mathbold{A}^\intercal}\,{\mathbold{A}}\,{\mathbold{K}}\)}
+\label{sec:orgheadline11}
+
+You can call this ``lemma kapat patak'' if you like.
+
+\begin{alignat}{6}
+\notag
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}\,
+{\mathbold{A}}\,
+{\tilde{\mathbold{P}}}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}\,
+{\mathbold{A}}\,
+{\hat{\mathbold{P}}}
+&& 
+\quad\text{Symmetric matrices commute}
+\\
+\notag
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}\,
+{\mathbold{A}}\,
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}\,
+{\mathbold{A}}\,
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+&& 
+\quad\text{Multiply on right by }\mathbold{A}^\intercal
+\\
+\label{eqn:kapa-paak-lemma}
+\therefore
+{\mathbold{K}}\,
+{\mathbold{A}}\,
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}\,
+{\mathbold{A}}\,
+{\mathbold{K}}
+&& 
+\quad\text{Subst def of }\mathbold{K}=
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+\end{alignat}
+
+\subsubsection{Lemma: \({\mathbold{K}}\,{\mathbold{D}}= {\tilde{\mathbold{P}}}\,{\mathbold{A}}^\intercal\)}
+\label{sec:orgheadline12}
+
+You can call this ``lemma kay-dee pat'' if you like. It is equivalent to the
+main form for \(\mathbold{K}\) used in \ref{eqn:kalman-gain-definition}. Assuming
+
+\begin{equation}
+\label{eqn:kalman-denominator-new-definition}
+\mathbold{D}
+\stackrel{\text{\tiny def}}{=}
+\mathbold{Z} +
+\mathbold{A}\,
+\tilde{\mathbold{P}}\,
+\mathbold{A}^\intercal
+\end{equation}
+
+\noindent we get
+
+\begin{alignat}{6}
+\notag
+{\mathbold{K}}\,\mathbold{Z}
+&= 
+{\hat{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Definition of }\mathbold{K}\text{, equation \ref{eqn:kalman-gain-new-definition}}
+\\
+\notag
+{\mathbold{K}}\,\mathbold{Z}
+&= 
+\mathbold{Z}\,
+\left(
+{\tilde{\mathbold{A}}}^2+
+{\mathbold{A}^2}
+\right)
+^{-1}
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Definition of }{\hat{\mathbold{P}}}\text{, equation \ref{eqn:new-p-hat-definition}}
+\\
+\notag
+\left(
+{\tilde{\mathbold{A}}}^2+
+{\mathbold{A}^2}
+\right)
+{\mathbold{K}}
+&= 
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Cancellation of }\mathbold{Z}
+\\
+\notag
+{\tilde{\mathbold{A}}}^2\,
+{\mathbold{K}}
++
+{\mathbold{A}^2}\,
+{\mathbold{K}}
+&= 
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Distributive law}
+\\
+\notag
+{\mathbold{K}}\,\mathbold{Z}
++
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^2}\,
+{\mathbold{K}}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Left multiply by }{\tilde{\mathbold{P}}}\stackrel{\text{\tiny def}}{=}
+\mathbold{Z}\,{\tilde{\mathbold{A}}}^{-2}
+\\
+\notag
+{\mathbold{K}}\,\mathbold{Z}
++
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal\,
+\mathbold{A}\,
+{\mathbold{K}}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{expand }{\mathbold{A}^2}
+\\
+\notag
+{\mathbold{K}}\,\mathbold{Z}
++
+{\mathbold{K}}\,
+{\mathbold{A}}\,
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Equation \ref{eqn:kapa-paak-lemma}}
+\\
+\notag
+{\mathbold{K}}
+\left(
+\mathbold{Z}+
+{\mathbold{A}}\,
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}^\intercal}
+\right)
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{}
+\\
+\label{eqn:kd-pat-lemma}
+\therefore
+{\mathbold{K}}\,
+{\mathbold{D}}
+&= 
+{\tilde{\mathbold{P}}}\,
+{\mathbold{A}}^\intercal
+&& 
+\quad\text{Definition of }{\mathbold{D}}\text{, equation \ref{eqn:kalman-denominator-new-definition}}
+\end{alignat}
+
+\noindent where we have freely used the fact that the diagonal matrix
+\(\mathbold{Z}\) commutes with all other matrix products.
+This also demonstrates our original definition of the Kalman gain,
+\(\mathbold{K} =
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1}\)
+from equation \ref{eqn:kalman-gain-definition}.
+
+We now show that 
+\(\mathbold{K}\,
+\mathbold{D}=
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal\)
+implies
+\({\hat{\mathbold{P}}} =
+{\tilde{\mathbold{P}}} -
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal\).
+
+\begin{alignat}{6}
+\notag
+\mathbold{K}\,
+\mathbold{D}\,
+&= 
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal 
+\\
+\notag
+\mathbold{K}\,
+\left(
+\mathbold{Z}+
+\mathbold{A}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal
+\right)\,
+&= 
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal 
+&& 
+\quad\text{Definition of }{\mathbold{D}}\text{, equation \ref{eqn:kalman-denominator-new-definition}}
+\\
+\notag
+\mathbold{K}\,\mathbold{Z}+
+\mathbold{K}\,
+\mathbold{A}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal \,
+&= 
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal 
+&& 
+\quad\text{Expand }
+\\
+\notag
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal+
+\mathbold{K}\,
+\mathbold{A}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal \,
+&= 
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal 
+&& 
+\quad\text{Definition of }\mathbold{K}\text{, equation \ref{eqn:kalman-gain-new-definition}}
+\\
+\notag
+{\hat{\mathbold{P}}}\,
+\mathbold{A}^\intercal-
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal
+&=
+-\mathbold{K}\,
+\mathbold{A}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal \,
+&& 
+\quad\text{Rearrange}
+\\
+\notag
+(
+{\hat{\mathbold{P}}}-
+{\tilde{\mathbold{P}}}
+)\,
+\mathbold{A}^\intercal
+&=
+-\mathbold{K}\,
+\mathbold{A}\,
+{\tilde{\mathbold{P}}}\,
+\mathbold{A}^\intercal \,
+&& 
+\quad\text{Collect}
+\\
+\notag
+(
+{\hat{\mathbold{P}}}-
+{\tilde{\mathbold{P}}}
+)\,
+\mathbold{A}^\intercal
+&=
+-\mathbold{K}\,
+(
+\mathbold{K}\,
+\mathbold{D}
+)^\intercal\,
+\mathbold{A}^\intercal \,
+&&
+\quad\text{Hypothesis and symmetry of }{\tilde{\mathbold{P}}}
+\\
+\therefore
+(
+{\hat{\mathbold{P}}}-
+{\tilde{\mathbold{P}}}
+)\,
+\mathbold{A}^\intercal
+&=
+-(
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal
+)\,
+\mathbold{A}^\intercal
+&&
+\quad\text{Symmetry of }\mathbold{D}
+\end{alignat}
+
+\noindent For arbitrary \(\mathbold{A}^\intercal\), this can only be true if 
+\({\hat{\mathbold{P}}} =
+{\tilde{\mathbold{P}}} -
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^
+\intercal\).
+
+
+\section{Concluding Remarks}
+\label{sec:orgheadline15}
+
+These derivations are helpful for gaining intuition into the underlying
+statistics and dimensional structures of the Kalman filter and its many
+variants. They are a bit involved, but it is worthwhile to ingest these
+fundamentals, especially for those who need to research new filters and
+applications. For more rigorous proofs built on a Bayesian perspective, see
+Bar-Shalom.\footnotemark[3]{}
+Emacs 24.5.1 (Org mode 8.3.4)
+\end{document}

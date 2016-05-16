@@ -1,0 +1,634 @@
+#+TITLE: Kalman Folding 2: Tracking and System Dynamics (WORKING DRAFT)
+#+SUBTITLE: Extracting Models from Data, One Observation at a Time
+#+AUTHOR: Brian Beckman
+#+DATE: <2016-05-03 Tue>
+#+EMAIL: bbeckman@34363bc84acc.ant.amazon.com
+#+OPTIONS: ':t *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:t
+#+OPTIONS: todo:t |:t
+#+SELECT_TAGS: export
+#+STARTUP: indent
+#+LaTeX_CLASS_OPTIONS: [10pt,oneside,x11names]
+#+LaTeX_HEADER: \usepackage{geometry}
+#+LaTeX_HEADER: \usepackage{amsmath}
+#+LaTeX_HEADER: \usepackage{amssymb}
+#+LaTeX_HEADER: \usepackage{amsfonts}
+#+LaTeX_HEADER: \usepackage{palatino}
+#+LaTeX_HEADER: \usepackage{siunitx}
+#+LaTeX_HEADER: \usepackage{esdiff}
+#+LaTeX_HEADER: \usepackage{xfrac}
+#+LaTeX_HEADER: \usepackage{nicefrac}
+#+LaTeX_HEADER: \usepackage{faktor}
+#+LaTeX_HEADER: \usepackage[euler-digits,euler-hat-accent]{eulervm}
+#+OPTIONS: toc:2
+
+* COMMENT Preliminaries
+
+This section is just about setting up org-mode. It shouldn't export to the
+typeset PDF and HTML.
+
+#+BEGIN_SRC emacs-lisp :exports results none
+  (defun update-equation-tag ()
+    (interactive)
+    (save-excursion
+      (goto-char (point-min))
+      (let ((count 1))
+        (while (re-search-forward "\\tag{\\([0-9]+\\)}" nil t)
+          (replace-match (format "%d" count) nil nil nil 1)
+          (setq count (1+ count))))))
+  (update-equation-tag)
+  (setq org-confirm-babel-evaluate nil)
+  (org-babel-map-src-blocks nil (org-babel-remove-result))
+  (slime)
+#+END_SRC
+
+#+RESULTS:
+: #<buffer *inferior-lisp*>
+
+* Abstract
+
+In /Kalman Folding, Part 1/,[fn:klfl] we present basic, static Kalman filtering
+as a functional fold, highlighting the unique advantages of this form for
+deploying test-hardened code verbatim in harsh, mission-critical environments.
+The examples in that paper are all static, meaning that the states of the model
+do not depend on the independent variable, often physical time.
+
+Here, we present a dynamic Kalman filter in the same, functional form. This
+filter can handle many dynamic, time-evolving applications including some
+tracking and navigation problems, and is easilly extended to nonlinear and
+non-Gaussian forms, the Extended Kalman Filter (EKF) and Unscented Kalman Filter
+(UKF) respectively. Those are subjects of other papers in this Kalman-folding
+series. Here, we reproduce a tracking example from a well known reference, but
+in functional form, highlighting the advantages of that form.
+
+* Kalman Folding in the Wolfram Language
+
+In this series of papers, we use the Wolfram language[fn:wolf] because it excels
+at concise expression of mathematical code. All examples in these papers can be
+directly transcribed to any modern mainstream language that supports closures.
+For example, it is easy to write them in C++11 and beyond, Python, any modern
+Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many can be written
+without full closures; function pointers will suffice, so they are easy to write
+in C. It's also not difficult to add extra arguments to simulate just enough
+closure-like support in C to write the rest of the examples in that language.
+
+In /Kalman Folding/,[fn:klfl] we found the following elegant formulation for the
+accumulator function of a fold that implements the static Kalman filter:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:kalman-cume-definition}
+\text{kalmanStatic}
+\left(
+\mathbold{Z}
+\right)
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) =
+\left\{
+\mathbold{x}+
+\mathbold{K}\,
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right),
+\mathbold{P}-
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal
+\right\}
+\end{equation}
+#+END_LaTeX
+
+\noindent where
+
+#+BEGIN_LaTeX
+\begin{align}
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+#+END_LaTeX
+
+\noindent and all quantities are matrices:
+
+- $\mathbold{z}$ is a  ${b}\times{1}$ column vector containing one multidimensional observation
+- $\mathbold{x}$ is an ${n}\times{1}$ column vector of /model states/
+- $\mathbold{Z}$ is a  ${b}\times{b}$ matrix, the covariance of
+  observation noise
+- $\mathbold{P}$ is an ${n}\times{n}$ matrix, the theoretical
+  covariance of $\mathbold{x}$
+- $\mathbold{A}$ is a  ${b}\times{n}$ matrix, the /observation partials/
+- $\mathbold{D}$ is a  ${b}\times{b}$ matrix, the Kalman denominator
+- $\mathbold{K}$ is an ${n}\times{b}$ matrix, the Kalman gain
+
+In physical or engineering applications, these quantities carry physical
+dimensions of units of measure in addition to their matrix dimensions as numbers
+of rows and columns. 
+If the physical and matrix dimensions of 
+$\mathbold{x}$ 
+are
+$\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})$
+and of 
+$\mathbold{z}$ 
+are
+$\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})$, then
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
+\end{array}
+\end{equation}
+#+END_LaTeX
+
+\noindent In all examples in this paper, the observations $\mathbold{z}$ are
+$1\times{1}$ matrices, equivalent to scalars, so $b=1$, but the theory and code
+carry over to multi-dimensional vector observations.
+
+The function in equation \ref{eqn:kalman-cume-definition}
+/lambda-lifts/[fn:lmlf] $\mathbold{Z}$, meaning that it is necessary to call
+/kalmanStatic/ with a constant $\mathbold{Z}$ to get the actual accumulator
+function. Lambda lifting is desirable when $\mathbold{Z}$ does not depend on
+the independent variable because it reduces coupling between the
+accumulator function and its calling environment. It is better to pass in an
+explicit constant than to implicitly close over[fn:clos] ambient
+constants, and it is good to keep the number of parameters in the observation
+packet $\{\mathbold{A}, \mathbold{z}\}$ as small as possible. In other
+applications, $\mathbold{Z}$ can depend on the independent variable, in which
+case we pass it around in the observation packet along with $\mathbold{A}$ and
+$\mathbold{z}$.
+
+In Wolfram, this function is
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+kalman[Zeta_][{x_, P_}, {A_, z_}] :=
+ Module[{D, K},
+  D = Zeta + A.P.Transpose[A];
+  K = P.Transpose[A].Inverse[D];
+  {x2 + K.(z - A.x), P - K.D.Transpose[K]}]
+\end{verbatim}
+#+END_LaTeX
+
+#+BEGIN_COMMENT
+We can test it on a small case
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+Fold[kalman[IdentityMatrix[1]],
+  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
+  {{{{1,  0., 0.,  0.}}, { -2.28442}}, 
+   {{{1,  1., 1.,  1.}}, { -4.83168}}, 
+   {{{1, -1., 1., -1.}}, {-10.46010}}, 
+   {{{1, -2., 4., -8.}}, {  1.40488}}, 
+   {{{1,  2., 4.,  8.}}, {-40.8079}}}
+  ] // Chop
+~~>
+\end{verbatim}
+#+END_LaTeX
+
+#+BEGIN_LaTeX
+\begin{align}
+\label{eqn:kalman-filter-results}
+\mathbold{x} &=
+\begin{bmatrix}
+ -2.97423 \\
+  7.2624  \\
+ -4.21051 \\
+ -4.45378 \\
+\end{bmatrix}
+\\
+\notag
+\mathbold{P} &=
+\begin{bmatrix}
+ 0.485458 & 0 & -0.142778 & 0 \\
+ 0 & 0.901908 & 0 & -0.235882 \\
+ -0.142778 & 0 & 0.0714031 & 0 \\
+ 0 & -0.235882 & 0 & 0.0693839 \\
+\end{bmatrix}
+\end{align}
+#+END_LaTeX
+
+\noindent expecting results within one or two standard deviations of the ground
+truth $\aleph=\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal$, where the
+standard deviations can be found by taking the square roots of the diagonal
+elements of $\mathbold{P}$. For details about this test case, see the first
+paper in the series, /Kalman Folding, Part 1/.[fn:klfl]
+#+END_COMMENT
+
+For details about this filter including walkthroughs of small test cases, see the first
+paper in the series, /Kalman Folding, Part 1/.[fn:klfl]
+In another paper in this series, /Kalman Folding 3: Derivations/,[fn:klde] we
+present a full derivation of this static accumulator function.
+
+* A Tracking Example
+
+Let us reproduce an example from Zarchan and Musoff,[fn:zarc] to track the
+height of a falling object, with no aerodynamic drag. Handling drag requires an
+extended Kalman filter (EKF), subject part five of this series,[fn:klf5] because
+a model with drag is nonlinear.
+
+We will need a dynamic Kalman filter, which applies an additional, linear
+dynamic model to the states. 
+
+** Time-Evolving States
+
+Suppose the states $\mathbold{x}$ suffer time evolution by a linear
+transformation $\mathbold{F}$ and an additional /disturbance/ or /control/ input
+$\mathbold{u}$, linearly transformed by $\mathbold{G}$.
+These new quantities may
+be functions of time, but not of $\mathbold{x}$ lest the equations be
+non-linear. Write
+the time derivative of $\mathbold{x}$ as
+
+#+BEGIN_LaTeX
+\begin{equation*}
+{\dot{\mathbold{x}}}(t)=\mathbold{F}\,\mathbold{x}(t)+\mathbold{G}\,\mathbold{u}(t)
+\end{equation*}
+#+END_LaTeX
+
+If the physical dimensions of $\mathbold{x}$ are $\mathcal{X}$ and the physical
+dimensions of $t$ and $\delta t$ are $\mathcal{T}$, then the physical dimensions
+of $\mathbold{F}\,\mathbold{x}$ are $\mathcal{X}/\mathcal{T}$. The various
+elements of $\mathbold{F}$ have physical dimensions of various powers of
+$1/\mathcal{T}$, so $\mathbold{F}$ does not have a single physical dimension on
+its own.
+
+We often leave off the explicit denotation of time dependence for improved readability:
+
+#+BEGIN_LaTeX
+\begin{equation*}
+{\dot{\mathbold{x}}}=\mathbold{F}\,\mathbold{x}+\mathbold{G}\,\mathbold{u}
+\end{equation*}
+#+END_LaTeX
+
+Generalize by adding /random process/ noise $\mathbold{\xi}$ to the state
+derivative:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:state-space-form}
+{\dot{\mathbold{x}}}=
+\mathbold{F}\,\mathbold{x}+
+\mathbold{G}\,\mathbold{u}+
+\mathbold{\xi}
+\end{equation}
+#+END_LaTeX
+
+This is standard /state-space form/[fn:stsp] for
+differential equations. Solving these equations is beyond the scope of
+this paper, but suffice it to say that we need certain time integrals of
+$\mathbold{F}$, $\mathbold{G}$, and $\mathbold{\xi}$ as inputs to the filter.
+These are
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:definition-of-Phi}
+\mathbold{\Phi}(\delta t)\stackrel{\text{\tiny def}}{=}
+e^{\mathbold{F}\,{\delta t}}=
+\mathbold{1}+
+\frac{\mathbold{F}^2{\delta t^2}}{2!}+
+\frac{\mathbold{F}^3{\delta t^3}}{3!}+
+\cdots
+\end{equation}
+#+END_LaTeX
+
+\noindent where $\delta t$ is an increment of time used to advance the filter
+discretely.
+
+Like $\mathbold{F}$, $\mathbold{\Phi}$ does not have a single 
+physical dimension.
+Only applications of $\mathbold{\Phi}$ to quantities including physical dimension
+$\mathcal{X}$ make sense. For instance, in the application
+\(\mathbold{\Phi}\,\mathbold{x}\), $\mathbold{\Phi}$ is dimensionless. 
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:definition-of-Gamma}
+\mathbold{\Gamma}(\delta t)\stackrel{\text{\tiny def}}{=}
+\int_{0}^{\delta t}{\mathbold{\Phi}(\tau) \cdot \mathbold{G}\,\textrm{d}\tau } 
+\end{equation}
+#+END_LaTeX
+
+\noindent The physical dimensions of $\mathbold{\Gamma}$ are defined only in
+combination with $\mathbold{u}$: the product $\mathbold{\Gamma}\cdot\mathbold{u}$
+has physical dimensions $\mathcal{X}$.
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:definition-of-Xi}
+\mathbold{\Xi}(\delta t)\stackrel{\text{\tiny def}}{=}
+\int_{0}^{\delta t}\mathbold{\Phi}(\tau)\cdot{
+\begin{pmatrix}
+      0 & \cdots  &       0 \\
+\vdots  & \ddots  & \vdots  \\ 
+      0 & \cdots  & E\left[\mathbold{ \xi  }\mathbold{ \xi  }^{ \intercal  }\right] 
+\end{pmatrix}\cdot\mathbold{\Phi}(\tau)^\intercal\,\textrm{d}\tau}
+\end{equation}
+#+END_LaTeX
+
+\noindent The physical dimensions of $\mathbold{\Xi}$ must be $\mathcal{X}^2$, and we
+accomplish this by accompanying the various zeros in the matrix in the integral
+with implicit dimensions so that the overall dimensions work out properly.
+Making these dimensions explicit would needlessly clutter the expressions.
+
+Detailed dimensional analysis of these matrices is the subject of another paper
+in this series.
+
+** Recurrences for Dynamics
+
+The transitions of a state (and its covariance) from time $t$ to the next state
+(and covariance) at time
+$t+\delta t$ follow these recurrences:
+
+#+BEGIN_LaTeX
+\begin{align}
+\label{eqn:transition-of-state}
+\mathbold{x}
+&\leftarrow
+\mathbold{\Phi}\,
+\mathbold{x}+
+\mathbold{\Gamma}\,
+\mathbold{u} \\
+\mathbold{P}
+&\leftarrow
+\mathbold{\Xi}+
+\mathbold{\Phi}\,
+\mathbold{P}\,
+\mathbold{\Phi}^\intercal
+\end{align}
+#+END_LaTeX
+
+These equations appear plausible on inspection, and equation
+\ref{eqn:transition-of-state} has a particularly intuitive explanation. If
+$\mathbold{F}$ does not depend on time and if $\mathbold{G}\,\mathbold{u}$ is
+zero, then the state space form $\dot{\mathbold{x}}=\mathbold{F}\,\mathbold{x}$
+has a trivial solution:
+$\mathbold{x}(t)=e^{\mathbold{F}\,t}\,\mathbold{x}_0=\mathbold{\Phi}(t)\,\mathbold{x}_0$. We can use $\Phi$ to
+propagate the solution at any time $\mathbold{x}(t_1)$ forward to another time
+$\mathbold{x}(t_2)$ as follows:
+
+#+BEGIN_LaTeX
+\begin{align}
+\mathbold{x}(t_2)&=\mathbold{\Phi}(t_2-t_1)\,\mathbold{x}(t_1) \\
+\notag
+&=e^{\mathbold{F}\times(t_2-t_1)}\,e^{\mathbold{F}\,t_1}\mathbold{x}_0=e^{\mathbold{F}\,t_2}\mathbold{x}_0
+\end{align}
+#+END_LaTeX
+
+\noindent This is the first step in verifying that the recurrences satisfy
+equation \ref{eqn:state-space-form}. It also explains why we call
+$\mathbold{\Phi}$ the /propagator matrix/.
+
+** The Foldable Filter
+
+These tiny changes are all that is needed to add linear state evolution to the Kalman
+filter:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+kalman[Zeta_][{x_, P_}, {Xi_, Phi_, Gamma_, u_, A_, z_}] :=
+ Module[{x2, P2, D, K},
+  x2 = Phi.x + Gamma.u;
+  P2 = Xi + Phi.P.Transpose[Phi];
+  (* after this, it's identical to the static filter *)
+  D = Zeta + A.P2.Transpose[A];
+  K = P2.Transpose[A].inv[D];
+  {x2 + K.(z - A.x2), P2 - K.D.Transpose[K]}]\end{verbatim}
+#+END_LaTeX
+
+*** COMMENT Test
+
+Check that it reproduces the test case above for the static filter:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+With[{ (* make some constant matrices *)
+   Xi = zero[4], Zeta = id[1],
+   Phi = id[4], Gamma = zero[4, 1], u = zero[1]},
+  Fold[
+   kalman[Zeta],
+   {col[{0, 0, 0, 0}], id[4]*1000.0},
+   Map[ Join[{Xi, Phi, Gamma, u}, #]&, 
+    {{{{1,  0., 0.,  0.}}, { -2.28442}}, 
+     {{{1,  1., 1.,  1.}}, { -4.83168}}, 
+     {{{1, -1., 1., -1.}}, {-10.46010}}, 
+     {{{1, -2., 4., -8.}}, {  1.40488}}, 
+     {{{1,  2., 4.,  8.}}, {-40.8079}}}]]]
+\end{verbatim}
+#+END_LaTeX
+
+** Dynamics of a Falling Object
+
+Let $h(t)$ be the height of
+the falling object, and let the state vector $\mathbold{x}(t)$ contain $h(t)$
+and its first derivative, $\dot{h}(t)$, the speed of descent.[fn:scnd]
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\mathbold{x} = 
+\begin{bmatrix} { h } (t) \\ \dot { h } (t) \end{bmatrix}
+\end{equation*}
+#+END_LaTeX
+
+\noindent The system dynamics are elementary:
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\begin{bmatrix} \dot { h } (t) \\ \ddot { h } (t) \end{bmatrix}
+=
+\begin{bmatrix}
+0 & 1 \\
+0 & 0
+\end{bmatrix}
+\begin{bmatrix} h(t) \\ \dot { h } (t) \end{bmatrix}
++
+\begin{bmatrix} 0 \\ 1 \end{bmatrix}
+\begin{bmatrix} g \end{bmatrix}
+\end{equation*}
+#+END_LaTeX
+
+\noindent where $g$ is the acceleration of Earth's gravitation, about
+$-32.2\textrm{ft}/{\textrm{s}}^2$ (note the minus sign). We read out the
+dynamics matrices:
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\begin{matrix}
+\mathbold{F} = \begin{bmatrix}0 & 1 \\0 & 0\end{bmatrix}, &
+\mathbold{G} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, &
+\mathbold{u} = \begin{bmatrix} g \end{bmatrix}
+\end{matrix}
+\end{equation*}
+#+END_LaTeX
+
+\noindent and their integrals from equations \ref{eqn:definition-of-Phi},
+\ref{eqn:definition-of-Gamma}, and \ref{eqn:definition-of-Xi}
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\begin{matrix}
+\mathbold{\Phi} =
+\begin{bmatrix}
+1  & \delta t  \\
+0  & 1 
+\end{bmatrix}, &
+\mathbold{\Gamma} = 
+\begin{bmatrix}
+{{\delta t}^2}/{2}  \\
+\delta t
+\end{bmatrix}, &
+\mathbold{\Xi} =
+E\left[\mathbold{ \xi  }\mathbold{ \xi  }^{ \intercal  }\right]
+\begin{bmatrix}
+\sfrac { { \delta t }^{ 3 } }{ 3 }  & \sfrac { { \delta t }^{ 2 } }{ 2 }  \\
+\sfrac { { \delta t }^{ 2 } }{ 2 }  & \delta t
+\end{bmatrix}
+\end{matrix}
+\end{equation*}
+#+END_LaTeX
+
+#+CAPTION: Simulated tracking of a falling object
+#+NAME: fig:big-results
+[[file:BigResults.png]]
+
+\noindent We test this filter over a sequence of fake
+observations tracking an object from an initial height of $400,000\,\textrm{ft}$
+and initial speed of $-6,000\,\textrm{ft}/\textrm{s}$ and from time $t=\si{0}{s}$
+to $t=57.5$ sec, just before impact at $h=0\,\textrm{ft}$. We take one
+observation every tenth of a second, so $\delta t={0.10}\,\textrm{s}$. We compare the
+two states $h(t)$ and $\dot{h}(t)$ with ground truth and their residuals with
+the theoretical sum of squared residuals in the matrix $\mathbold{P}$. The
+results are shown in figure [[fig:big-results]], showing good statistics over five
+consecutive runs and qualitatively matching the results in the reference.
+
+The ground truth is
+
+#+BEGIN_LaTeX
+\begin{equation*}
+h(t) = h_0 + {\dot{h}}_0\,t + g\,t^2/2
+\end{equation*}
+#+END_LaTeX
+
+\noindent where
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\begin{matrix}
+h_0 = 400,000\,\textrm{ft}, & {\dot{h}}_0 = -6,000\,\textrm{ft}/\textrm{sec}
+\end{matrix}
+\end{equation*}
+#+END_LaTeX
+
+\noindent and we generate fake noisy observations by sampling a Gaussian
+distribution of zero mean and standard deviation $1,000\,\textrm{ft}$. We do not
+need process noise for this example. It's often added during debugging of a
+Kalman filter to compensate for underfitting or overfitting an inappropriate
+model. It's also appropriate when we know that the process is stochastic or
+noisy and have an estimate of its covariance.
+
+* Concluding Remarks
+
+It's easy to add system dynamics to a static Kalman filter. Expressed as the
+accumulator function for a fold, the filter is decoupled from the environment in
+which it runs. We can run exactly the same code, even and especially the same
+binary, over arrays in memory, lazy streams, asynchronous observables, any data
+source that can support a /fold/ operator. Such flexibility of deployment allows
+us to address the difficult issues of modeling, statistics, and numerics in
+friendly environments where we have large memories and powerful debugging tools,
+then to deploy with confidence in unfriendly, real-world environments where we
+have small memories, asynchronous, real-time data delivery, and seldom more than
+logging for forensics.
+
+[fn:affn] https://en.wikipedia.org/wiki/Affine_transformation
+[fn:bars] Bar-Shalom, Yaakov, /et al/. Estimation with applications to tracking and navigation. New York: Wiley, 2001.
+[fn:bier] http://tinyurl.com/h3jh4kt
+[fn:bssl] https://en.wikipedia.org/wiki/Bessel's_correction
+[fn:busi] https://en.wikipedia.org/wiki/Business_logic
+[fn:cdot] We sometimes use the center dot or the $\times$ symbols to clarify
+matrix multiplication. They have no other significance and we can always write
+matrix multiplication just by juxtaposing the matrices.
+[fn:clos] https://en.wikipedia.org/wiki/Closure_(computer_programming)
+[fn:cold] This convention only models so-called /cold observables/, but it's enough to demonstrate Kalman's working over them.
+[fn:cons] This is quite similar to the standard --- not  Wolfram's --- definition of a list as a pair of a value and of another list.
+[fn:cova] We use the terms /covariance/ for matrices and /variance/ for scalars.
+[fn:csoc] https://en.wikipedia.org/wiki/Separation_of_concerns
+[fn:ctsc] https://en.wikipedia.org/wiki/Catastrophic_cancellation
+[fn:dstr] http://tinyurl.com/ze6qfb3
+[fn:elib] Brookner, Eli. Tracking and Kalman Filtering Made Easy, New York: Wiley, 1998. http://tinyurl.com/h8see8k
+[fn:fldl] http://tinyurl.com/jmxsevr
+[fn:fwik] https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29
+[fn:gama] https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem
+[fn:intr] http://introtorx.com/
+[fn:jplg] JPL Geodynamics Program http://www.jpl.nasa.gov/report/1981.pdf
+[fn:just] justified by the fact that $\mathbold{D}$ is a diagonal
+matrix that commutes with all other products, therefore its left and right
+inverses are equal and can be written as a reciprocal; in fact, $\mathbold{D}$
+is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this paper
+[fn:klde] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
+[fn:klfl] B. Beckman, /Kalman Folding Part 1/, to appear.
+[fn:klf5] B. Beckman, /Kalman Folding 5: Non-Linear Models and the EKF/, to appear.
+[fn:layi] https://en.wikipedia.org/wiki/Fundamental_theorem_of_software_engineering
+[fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram
+uses the name /Function/.
+[fn:lmlf] https://en.wikipedia.org/wiki/Lambda_lifting
+[fn:lssq] https://en.wikipedia.org/wiki/Least_squares
+[fn:ltis] http://tinyurl.com/hhhcgca
+[fn:matt] https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf
+[fn:mcmc] https://en.wikipedia.org/wiki/Particle_filter
+[fn:musc] http://www1.cs.dartmouth.edu/~doug/music.ps.gz
+[fn:ndim] https://en.wikipedia.org/wiki/Nondimensionalization
+[fn:patt] http://tinyurl.com/j5jzy69
+[fn:pseu] http://tinyurl.com/j8gvlug
+[fn:rasp] http://www.wolfram.com/raspberry-pi/
+[fn:rcrn] https://en.wikipedia.org/wiki/Recurrence_relation
+[fn:rsfr] http://rosettacode.org/wiki/Loops/Foreach
+[fn:rxbk] http://www.introtorx.com/content/v1.0.10621.0/07_Aggregation.html
+[fn:scan] and of Haskell's scans and folds, and Rx's scans and folds, /etc./
+[fn:scla] http://tinyurl.com/hhdot36
+[fn:scnd] A state-space form containing a position and derivative is commonplace
+in second-order dynamics like Newton's Second Law. We usually employ state-space
+form to reduce \(n\)-th-order differential equations to first-order differential
+equations by stacking the dependent variable on $n-1$ of its derivatives in the
+state vector.
+[fn:scnl] http://learnyouahaskell.com/higher-order-functions
+[fn:stsp] https://en.wikipedia.org/wiki/State-space_representation
+[fn:uncl] The initial uncial (lower-case) letter signifies that /we/ wrote this function; it wasn't supplied by Wolfram.
+[fn:wfld] http://reference.wolfram.com/language/ref/FoldList.html?q=FoldList
+[fn:wlf1] http://tinyurl.com/nfz9fyo
+[fn:wlf2] http://rebcabin.github.io/blog/2013/02/04/welfords-better-formula/
+[fn:wolf] http://reference.wolfram.com/language/
+[fn:zarc] Zarchan and Musoff, /Fundamentals of Kalman Filtering, A Practical
+Approach, Fourth Edition/, Ch. 4
+
+

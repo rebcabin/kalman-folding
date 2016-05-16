@@ -1,0 +1,760 @@
+% Created 2016-05-14 Sat 11:18
+\documentclass[10pt,oneside,x11names]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{palatino}
+\usepackage{siunitx}
+\usepackage{esdiff}
+\usepackage{xfrac}
+\usepackage{nicefrac}
+\usepackage{faktor}
+\usepackage[euler-digits,euler-hat-accent]{eulervm}
+\author{Brian Beckman}
+\date{\textit{<2016-05-03 Tue>}}
+\title{Kalman Folding 4: Streams and Observables (WORKING DRAFT)\\\medskip
+\large Extracting Models from Data, One Observation at a Time}
+\hypersetup{
+ pdfauthor={Brian Beckman},
+ pdftitle={Kalman Folding 4: Streams and Observables (WORKING DRAFT)},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
+\section{Abstract}
+\label{sec:orgheadline1}
+
+In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} we present basic, static Kalman filtering
+as a functional fold, highlighting the unique advantages of this form for
+deploying test-hardened code verbatim in harsh, mission-critical environments.
+In that paper, all examples folded over arrays in memory for convenience and
+repeatability. That is an example of developing filters in a friendly
+environment.
+
+Here, we prototype a couple of less friendly environments and demonstrate
+exactly the same Kalman accumulator function at work. These less friendly
+environments are
+\begin{itemize}
+\item lazy streams, where new observations are computed on demand but never fully
+realized in memory, thus not available for inspection in a debugger
+\item asynchronous observables, where new observations are delivered at arbitrary
+times from an external source, thus not available for replay once consumed by
+the filter
+\end{itemize}
+
+Streams are a natural fit for integration of differential equations, which often
+arise in applications. As such, they enable unique modularization for all kinds
+of filters, including non-linear Extended Kalman Filters.
+
+The fact that the Kalman accumulator function gives bit-for-bit identical
+results in all cases gives us high confidence that code developed in friendly
+environments will behave as intended in unfriendly environments. This level of
+repeatability is available \emph{only} because of functional decomposition, which
+minimizes the coupling between the accumulator function and the environment and
+makes it possible to deploy exactly the same code, without even recompilation,
+in all environments.
+
+\section{Kalman Folding in the Wolfram Language}
+\label{sec:orgheadline3}
+
+In this series of papers, we use the Wolfram language\footnote{\url{http://reference.wolfram.com/language/}} because it excels
+at concise expression of mathematical code. All examples in these papers can be
+directly transcribed to any modern mainstream language that supports closures.
+For example, it is easy to write them in C++11 and beyond, Python, any modern
+Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many can be written
+without full closures; function pointers will suffice, so they are easy to write
+in C. It's also not difficult to add extra arguments to simulate just enough
+closure-like support in C to write the rest of the examples in that language.
+
+
+In \emph{Kalman Folding},\footnotemark[1]{} we found the following elegant formulation for the
+accumulator function of a fold that implements the static Kalman filter:
+
+\begin{equation}
+\label{eqn:kalman-cume-definition}
+\text{kalmanStatic}
+\left(
+\mathbold{Z}
+\right)
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) =
+\left\{
+\mathbold{x}+
+\mathbold{K}\,
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right),
+\mathbold{P}-
+\mathbold{K}\,
+\mathbold{D}\,
+\mathbold{K}^\intercal
+\right\}
+\end{equation}
+
+\noindent where
+
+\begin{align}
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+
+\noindent and all quantities are matrices:
+
+\begin{itemize}
+\item \(\mathbold{z}\) is a  \({b}\times{1}\) column vector containing one multidimensional observation
+\item \(\mathbold{x}\) is an \({n}\times{1}\) column vector of \emph{model states}
+\item \(\mathbold{Z}\) is a  \({b}\times{b}\) matrix, the covariance of
+observation noise
+\item \(\mathbold{P}\) is an \({n}\times{n}\) matrix, the theoretical
+covariance of \(\mathbold{x}\)
+\item \(\mathbold{A}\) is a  \({b}\times{n}\) matrix, the \emph{observation partials}
+\item \(\mathbold{D}\) is a  \({b}\times{b}\) matrix, the Kalman denominator
+\item \(\mathbold{K}\) is an \({n}\times{b}\) matrix, the Kalman gain
+\end{itemize}
+
+In physical or engineering applications, these quantities carry physical
+dimensions of units of measure in addition to their matrix dimensions as numbers
+of rows and columns. 
+If the physical and matrix dimensions of 
+\(\mathbold{x}\) 
+are
+\(\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})\)
+and of 
+\(\mathbold{z}\) 
+are
+\(\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})\), then
+
+\begin{equation}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
+\end{array}
+\end{equation}
+
+Dimensional arguments, regarding both matrix dimensions and physical dimensions,
+are invaluable for checking code and derivations in this topic at-large.
+
+\subsection{A Test Example}
+\label{sec:orgheadline2}
+
+In the following  example, the observations \(\mathbold{z}\) are
+\(1\times{1}\) matrices, equivalent to scalars, so \(b=1\).
+
+The function in equation \ref{eqn:kalman-cume-definition}
+\emph{lambda-lifts}\footnote{\url{https://en.wikipedia.org/wiki/Lambda_lifting}} \(\mathbold{Z}\), meaning that it is necessary to call
+\emph{kalmanStatic} with a constant \(\mathbold{Z}\) to get the actual accumulator
+function used in folds. This is desirable to reduce coupling between the
+accumulator function and its calling environment. 
+
+In Wolfram, this function is
+
+\begin{verbatim}
+kalmanStatic[Zeta_][{x_, P_}, {A_, z_}] :=
+ Module[{D, K},
+  D = Zeta + A.P.Transpose[A];
+  K = P.Transpose[A].Inverse[D];
+  {x2 + K.(z - A.x), P - K.D.Transpose[K]}]
+\end{verbatim}
+
+We test it on a small case
+
+\begin{verbatim}
+Fold[kalmanStatic[IdentityMatrix[1]],
+  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
+  {{{{1,  0., 0.,  0.}}, { -2.28442}}, 
+   {{{1,  1., 1.,  1.}}, { -4.83168}}, 
+   {{{1, -1., 1., -1.}}, {-10.46010}}, 
+   {{{1, -2., 4., -8.}}, {  1.40488}}, 
+   {{{1,  2., 4.,  8.}}, {-40.8079}}}
+  ] // Chop
+~~>
+\end{verbatim}
+
+\begin{align}
+\label{eqn:kalman-filter-results}
+\mathbold{x} &=
+\begin{bmatrix}
+ -2.97423 \\
+  7.2624  \\
+ -4.21051 \\
+ -4.45378 \\
+\end{bmatrix}
+\\
+\notag
+\mathbold{P} &=
+\begin{bmatrix}
+ 0.485458 & 0 & -0.142778 & 0 \\
+ 0 & 0.901908 & 0 & -0.235882 \\
+ -0.142778 & 0 & 0.0714031 & 0 \\
+ 0 & -0.235882 & 0 & 0.0693839 \\
+\end{bmatrix}
+\end{align}
+
+\noindent expecting results within one or two standard deviations of the ground
+truth \(\aleph=\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal\), where the
+standard deviations can be found as square roots of the diagonal
+elements of \(\mathbold{P}\). For details about this test case, see the first
+paper in the series, \emph{Kalman Folding, Part 1}.\footnotemark[1]{}
+
+Below, we reproduce these values exactly, to the bit level, by running
+\emph{kalmanStatic} over lazy streams and asynchronous observables.
+
+\section{Types for Kalman Folding}
+\label{sec:orgheadline4}
+
+Kalman and all its variants are examples of \emph{statistical function inversion.} We
+have models that predict outcomes from inputs; we observe outcomes and want
+estimates of the inputs. Structurally, all such incremental model inversions
+take a pair of a state estimate (with uncertainty) and an observation, and
+produce a new state estimate (with uncertainty). Such an inverted model has
+signature, using a type notation similar to that of Haskell or Scala
+
+\begin{equation*}
+\textrm{inverted-model}
+\left[S,T\right]
+::
+\left(S\rightarrow{T}\rightarrow{S}\right)
+\end{equation*}
+
+\noindent where the
+return type is on the far right and the other types that appear before arrows
+are the types of input arguments.
+This function signature is exactly that required for the first argument of a
+functional fold (more precisely, a \emph{left} fold). The signature of \emph{fold} is as
+follows:
+
+\begin{equation*}
+\textrm{fold}
+\left[S,T\right]
+::
+\left(S\rightarrow{T}\rightarrow{S}\right)
+\rightarrow{S}
+\rightarrow{\textrm{Sequence}\left[T\right]}
+\rightarrow{S}
+\end{equation*}
+
+Read this, abstractly, as follows
+
+\begin{quote}
+\emph{Fold} over types \(S\) and \(T\) is a function that
+takes three arguments:
+\begin{enumerate}
+\item another function (called the \emph{accumulator function})
+\item an initial instance of type \(S\)
+\item a sequence of instances of type \(T\)
+\end{enumerate}
+and produces an instance of type \(S\). The
+accumulator function, in turn, is a binary function that takes an \(S\) and a \(T\) and
+produces an \(S\).
+\end{quote}
+
+More concretely, In the context of Kalman filtering:
+
+\begin{equation*}
+\text{AccumulatorFunction}
+::
+\text{Accumulation}
+\rightarrow
+\text{Observation}
+\rightarrow
+\text{Accumulation}
+\end{equation*}
+
+\noindent where the types \emph{Accumulation} and \emph{Observation} are arbitrary. 
+
+It's the job of \emph{Fold} to pass the elements of the input sequence to the
+accumulator function one observation at a time, and to maintain and ultimately
+return the final accumulation. The second argument to \emph{Fold} is
+the desired, initial value of the accumulation. The
+third and final argument to \emph{Fold} is the sequence of observations, of type
+\(\text{Sequence}\left[\,\text{Observation}\,\right]\)
+
+\emph{Fold} looks like a trinary function of an accumulator function, an
+initial accumulation, and a sequence, yielding an accumulation. Folds thus have
+the following type:
+
+\begin{equation*}
+\text{Fold :: }
+\text{AccumulatorFunction}
+\rightarrow
+\text{Accumulation}
+\rightarrow
+\text{Sequence}\left[\,\text{Observation}\,\right]
+\rightarrow
+\text{Accumulation}
+\end{equation*}
+
+\noindent where \emph{Sequence} can be \emph{List}, \emph{Stream}, \emph{Observable}, or any type
+that can be accessed sequentially. 
+
+\section{Over Lazy Streams and Asynchronous Observables}
+\label{sec:orgheadline16}
+
+The accumulator function knows nothing about the source of the observations. If
+we can figure out how to implement \emph{Fold} and \emph{FoldList} for things other than
+\emph{List}, we will have Kalman filtering over those sources, too.
+
+The following are research-grade sketches of implementations of \emph{Fold} over lazy
+streams\footnote{\url{http://www1.cs.dartmouth.edu/~doug/music.ps.gz}} and asynchronous observables.\footnote{\url{http://introtorx.com/}} They provide just enough
+to support the Kalman-folding examples.
+
+\subsection{Folding Over Lazy Streams}
+\label{sec:orgheadline9}
+
+Represent a lazy stream as a pair of a value and a \emph{thunk} (function of
+no arguments).\footnote{This is quite similar to the standard --- not  Wolfram's --- definition of a list as a pair of a value and of another list.} The thunk must produce another lazy stream when called. Such
+a stream can be infinite in abstract length because the elements of the stream are only
+concretized in memory when demanded by calling thunks.
+
+Streams are a natural fit for integrals of differential equations. We see in
+other papers of this series how we an use them to deeply modularize filters
+over rich non-linear models. In this paper, we show only how to fold a linear
+Kalman filter over a stream.
+
+By convention, a finite stream has a \texttt{Null} thunk at the end. Thus, the empty
+stream, obtained by invoking such a thunk, is \texttt{Null[]}, with square brackets
+denoting invocation with no arguments.
+
+One of Wolfram's notations for a literal thunk is an expression with an
+ampersand in postfix position. An ampersand turns the expression to its left
+into a thunk. For instance, here's a function that returns an infinite stream of
+natural numbers starting at \(n\):
+
+\begin{verbatim}
+integersFrom[n_Integer] := {n, integersFrom[n + 1] &}
+\end{verbatim}
+
+Calling, say, \texttt{integersFrom[42]} produces \texttt{\{42, integersFrom[42 + 1]\&\}}, a pair
+of an integer, \(42\), and another stream, \texttt{integersFrom[42+1]\&}. We get the
+stream by extracting the second part of the pair \emph{via} Wolfram's double-bracket notation
+
+\begin{verbatim}
+integersFrom[42][[2]] ~~> integersFrom[42 + 1]&
+\end{verbatim}
+
+\noindent and then call it with empty brackets (it's a thunk, and takes no
+arguments):
+
+\begin{verbatim}
+integersFrom[42][[2]][] ~~> {43, integersFrom[43 + 1]&}
+\end{verbatim}
+
+\noindent and so on. We can get a few more by repeating the process
+
+\begin{verbatim}
+integersFrom[42][[2]][][[2]][][[2]][] ~~> {45, integersFrom[45 + 1]&}
+\end{verbatim}
+
+\noindent but the best way to extract values from streams is to write recursive
+functions to demand any number of elements from the head. The variety of such
+functions, which include \emph{map}, \emph{select}, \emph{fold}, is well known, large, and
+identical across lists, streams, observables, and, in fact, any collection that
+can support a \emph{next} operator. A good, contemporary full-service library for
+collection types is LINQ's Standard Query Operators (SQO),\footnote{LINQ's Standard Query Operators}. If building
+up a library from the present prototype level into something of product grade,
+presentable to intolerant users, the SQO are an excellent framework to emulate.
+
+As another example, the following function, when called with an appropriate
+input, say the \(2\times{2}\) identity matrix, returns a lazy stream of matrices
+full of Fibonacci numbers:
+
+\begin{verbatim}
+fs[f_] := {f, fs[{{0, 1}, {1, 1}}.f] &}
+\end{verbatim}
+
+Here is an explicit invocation a few values down:
+
+\begin{verbatim}
+fs[IdentityMatrix[2]][[2]][][[2]][][[2]][][[2]][][[2]][][[2]][][[
+        2]][][[2]][][[2]][][[2]][]
+~~>
+\end{verbatim}
+\begin{equation*}
+\begin{Bmatrix}
+\begin{pmatrix} 34 & 55 \\ 55 & 89 \end{pmatrix},
+fs
+\begin{bmatrix}
+\begin{pmatrix} 34 & 55 \\ 55 & 89 \end{pmatrix} \cdot
+\begin{pmatrix} 0 & 1 \\ 1 & 1 \end{pmatrix} 
+\end{bmatrix}\, \&
+\end{Bmatrix}
+\end{equation*}
+
+\noindent the point being that lazy streams are versatile. 
+
+We now write bi-directional conversions between streams and lists so we can test
+an example, then we write \emph{foldStream}.
+
+\subsubsection{Disperse :: List \(\rightarrow\) Stream}
+\label{sec:orgheadline5}
+
+We'll need a way to convert a list into a stream.  There are three cases: an
+empty list, a singleton list, and the inductive or recursive  case.
+
+\begin{verbatim}
+disperse[{}] := Null[]; (* empty list yields empty stream       *)
+disperse[{x_}] := {x, Null}; (* the stream for a singleton list *)
+disperse[{v_, xs__}] := {v, disperse[{xs}] &}; (* recursion     *)
+\end{verbatim}
+
+\subsubsection{Reify :: Stream \(\rightarrow\) List}
+\label{sec:orgheadline6}
+
+We need to go the other way, too; don't call this on a stream of infinite length:
+
+\begin{verbatim}
+reify[Null[]] := {};         (* produce empty list from empty stream *)
+rify[{v_, Null}] := {v};     (* singleton list from singleton stream *)
+reify[{v_, thunk_}] := Join[{v}, reify[thunk[]]]; (* recursion       *)
+\end{verbatim}
+
+\subsubsection{foldStream}
+\label{sec:orgheadline7}
+
+Our equivalent for Wolfram's \emph{FoldList} is \emph{foldStream}.\footnote{The initial uncial (lower-case) letter signifies that \emph{we} wrote this function; it wasn't supplied by Wolfram.} Its type is similar
+
+\begin{align*}
+\text{foldStream :: }
+\text{AccumulatorFunction}
+\rightarrow
+\text{Accumulation}\\
+\rightarrow
+\text{Stream}\left[\,\text{Observation}\,\right]
+\rightarrow
+\text{Stream}\left[\,\text{Accumulation}\,\right]
+\end{align*}
+
+Here is an implementation:
+
+\begin{verbatim}
+foldStream[f_, s_, Null[]] := (* acting on an empty stream *)
+  {s, Null}; (* produce a singleton stream containing 's'  *)
+foldStream[f_, s_, {z_, thunk_}] :=
+  (* pass in a new thunk that recurses on the old thunk    *)
+  {s, foldStream[f, f[s, z], thunk[]] &};
+\end{verbatim}
+
+\subsubsection{Test}
+\label{sec:orgheadline8}
+
+Test it over the \emph{dispersion} of the example data:
+
+\begin{verbatim}
+foldStream[
+  kalmanStatic[IdentityMatrix[1]], (* same 'kalmanStatic;' no changes *)
+  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
+  disperse[{{{{1,  0., 0.,  0.}}, { -2.28442}}, 
+            {{{1,  1., 1.,  1.}}, { -4.83168}}, 
+            {{{1, -1., 1., -1.}}, {-10.46010}}, 
+            {{{1, -2., 4., -8.}}, {  1.40488}}, 
+            {{{1,  2., 4.,  8.}}, {-40.8079}}}]
+  ] // reify
+\end{verbatim}
+
+The only changes to the earlier fold over lists is the initial call of \emph{disperse} to
+convert the test case into a stream, and the final postfix call \texttt{// reify}
+to turn the result back into a list for display. The final results are identical
+to those in equation \ref{eqn:kalman-filter-results}, but we see all the
+intermediate results as well, confirming that Kalman folds over observations one
+at a time. We would have seen exactly the same output had we called \emph{FoldList}
+instead of \emph{Fold} over lists above.
+
+\begin{equation}
+\label{eql:full-big-results}
+\begin{pmatrix}
+\begin{bmatrix}
+ 0 \\
+ 0 \\
+ 0 \\
+ 0 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 1000. & 0 & 0 & 0 \\
+ 0 & 1000. & 0 & 0 \\
+ 0 & 0 & 1000. & 0 \\
+ 0 & 0 & 0 & 1000. \\
+\end{bmatrix}
+\\ & \\
+\begin{bmatrix}
+ -2.28214 \\
+ 0 \\
+ 0 \\
+ 0 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 0.999001 & 0 & 0 & 0 \\
+ 0 & 1000. & 0 & 0 \\
+ 0 & 0 & 1000. & 0 \\
+ 0 & 0 & 0 & 1000. \\
+\end{bmatrix}
+\\ \\
+\begin{bmatrix}
+ -2.28299 \\
+ -0.849281 \\
+ -0.849281 \\
+ -0.849281 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 0.998669 & -0.332779 & -0.332779 & -0.332779 \\
+ -0.332779 & 666.889 & -333.111 & -333.111 \\
+ -0.332779 & -333.111 & 666.889 & -333.111 \\
+ -0.332779 & -333.111 & -333.111 & 666.889 \\
+\end{bmatrix}
+\\ \\
+\begin{bmatrix}
+ -2.28749 \\
+ 1.40675 \\
+ -5.35572 \\
+ 1.40675 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 0.998004 & 0 & -0.997506 & 0 \\
+ 0 & 500.125 & 0 & -499.875 \\
+ -0.997506 & 0 & 1.49676 & 0 \\
+ 0 & -499.875 & 0 & 500.125 \\
+\end{bmatrix}
+\\ \\
+\begin{bmatrix}
+ -2.29399 \\
+ 7.92347 \\
+ -5.34488 \\
+ -5.1154 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 0.997508 & 0.49762 & -0.996678 & -0.498035 \\
+ 0.49762 & 1.3855 & -0.829836 & -0.719881 \\
+ -0.996678 & -0.829836 & 1.49538 & 0.830528 \\
+ -0.498035 & -0.719881 & 0.830528 & 0.553787 \\
+\end{bmatrix}
+\\ \\
+\begin{bmatrix}
+ -2.97423 \\
+ 7.2624 \\
+ -4.21051 \\
+ -4.45378 \\
+\end{bmatrix}
+&
+\begin{bmatrix}
+ 0.485458 & 0 & -0.142778 & 0 \\
+ 0 & 0.901908 & 0 & -0.235882 \\
+ -0.142778 & 0 & 0.0714031 & 0 \\
+ 0 & -0.235882 & 0 & 0.0693839 \\
+\end{bmatrix}
+\end{pmatrix}
+\end{equation}
+
+\subsection{Folding Over an Asynchronous Observable}
+\label{sec:orgheadline15}
+
+Just as \emph{FoldList} produces a list from a list, and \emph{foldStream} produces a
+stream from a stream, \emph{foldObservable} produces an observable from an
+observable. Its full signature is
+
+\begin{align*}
+\text{foldObservable :: }
+\text{AccumulatorFunction}
+\rightarrow
+\text{Accumulation}\\
+\rightarrow
+\text{Observable}\left[\,\text{Observation}\,\right]
+\rightarrow
+\text{Observable}\left[\,\text{Accumulation}\,\right]
+\end{align*}
+
+Lists provide data elements distributed in space (memory). Lazy streams provide
+data in constant memory, but distributed in a kind of virtual time, delivered
+when demanded, the way a debugger fakes time. Observables provide data elements
+distributed asynchronously in real time. To consume elements of an observable,
+subscribe an observer to it. An observer has a callback function, and the
+observable will invoke the callback for each observation, asynchronously, as the
+observation arrives. The callback function takes a single argument that receives
+the observation.
+
+We do not develop observables fully, here. For that, see a reference like
+Campbell's \emph{Intro to Rx}.\footnotemark[5]{} Instead, we content ourselves with just
+enough to demonstrate Kalman folding over them and, as with lazy streams, a way
+to get back and forth from lists.
+
+We model observables as stateful thunks that produce new values every time
+they're invoked, then invoke the thunks inside asynchronous Wolfram tasks that
+start at the moment some observer subscribes.\footnote{This convention only models so-called \emph{cold observables}, but it's enough to demonstrate Kalman's working over them.}
+
+\subsubsection{Subscribe :: Observable \(\rightarrow\) Observer \(\rightarrow\) Null}
+\label{sec:orgheadline10}
+
+Wolfram supplies a primitive, \emph{RunScheduledTask}, for evaluating expressions
+asynchronously, once per second by default. The expression that we pass to
+\emph{RunScheduledTask}, just calls the observer on the evaluated observable:
+
+\begin{verbatim}
+subscribe[observable_, observer_] :=
+  RunScheduledTask[observer[observable[]]];
+\end{verbatim}
+
+\subsubsection{Dispense :: List \(\rightarrow\) Observable}
+\label{sec:orgheadline11}
+
+The following is a specification of a task to run. Nothing happens till you
+subscribe something to it. 
+
+\begin{verbatim}
+dispense[aList_List] :=
+ Module[{state = aList},
+  If[{} === state,
+    Null, (* empty obs from empty list *)
+    (state = Rest[state]; First[state]]);] &]
+\end{verbatim}
+
+\subsubsection{Harvest :: Observable \(\rightarrow\) List}
+\label{sec:orgheadline12}
+
+Set up a conventional, external variable, \texttt{r\$}, so that we can interactively
+look at the results in a Wolfram \texttt{Dynamic[r\$]} form. Our \emph{harvest} 
+subscribes an observer that appends observations to a list held in \texttt{r\$}.
+Semicolon-separated expressions are sequenced, as with Scheme's \texttt{begin} or
+Lisp's \texttt{progn}.
+
+\begin{verbatim}
+harvest[obl_] :=
+  (r$ = {};
+   subscribe[obl, Function[v, If[v =!= Null, AppendTo[r$, v]]]]);
+\end{verbatim}
+
+We must eventually clean up the tasks and the external variable.
+
+\begin{verbatim}
+cleanup[] := (ClearAll[r$];
+              RemoveScheduledTask[ScheduledTasks[]];);
+\end{verbatim}
+
+\subsubsection{foldObservable}
+\label{sec:orgheadline13}
+
+The concrete type of \emph{foldObservable} is obvious: just replace \emph{Stream} with
+\emph{Observable} in a copy of the type of \emph{foldStream}.
+
+\begin{align*}
+\text{foldObservable :: }
+\text{AccumulatorFunction}
+\rightarrow
+\text{Accumulation}\\
+\rightarrow
+\text{Observable}\left[\,\text{Observation}\,\right]
+\rightarrow
+\text{Observable}\left[\,\text{Accumulation}\,\right]
+\end{align*}
+
+One might ask about the appropriate generalization of higher-order types like
+this, where we could go up a level, parameterize on types like \emph{Stream} and
+\emph{Observable}, and make the concrete types of \emph{foldStream} and \emph{foldObservable}
+instances of that higher, parameterized type. This is a sensible question, and
+the answer leads to category theory and monads,\footnote{\url{https://en.wikipedia.org/wiki/Monad}} out of scope for this
+paper.
+
+This implementation isn't hygeinic: it uses global variables (suffixed with \texttt{\$}
+signs). It's just enough to test Kalman folding over observables.
+
+\begin{verbatim}
+foldObservable[f_, s_, obl_] :=
+ Module[{newObl, s$ = s},
+  newObl[] := With[{result = s$},
+    s$ = f[s$, obl[]];
+    result];
+  newObl] (* return new observable *)
+\end{verbatim}
+
+\subsubsection{Test}
+\label{sec:orgheadline14}
+
+The following call has the same shape as our call of \emph{foldStream} above, except
+calling \emph{dispense} instead of \emph{disperse} and \emph{harvest} instead of \emph{reify}.
+
+\begin{verbatim}
+Dynamic[r$]
+foldObservable[
+  kalmanStatic[IdentityMatrix[1]],
+  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
+  dispense[{{{{1,  0., 0.,  0.}}, { -2.28442}}, 
+            {{{1,  1., 1.,  1.}}, { -4.83168}}, 
+            {{{1, -1., 1., -1.}}, {-10.46010}}, 
+            {{{1, -2., 4., -8.}}, {  1.40488}}, 
+            {{{1,  2., 4.,  8.}}, {-40.8079}}}]
+  ] // harvest;
+r$
+\end{verbatim}
+
+The results are exactly the same as in equation \ref{eql:full-big-results}. 
+
+\section{Concluding Remarks}
+\label{sec:orgheadline17}
+
+With prototypes for \emph{foldStream} and \emph{foldObservable}, we have demonstrated
+Kalman folding with exactly the same accumulator function over wildly different
+data-delivery environments. This demonstrates the primary thesis of this series
+of papers: that writing filters as functional folds enables verbatim deployment
+of code in both friendly, synchronous environments with all data in memory, and
+unfriendly asynchronous environments using only constant memory. Verbatim means
+with no changes at all, not even recompilation. 
+
+We have tested these prototypes against bigger
+examples like the tracking example\footnote{B. Beckman, \emph{Kalman Folding 2: Tracking and System Dynamics}, To appear.} and the accelerometer
+example,\footnotemark[1]{} and there are no surprises.
+Emacs 24.5.1 (Org mode 8.3.4)
+\end{document}

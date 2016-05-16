@@ -1,0 +1,898 @@
+#+TITLE: Kalman Folding 5: Non-Linear Models and the EKF (REVIEWER'S DRAFT)
+#+SUBTITLE: Extracting Models from Data, One Observation at a Time
+#+AUTHOR: Brian Beckman
+#+DATE: <2016-05-03 Tue>
+#+EMAIL: bbeckman@34363bc84acc.ant.amazon.com
+#+OPTIONS: ':t *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:t
+#+OPTIONS: todo:t |:t
+#+SELECT_TAGS: export
+#+STARTUP: indent
+#+LaTeX_CLASS_OPTIONS: [10pt,oneside,x11names]
+#+LaTeX_HEADER: \usepackage{geometry}
+#+LaTeX_HEADER: \usepackage{amsmath}
+#+LaTeX_HEADER: \usepackage{amssymb}
+#+LaTeX_HEADER: \usepackage{amsfonts}
+#+LaTeX_HEADER: \usepackage{palatino}
+#+LaTeX_HEADER: \usepackage{siunitx}
+#+LaTeX_HEADER: \usepackage{esdiff}
+#+LaTeX_HEADER: \usepackage{xfrac}
+#+LaTeX_HEADER: \usepackage{nicefrac}
+#+LaTeX_HEADER: \usepackage{faktor}
+#+LaTeX_HEADER: \usepackage[euler-digits,euler-hat-accent]{eulervm}
+#+OPTIONS: toc:2
+
+* COMMENT Preliminaries
+
+This section is just about setting up org-mode. It shouldn't export to the
+typeset PDF and HTML.
+
+#+BEGIN_SRC emacs-lisp :exports results none
+  (defun update-equation-tag ()
+    (interactive)
+    (save-excursion
+      (goto-char (point-min))
+      (let ((count 1))
+        (while (re-search-forward "\\tag{\\([0-9]+\\)}" nil t)
+          (replace-match (format "%d" count) nil nil nil 1)
+          (setq count (1+ count))))))
+  (update-equation-tag)
+  (setq org-confirm-babel-evaluate nil)
+  (org-babel-map-src-blocks nil (org-babel-remove-result))
+  (slime)
+#+END_SRC
+
+#+RESULTS:
+: #<buffer *inferior-lisp*>
+
+* Abstract
+
+We exhibit a foldable Extended Kalman Filter that internally integrates
+non-linear equations of motion with a nested fold of generic
+integrators over lazy streams in constant memory.
+Functional form allows us to switch integrators easily and to diagnose filter
+divergence accurately, achieving orders of magnitude better speed than
+the source example from the literature. As with all Kalman folds, we can move
+the vetted code verbatim, without even recompilation, from the lab to the field.
+
+* Background and Synopsis
+
+In /Kalman Folding, Part 1/,[fn:klfl] we present basic, static Kalman filtering
+as a functional fold, highlighting the unique advantages of this form for
+deploying test-hardened code verbatim in harsh, mission-critical environments.
+
+In /Kalman Folding 2: Tracking/,[fn:klf2] we reproduce a tracking example from
+the literature, showing that these advantages extend to linear
+models with time-evolving states. 
+
+Here, we extend that example to include aerodynamic drag, making the model
+nonlinear. We must change the Kalman filters themselves to handle such problems.
+The resulting filters are called /Extended Kalman Filters/ or EKFs.
+
+The particular EKF designed here features internal integration of the non-linear
+equations of motion. We integrate these equations by folding over a lazy stream
+that generates, on demand, differential updates to the solution. Folds over lazy
+streams were introduced in /Kalman Folding 4: Streams and Observables/,[fn:klf4]
+where we used them to step a static Kalman filter over observations. Here,
+lazy streams afford two advantages:
+
+1. constant-memory solutions
+   required for EKFs in embedded systems in the field
+
+2. easy switching of integrators, even at run time, allowing accurate diagnosis and
+   tuning of the filter
+
+We show these advantages at work by improving Zarchan and Musoff's[fn:zarc]
+example of tracking the height of a falling object with drag. These authors
+exhibit a sequence of filter tunings to converge the filter, ending with a
+second-order Runge-Kutta stepped at $100$ times the observation frequency.
+Integration dominates the run-time performance of their example. Because their
+integration code is enmeshed with the filter and with data delivery, they were
+not easily able to experiment with alternative integrators and missed the
+opportunity to try fourth-order Runge-Kutta, which we find converges the filter
+$100$ times faster. 
+
+Other papers in this series feature applications of EKFs to a variety of
+problems including navigation and pursuit.
+
+In this series of papers, we use the Wolfram language[fn:wolf] because it
+supports functional programming and it excels
+at concise expression of mathematical code. All examples in these papers can be
+directly transcribed to any modern mainstream language that supports closures.
+For example, it is easy to write them in C++11 and beyond, Python, any modern
+Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many can be written
+without full closures; function pointers will suffice, so they are easy to write
+in C. It's also not difficult to add extra arguments to simulate just enough
+closure-like support in C to write the rest of the examples in that language.
+
+* Linear Kalman Accumulator with Time Evolution
+
+In /Kalman Folding 2: Tracking/,[fn:klf2] we found the following
+accumulator function for a fold that implements the linear
+dynamic Kalman filter, that is, a filter that can track states that evolve with
+time[fn:time] according to a linear transformation of the state:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:kalman-dynamic-cume-definition}
+\begin{matrix}
+\textrm{kalmanDynamic}
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{Z},
+\mathbold{\Xi},
+\mathbold{\Phi},
+\mathbold{\Gamma},
+\mathbold{u},
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) = \\
+\begin{Bmatrix}
+\mathbold{ x }_{ 2 }+
+\mathbold{ K }\,
+\left(
+\mathbold{ z }-
+\mathbold{ A }\,
+\mathbold{ x }_{ 2 }
+\right), &
+\mathbold{ P }_{ 2 }-
+\mathbold{ K }\,
+\mathbold{ D }\,
+\mathbold{ K }^\intercal
+\end{Bmatrix}
+\end{matrix}
+\end{equation}
+#+END_LaTeX
+
+\noindent where
+
+#+BEGIN_LaTeX
+\begin{align}
+\label{eqn:state-propagation-equation}
+\mathbold{ x }_{ 2 }
+&=
+\mathbold{ \Phi  }\,
+\mathbold{ x }+
+\mathbold{ \Gamma  }\,
+\mathbold{ u } \\
+\label{eqn:covariance-propagation-equation}
+\mathbold{ P }_{ 2 }
+&=
+\mathbold{ \Xi  }+
+\mathbold{ \Phi  }\,
+\mathbold{ P }\,
+\mathbold{ \Phi  }^{ \intercal  } \\
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+#+END_LaTeX
+
+\noindent and all quantities are matrices:
+
+- $\mathbold{z}$ is a  ${b}\times{1}$ column vector containing one multidimensional observation
+- $\mathbold{x}$ and $\mathbold{x}_{2}$ are ${n}\times{1}$ column vectors of /model states/
+- $\mathbold{Z}$ is a  ${b}\times{b}$ matrix, the covariance of
+  observation noise
+- $\mathbold{P}$ and $\mathbold{P}_2$ are ${n}\times{n}$ matrices, the theoretical
+  covariances of $\mathbold{x}$ and $\mathbold{x}_2$, respectively
+- $\mathbold{A}$ is a  ${b}\times{n}$ matrix, the /observation partials/
+- $\mathbold{D}$ is a  ${b}\times{b}$ matrix, the Kalman denominator
+- $\mathbold{K}$ is an ${n}\times{b}$ matrix, the Kalman gain
+- $\mathbold{\Xi}$ is an $n\times{n}$ integral of /process
+  noise/ $\mathbold{\xi}$, namely \newline \(\int_{0}^{\delta t}\mathbold{\Phi}(\tau)\cdot{\left(\begin{array}{c|c}\mathbold{0}&\mathbold{0}\\\hline\mathbold{0}&E\left[\mathbold{\xi}\mathbold{\xi}^{\intercal}\right]\end{array}\right)\cdot\mathbold{\Phi}(\tau)^\intercal\,\textrm{d}\tau}\)
+- $\mathbold{\Phi}$ is the non-dimensional $n\times{n}$ propagator for $\mathbold{F}$, namely $e^{\mathbold{F}\,{\delta t}}$
+- $\mathbold{\Gamma}$ is an $n\times{\dim(\mathbold{u})}$ integral of /system response/, namely \(\int_{0}^{\delta t}{\mathbold{\Phi}(\tau) \cdot \mathbold{G}\,\textrm{d}\tau}\)
+- $\mathbold{u}$ is a vector of external /disturbances/ or /control inputs/
+- $\delta{t}$ is an increment of time (or, more generally, the independent
+  variable of the problem)
+
+\noindent and the time-evolving states satisfy the following differential
+equation in /state-space form/:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:state-space-form}
+{\dot{\mathbold{x}}}=
+\mathbold{F}\,\mathbold{x}+
+\mathbold{G}\,\mathbold{u}+
+\mathbold{\xi}
+\end{equation}
+#+END_LaTeX
+
+\noindent  $\mathbold{F}$, $\mathbold{G}$, and $\mathbold{u}$ may depend
+on time, but not on $\mathbold{x}$; that is the meaning of ``linear dynamic'' in
+this context. 
+
+#+BEGIN_COMMENT
+In this paper, we relieve those restrictions
+by explicitly integrating non-linear equations of motion and by using
+Taylor-series approximations for the gain $\mathbold{K}$ and 
+denominator $\mathbold{D}$ matrices. 
+#+END_COMMENT
+
+** Dimensional Arguments
+
+In physical or engineering applications, these quantities carry physical
+dimensions of units of measure in addition to their matrix dimensions as numbers
+of rows and columns. Both kinds of dimensions are aspects of the /type/ of a
+quantity. Dimensional arguments, like type-arguments more generally, are
+invaluable for checking equations and code.
+
+If the physical and matrix dimensions of 
+$\mathbold{x}$ 
+are
+$\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})$,
+of 
+$\mathbold{z}$ 
+are
+$\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})$, 
+and of 
+$\delta{t}$
+are
+$\left[\left[\delta{t}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{T}, \textrm{scalar})$, 
+then
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&) \\
+\left[\left[\mathbold{F}\,\mathbold{x}\right]\right]                         &=& (&\mathcal{X}/\mathcal{T}  & n\times{n}&) \\
+\left[\left[\mathbold{\Phi}\,\mathbold{x}\right]\right]                      &=& (&\mathcal{X}              & n\times{n}&) \\
+\left[\left[\mathbold{G}\,\mathbold{u}\right]\right]                         &=& (&\mathcal{X}/\mathcal{T}  & n\times{1}&) \\
+\left[\left[\mathbold{\Gamma}\,\mathbold{u}\right]\right]                    &=& (&\mathcal{X}              & n\times{1}&) \\
+\left[\left[\mathbold{\Xi}\right]\right]                                     &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\end{array}
+\end{equation}
+#+END_LaTeX
+
+The matrices $\mathbold{F}$, $\mathbold{\Phi}$, $\mathbold{G}$, and
+$\mathbold{\Gamma}$ do not have single dimensions on their own, but their
+dimensions in various combinations with other matrices make sense. Elements of
+matrix expressions for $\mathbold{\Xi}$ include sufficient implicit physical
+dimensions to make its overall physical dimensions work out to $\mathcal{X}^2$.
+Detailed dimensional analysis of these matrices is the subject of another paper
+in this series.
+
+\noindent In all examples in this paper, the observations $\mathbold{z}$ are
+$1\times{1}$ matrices, equivalent to scalars, so $b=1$, but the theory and code
+carry over to multi-dimensional vector observations.
+
+* Tracking with Drag
+
+To accommodate nonlinear equations of state evolution, we replace equation
+\ref{eqn:state-propagation-equation} with explicit numerical integration. The
+rest of the EKF uses equations \ref{eqn:covariance-propagation-equation},
+\ref{eqn:kalman-gain-definition}, and \ref{eqn:kalman-denominator-definition}:
+with a propagator $\mathbold{\Phi}$ derived from first-order linearization.
+
+** Equations of Motion
+
+Let $h(t)$ be the height of
+the falling object, and let the state vector $\mathbold{x}(t)$ contain $h(t)$
+and its first derivative, $\dot{h}(t)$, the speed of descent.
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\mathbold{x} = 
+\begin{bmatrix} { h } (t) \\ \dot { h } (t) \end{bmatrix}
+\end{equation*}
+#+END_LaTeX
+
+Omitting, for clarity's sake, explicit dependence of $h$ and $\dot{h}$ on time,
+the equations of motion are elementary:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:equations-of-motion}
+\begin{bmatrix} \dot { h } \\ \ddot { h }  \end{bmatrix}
+=
+\begin{bmatrix}
+0 & 1 \\
+0 & 0
+\end{bmatrix}
+\begin{bmatrix} h \\ \dot { h }  \end{bmatrix}
++
+\begin{bmatrix} 0 \\ -1 - \textrm{sign}({\dot{h}})\,\rho(h)\,{{\dot{h}}^2}/(2\beta)
+\end{bmatrix}
+\begin{bmatrix} g \end{bmatrix}
+\end{equation}
+#+END_LaTeX
+
+\noindent where 
+- $g$ is the acceleration of Earth's gravitation, about
+  $32.2\,\textrm{ft}/{\textrm{s}}^2$
+- $\rho(h)$ is the density of air in $\textrm{slug}/{\textrm{ft}}^3$; $\rho\,{{\dot{h}}^2}$ has
+  units of pressure, that is, $\textrm{slug}/(\textrm{ft}\cdot{\textrm{sec}^2})$
+- $\beta = 500\,\textrm{slug}/(\textrm{ft}\cdot{\textrm{sec}^2})$
+  is a constant /ballistic coefficient/  of the object in units of pressure (it
+  is possible to estimate this coefficient in the filter; here, we
+  treat it as a known constant). 
+
+The positive direction is up and we are only concerned with negative velocities
+where the object is approaching the ground. We may provisionally replace the
+factor $\textrm{sign}({\dot{h}})$ with -1 and keep our eye out for improper
+positive speeds. 
+
+In scalar form, the equations are 
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\ddot { h }
+=
+g\left(\frac{\rho(h)\,{{\dot{h}}^2}}{2\beta}-1\right)
+\end{equation*}
+#+END_LaTeX
+
+\noindent or 
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:scalar-equations-of-motion}
+\ddot { h }
+=
+g\left(\frac{A e^{h/k}\,{{\dot{h}}^2}}{2\beta}-1\right)
+\end{equation}
+#+END_LaTeX
+
+\noindent 
+with
+$k=22,000\,\left[\textrm{ft}\right]$, the e-folding height of the atmosphere,
+and \(A=0.0034\,[\textrm{slug}/{{\textrm{ft}}^3}]\) for the density of
+air[fn:zerr] at $h=0$.
+
+** Stream Solver
+
+We can write the same differential equation as a lazy stream, which uses only
+constant memory. Thus, it is suitable for the internals of a Kalman filter. We
+implement the integrator as an accumulator function for ~foldStream~ from paper
+4 of this series,[fn:klf4] which
+produces all intermediate results as a new stream.
+
+#+BEGIN_COMMENT
+#+BEGIN_LaTeX
+\begin{verbatim}
+foldStream[f_, s_, Null[]] := (* acting on an empty stream *)
+  {s, Null}; (* produces a singleton stream containing 's' *)
+foldStream[f_, s_, {z_, thunk_}] :=
+  (* pass a new thunk that recurses on the old thunk       *)
+  {s, foldStream[f, f[s, z], thunk[]] &};
+\end{verbatim}
+#+END_LaTeX
+#+END_COMMENT
+
+The simplest integrator is the Euler integrator, which updates a state with its
+derivative times a small interval of time: 
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+eulerAccumulator[{t_, x_}, {dt_, t_, Dx_}] :=
+  {t + dt, x + dt Dx[x, t]};
+\end{verbatim}
+#+END_LaTeX
+
+Like all accumulator functions, this is a binary function that takes two
+arguments. The first is an instance of accumulation type, in this case, a
+pair of a scalar time ~t~ and a vector state ~x~. The second is an element of
+the input stream, a triple of a time differential ~dt~, the same time ~t~ that
+appears in the first argument, and a function ~Dx~ that computes the derivative
+of the state given the state and the time as ~Dx[x,t]~.
+
+Folding this integrator over the streamed differential equation produces a
+streamed solution. The input stream must produce values of the form 
+~{dt, t, Dx}~ and, like all streams, also contain a thunk that produces the rest of the
+stream.[fn:thnk]
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+dragDStream[Delta : {dt_, t_, Dx_}] :=
+  {Delta, dragDStream[{dt, t + dt, Dx}] &};
+\end{verbatim}
+#+END_LaTeX
+
+This ~dragDStream~ contains nothing specific to our example, but just increments
+time and passes through the integration inputs. It could be much more rich,
+manipulating ~dt~ and ~Dx~ for speed or numerics (/adaptive integration/).
+
+The kernel of our differential equation is the derivative function ~Dx~, which,
+for our example, is the following:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+With[{g = 32.2, A = 0.0034, k = 22000., beta = 500.},
+  dragD[{x_, v_}, t_] := {v, g (A Exp[-x/k] v^2/(2. beta) - 1)}];
+\end{verbatim}
+#+END_LaTeX
+
+\noindent in which ~x~ stands for $h$ and ~v~ for $\dot{h}$. It is generalized
+to handle differential equations that have explicit dependence on a time
+variable ~t~, but that parameter is harmlessly ignored in this example.
+Integrating the differential equation for thirty seconds looks like this:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+(* constants and initial conditions *)
+With[{x0 = 200000., v0 = -6000., t0 = 0., t1 = 30., dt = .1},
+ takeUntil[
+  foldStream[
+   eulerAccumulator,
+   {t0, {x0, v0}},
+   dragDStream[{dt, t0, dragD}]
+   ], First[#] > t1 &]] (* predicate on first elements of solution *)
+\end{verbatim}
+#+END_LaTeX
+
+#+CAPTION: Trajectory of a falling object with drag
+#+NAME: fig:ndsolve-falling-with-drag-results
+[[file:NDSolveFallingWithDrag.png]]
+
+The type of the result, here, is a lazy stream produced by ~takeUntil~ from the
+lazy stream produced by ~foldStream~. Because these streams are lazy, nothing
+happens until we demand values for, say, plotting, as in figure
+[[fig:ndsolve-falling-with-drag-results]]. These results are qualitatively
+indistinguishable from those in the reference and those produced by Wolfram's
+built-in numerical integrator ~NDSolve~, giving us high confidence that we've
+got it right.
+
+The arguments of ~takeUntil~ are a stream and a predicate, in our case, the
+literal function ~First[#] > t1 &~. The result is a new
+stream that pulls values from the original stream, applying the predicate until
+it produces ~True~. 
+
+The implementations of ~foldStream~, ~takeUntil~ and other stream operators is
+the subject of another paper in this series.
+
+#+BEGIN_COMMENT
+The implementation of ~takeUntil~ is in three overloads:
+
+Given an empty stream and any predicate, produce the empty stream:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+takeUntil[Null[], _] := Null[];
+\end{verbatim}
+#+END_LaTeX
+
+Given a stream containing a value ~v~ and a tail ~thunk~, return the empty
+stream if the predicate evaluates to ~True~:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+takeUntil[{v_, thunk_}, predicate_] /; predicate[v] := Null[];
+\end{verbatim}
+#+END_LaTeX
+
+Otherwise, recurse by invoking the ~thunk~ in the stream:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+takeUntil[{v_, thunk_}, predicate_] :=
+  {v, takeUntil[thunk[], predicate] &};
+\end{verbatim}
+#+END_LaTeX
+#+END_COMMENT
+
+** What's the Point?
+
+The point of this style of integration is that we can change three aspects of
+the integration independently of one another, leaving the others verbatim,
+without even recompilation, because we have un-nested and /decomplected/[fn:hick] these aspects:
+1. the integrator
+2. potential manipulation of the time increment ~dt~ and derivative function ~Dx~
+3. the internals of the derivative function ~Dx~
+
+For example, should Euler integration prove inadequate, and it does, we can
+easily substitute second- or fourth-order Runge-Kutta integrators. This turns
+out to be crucial for a high-performance EKF in this example. The only
+requirement on an integrator is that it must match the function signature or
+type:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+rk2Accumulator[{t_, x_}, {dt_, t_, Dx_}] :=
+  With[{dx1 = dt Dx[x, t]},
+   With[{dx2 = dt Dx[x + .5 dx1, t + .5 dt]},
+    {t + dt, x + (dx1 + dx2)/2.}]];
+rk4Accumulator[{t_, x_}, {dt_, t_, Dx_}] :=
+  With[{dx1 = dt Dx[x, t]},
+   With[{dx2 = dt Dx[x + .5 dx1, t + .5 dt]},
+    With[{dx3 = dt Dx[x + .5 dx2, t + .5 dt]},
+     With[{dx4 = dt Dx[x + dx3, t + dt]},
+      {t + dt, x + (dx1 + 2. dx2 + 2. dx3 + dx4)/6.}]]]];
+\end{verbatim}
+#+END_LaTeX
+
+Decomplecting these bits also makes them easier to review and verify by hand
+because dependencies are lexically obvious, easier
+to memorize and to find on a page.
+
+** Gain and Covariance Updates
+
+For gains and covariances, first-order linear approximations
+suffice. If we write the non-linear equations in state-space form as
+$\mathbold{\dot{x}}=f(\mathbold{x})$, then a Taylor series, to first order, yields
+
+#+BEGIN_LaTeX
+\begin{align}
+\notag
+\mathbold{\dot{x}} &= f(\mathbold{x}_0) + \mathbold{F}(\mathbold{x}_0)\cdot(\mathbold{x}-\mathbold{x}_0) \\
+\notag
+\Leftrightarrow\mathbold{\dot{x}} &= \mathbold{F}(\mathbold{x}_0)\cdot\mathbold{x} + \mathbold{\dot{x}}_0 - \mathbold{F}(\mathbold{x}_0)\cdot\mathbold{x}_0 
+\end{align}
+#+END_LaTeX
+
+\noindent where $\mathbold{F}$ is the Jacobian matrix, 
+
+#+BEGIN_LaTeX
+\begin{equation}
+\mathbold{F}
+\left(
+\mathbold{x}=\begin{bmatrix}h\\ \dot{h} \end{bmatrix}
+\right) =
+\begin{bmatrix}
+\underset {  }{ \frac { \partial \dot { h }  }{ \partial h }  }  &
+\underset {  }{ \frac { \partial \dot { h }  }{ \partial \dot { h }  }  }  \\
+\frac { \partial \ddot { h }  }{ \partial h }  &
+\frac { \partial \ddot { h }  }{ \partial \dot { h }  }
+\end{bmatrix}
+\end{equation}
+#+END_LaTeX
+
+\noindent and clearly fills the role played by $\mathbold{F}$ in the linear
+state-space form, equation \ref{eqn:state-space-form}. Our linearized
+system-dynamics matrix is
+
+#+BEGIN_COMMENT
+We linearize our equations to first order around small increments
+$\Delta{h}$ and $\Delta{\dot{h}}$:
+
+#+BEGIN_LaTeX
+\begin{equation}
+\begin{bmatrix} \Delta \dot { h } \\ \Delta \ddot { h }
+\end{bmatrix}
+=
+\begin{bmatrix}
+\underset {  }{ \frac { \partial \dot { h }  }{ \partial h }  }  &
+\underset {  }{ \frac { \partial \dot { h }  }{ \partial \dot { h }  }  }  \\
+\frac { \partial \ddot { h }  }{ \partial h }  &
+\frac { \partial \ddot { h }  }{ \partial \dot { h }  }
+\end{bmatrix}
+\begin{bmatrix}
+\Delta h \\ \Delta \dot { h }
+\end{bmatrix} 
+=
+\mathbold{F}(\mathbold{x}=[h\,\dot{h}]^\intercal) \cdot
+\begin{bmatrix}
+\Delta h \\ \Delta \dot { h }
+\end{bmatrix} 
+\end{equation}
+#+END_LaTeX
+
+\noindent The matrix of partial derivatives is the Jacobian, the best linear
+approximation to 
+at any time, and fills the ro
+
+\noindent and reason that the matrix of partial derivatives will advance the
+state 
+#+END_COMMENT
+
+#+BEGIN_COMMENT
+with
+$k=22,000\,\left[\textrm{ft}\right]$, the e-folding height of the atmosphere,
+and \(A=0.0034\,[\textrm{slug}/{{\textrm{ft}}^3}]\) for the density of
+air[fn:zerr] at $h=0$,
+#+END_COMMENT
+
+#+BEGIN_LaTeX
+\begin{equation}
+\mathbold{F}(\mathbold{x}) =
+\begin{bmatrix}
+\underset {  }{ 0 }  &
+\underset {  }{ 1 }  \\
+\frac{-A g {\dot{h}}^2 e^{{h}/{k}}}{2 \beta  k}  &
+\frac{A g {\dot{h}} e^{{h}/{k}}}{\beta }
+\end{bmatrix}
+\end{equation}
+#+END_LaTeX
+
+We need $\mathbold{\Phi}=e^{\mathbold{F}t}$ to propagate solutions forward,
+because, if $\mathbold{\dot{x}}=\mathbold{F}\,\mathbold{x}$, then
+$e^{\mathbold{F}t}\,\mathbold{x}$(t) effects a Taylor series. Again, to first
+order,
+
+#+BEGIN_LaTeX
+\begin{align}
+\notag
+\mathbold{x}(t+\delta{t}) &= e^{\mathbold{F}\,\delta{t}}\,\mathbold{x}(t) \\
+\label{eqn:expand-f}      &\approx \left(\mathbold{1} + \mathbold{F}\,\delta{t}\right)\,\mathbold{x}(t) \\
+\notag                    &= \mathbold{x}(t) + \mathbold{F}\,\mathbold{x}(t)\,\delta{t} \\
+\notag                    &\approx \mathbold{x}(t) + \mathbold{\dot{x}}(t)\,\delta{t}
+\end{align}
+#+END_LaTeX
+
+\noindent We take
+$\mathbold{\Phi}(\delta{t})=\mathbold{1}+\mathbold{F}\,\delta{t}$ for our
+propagator matrix and  compute the gains and covariances as in equations
+\ref{eqn:covariance-propagation-equation}, 
+\ref{eqn:kalman-gain-definition}, and
+\ref{eqn:kalman-denominator-definition}:
+
+#+BEGIN_LaTeX
+\begin{align}
+\mathbold{P}
+&\leftarrow
+\mathbold{\Xi}+
+\mathbold{\Phi}\,
+\mathbold{P}\,
+\mathbold{\Phi}^\intercal
+\end{align}
+#+END_LaTeX
+
+\noindent where $\Xi$, integral of the process noise, is 
+
+#+BEGIN_LaTeX
+\begin{equation}
+\left(\sigma_\xi\right)^2\cdot
+\begin{bmatrix}
+ \underset{}{\frac{{\delta t}^3}{3}}
+&
+ \underset{}{{{{\mathbold{F}_{22}}} {\delta t}^3}/{3}+\frac{{\delta t}^2}{2}}
+\\
+ {{{\mathbold{F}_{22}}} {\delta t}^3}/{3}+\frac{{\delta t}^2}{2} 
+&
+ {{{\mathbold{F}_{22}}}^2 {\delta t}^3}/{3}+{{\mathbold{F}_{22}}} {\delta t}^2+{\delta t}
+\end{bmatrix}
+\end{equation}
+#+END_LaTeX
+
+* The EKF
+
+Though the following code block is bigger than we have seen in earlier papers in
+this series, it is a
+straight implementation of the notions explained above, highly modularized. The
+block of code establishes one global symbol, ~EKFDrag~, which we tune and
+analyze in the last section of this paper.
+
+~With~ establishes numerical constants for the equations of motion.
+~Module~ establishes local variables to hold the differential-equation kernel and
+stream, and for the propagator matrix $\mathbold{\Phi}$ and process noise
+$\mathbold{\Xi}$. 
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+With[{g = 32.2, A = 0.0034, k = 22000., beta = 500.},
+ Module[{dragD, dragDStream, F21, F22, Phi, Xi},
+\end{verbatim}
+#+END_LaTeX
+
+The following lines furnish implementations of these functions:
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+  (* x stands for h, v for hdot *)
+  dragD[{x_, v_}, t_] := {v, g (A Exp[-x/k] v^2/(2. beta) - 1)};
+  dragDStream[Delta : {dt_, t_, Dx_}] :=
+    {Delta, dragDStream[{dt, t + dt, Dx}] &};
+  F21[x_, v_] := -A Exp[-x/k] g v^2/(2. k beta);
+  F22[x_, v_] := A Exp[-x/k] g v/beta;
+  Phi[dt_, {x_, v_}] := {{1, dt}, {dt*F21[x, v], 1 + dt*F22[x, v]}};
+  Xi[dt_, {x_, v_}] := With[{f = F22[x, v]},
+    {{dt^3/3, (dt^2*(3 + 2*dt*f))/6}, {(dt^2*(3 + 2*dt*f))/6, 
+      dt + dt^2*f + (dt^3*f^2)/3}}];
+\end{verbatim}
+#+END_LaTeX
+
+The EKF itself is in the scope of these variables, and lambda lifts over 
+1. $\sigma_\xi$, the constant standard deviation of the process noise
+2. $\mathbold{Z}$, the constant observation-noise matrix
+3. the integrator function, for instance ~eulerAccumulator~ or either of the
+  Runge-Kutta integrators
+4. the filter period ~fdt~
+5. the internal integration period ~idt~
+allowing independent tuning of all these parameters. Its accumulation type is
+$\{\mathbold{x},\mathbold{P}\}$, as usual. Its observation type includes time
+$t$ because the integrators are all generalized to include it, even though, in
+our current example, the differential equations do not depend explicitly on the
+time variable. It could be optimized out. The other members of the observation
+packet are the usual partials matrix $\mathbold{A}$ and the observation itself
+$\mathbold{z}$. This is standard Kalman folding as explained in the first paper
+in this series.[fn:klf1]
+
+The stream operator ~last~ forces the lazy integration stream to execute, albeit
+in constant memory, until it picks up and returns the final value produced by
+~takeUntil~. This composition of ~last~, ~takeUntil~, and ~foldStream~ performs
+the EKF's high-precision replacement for the standard Kalman filter's update
+equation \ref{eqn:state-propagation-equation}, operating at the integration
+period ~idt~. The rest of the code implements equations
+\ref{eqn:covariance-propagation-equation}, \ref{eqn:kalman-gain-definition}, and
+\ref{eqn:kalman-denominator-definition} with the linearized propagator ~Phi~
+operating at the filter period ~fdt~.
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+EKFDrag[sigmaXi_, Zeta_, integrator_, fdt_, idt_]
+  [{x_, P_}, {t_, A_, z_}] :=
+  Module[{x2, P2, D, K},
+   x2 = last[takeUntil[foldStream[integrator, {t, x},
+        dragDStream[{idt, t, dragD}]],
+       First@# > t + fdt &]][[2]];
+   P2 = sigmaXi^2 Xi[fdt, x] + Phi[fdt, x].P.Transpose[Phi[fdt, x]];
+   D = Zeta + A.P2.Transpose[A];
+   K = P2.Transpose[A].inv[D];
+   {x2 + K.(z - A.x2), P2 - K.D.Transpose[K]}];
+\end{verbatim}
+#+END_LaTeX
+
+* Tuning and Performance
+
+Because we can tune five parameters of the filter independently, we can efficiently
+explore the tuning space. The first task is to reproduce the author's results,
+then to look for opportunities to improve them.
+
+#+CAPTION: Euler integrator, ~idt~ \(= 0.1\) sec, \(\sigma_\zeta = 1000 \) ft
+#+NAME: fig:euler-idt-point-1-zeta-1000
+[[file:euler-idt-point-1-zeta-1000.png]]
+
+Zarchan and Musoff report filter convergence and excellent speed for the Euler
+integrator operating at a period of $0.1$ seconds, exactly the same as the
+filter period, and a standard deviation of $1,000\,\textrm{ft}$ for observation
+noise. We reproduce their results qualitatively in figure
+[[fig:euler-idt-point-1-zeta-1000]], by folding ~EKFDrag~ over a lazy stream of
+deterministically pseudorandom observations. The smoother lines represent
+one-sigma theoretical covariance envelopes and the noisy dots represent five
+iterations of the filter over faked data.
+
+Figure [[fig:euler-idt-point-1-zeta-1000]] exhibits overall convergence, but there
+are signs of trouble for times beyond $20$ sec. These are visually obvious, but
+would be difficult to detect statistically. 
+
+#+CAPTION: Euler integrator, ~idt~ \(= 0.1\) sec, \(\sigma_\zeta = 25 \) ft
+#+NAME: fig:euler-idt-point-1-zeta-25
+[[file:euler-idt-point-1-zeta-25.png]]
+
+#+CAPTION: RK-2 integrator, ~idt~ \(= 0.001\) sec, \(\sigma_\zeta = 25 \) ft; also RK-4 integrator, ~idt~ \(= 0.1\) sec
+#+NAME: fig:rk2-idt-point-001-zeta-25
+[[file:rk2-idt-point-001-zeta-25.png]]
+
+The authors report, and we concur, complete filter failure when the observation
+standard deviation is reduced to $25$ feet, which forces the filter to rely much
+more on the integrator than on the observations at higher times because it has
+been told that the observations are reliable (low sigma). This interpretation is
+confirmed by the squeezing of the covariance envelopes in figure
+[[fig:euler-idt-point-1-zeta-25]]. The filter slavishly follows the integrator and
+seems to accumulate its floating-point errors into bad estimates. A detailed
+numerical analysis of this phenomenon is beyond the scope of this paper, but the
+authors gain evidence that this is the case, and we concur, by moving to a
+second-order Runge-Kutta integrator. They find, and we concur, that they must
+move to an integration period of $0.001$ seconds, $100$ times slower, to regain
+convergence. See figure [[fig:rk2-idt-point-001-zeta-25]].
+
+We were able to restore the speed of the filter and produce results visually
+indistinguishable from figure [[fig:rk2-idt-point-001-zeta-25]] with the
+fourth-order Runge-Kutta integrator simply by feeding those parameters into
+~EKFDrag~. Now suitably tuned, the filter can be deployed verbatim, without even
+recompilation, in the field. We emphasize the importance of verbatim deployment,
+as in the first paper in this series, because floating-point issues are
+extremely sensitive to the slightest change. We have seen many cases where even
+changing the order of operations by compiler optimizer flags or by targeting
+different versions of the same processor family produce qualitatively different
+results due to non-associativity of floating point math and accumulation
+phenomena. 
+
+We note in passing that Zarchan and Musoff also find, and we concur, that
+increasing the order of the Taylor series for computing $\mathbold{\Phi}$ and
+$\mathbold{\Xi}$ does not qualitatively improve the filter. That option might
+become relevant and important at longer filter periods ~fdt~ or in other
+applications.
+
+* Concluding Remarks
+
+The Extended Kalman Filter (EKF) typically handles non-linear problems by propagating
+states with high-precision integration and propagating 
+Kalman gain and state covariance by linear approximations. The benefits of
+writing EKFs as folds over lazy streams include high modularity, allowing
+efficient and accurate tuning and diagnosis, and the flexibility to deploy
+fragile floating-point code verbatim, without even recompilation, from the lab
+to the field.
+
+[fn:affn] https://en.wikipedia.org/wiki/Affine_transformation
+[fn:bars] Bar-Shalom, Yaakov, /et al/. Estimation with applications to tracking and navigation. New York: Wiley, 2001.
+[fn:bier] http://tinyurl.com/h3jh4kt
+[fn:bssl] https://en.wikipedia.org/wiki/Bessel's_correction
+[fn:busi] https://en.wikipedia.org/wiki/Business_logic
+[fn:cdot] We sometimes use the center dot or the $\times$ symbols to clarify
+matrix multiplication. They have no other significance and we can always write
+matrix multiplication just by juxtaposing the matrices.
+[fn:clos] https://en.wikipedia.org/wiki/Closure_(computer_programming)
+[fn:cold] This convention only models so-called /cold observables/, but it's enough to demonstrate Kalman's working over them.
+[fn:cons] This is quite similar to the standard --- not  Wolfram's --- definition of a list as a pair of a value and of another list.
+[fn:cova] We use the terms /covariance/ for matrices and /variance/ for scalars.
+[fn:csoc] https://en.wikipedia.org/wiki/Separation_of_concerns
+[fn:ctsc] https://en.wikipedia.org/wiki/Catastrophic_cancellation
+[fn:dstr] http://tinyurl.com/ze6qfb3
+[fn:elib] Brookner, Eli. Tracking and Kalman Filtering Made Easy, New York: Wiley, 1998. http://tinyurl.com/h8see8k
+[fn:fldl] http://tinyurl.com/jmxsevr
+[fn:fwik] https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29
+[fn:gama] https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem
+[fn:hick] ``Decomplecting'' is a term coined by Rich Hickey for un-braiding and
+un-nesting bits of software.
+[fn:intr] http://introtorx.com/
+[fn:jplg] JPL Geodynamics Program http://www.jpl.nasa.gov/report/1981.pdf
+[fn:just] justified by the fact that $\mathbold{D}$ is a diagonal
+matrix that commutes with all other products, therefore its left and right
+inverses are equal and can be written as a reciprocal; in fact, $\mathbold{D}$
+is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this paper
+[fn:klde] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
+[fn:klf1] B. Beckman, /Kalman Folding, Part 1/, to appear.
+[fn:klf2] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, to appear.
+[fn:klf3] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
+[fn:klf4] B. Beckman, /Kalman Folding 4: Streams and Observables/, to appear.
+[fn:klfl] B. Beckman, /Kalman Folding, Part 1/, to appear.
+[fn:layi] https://en.wikipedia.org/wiki/Fundamental_theorem_of_software_engineering
+[fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram
+uses the name /Function/.
+[fn:lmlf] https://en.wikipedia.org/wiki/Lambda_lifting
+[fn:lols] Let Over Lambda
+[fn:lssq] https://en.wikipedia.org/wiki/Least_squares
+[fn:ltis] http://tinyurl.com/hhhcgca
+[fn:matt] https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf
+[fn:mcmc] https://en.wikipedia.org/wiki/Particle_filter
+[fn:musc] http://www1.cs.dartmouth.edu/~doug/music.ps.gz
+[fn:ndim] https://en.wikipedia.org/wiki/Nondimensionalization
+[fn:patt] http://tinyurl.com/j5jzy69
+[fn:pseu] http://tinyurl.com/j8gvlug
+[fn:rasp] http://www.wolfram.com/raspberry-pi/
+[fn:rcrn] https://en.wikipedia.org/wiki/Recurrence_relation
+[fn:rsfr] http://rosettacode.org/wiki/Loops/Foreach
+[fn:rxbk] http://www.introtorx.com/content/v1.0.10621.0/07_Aggregation.html
+[fn:scan] and of Haskell's scans and folds, and Rx's scans and folds, /etc./
+[fn:scla] http://tinyurl.com/hhdot36
+[fn:scnd] A state-space form containing a position and derivative is commonplace
+in second-order dynamics like Newton's Second Law. We usually employ state-space
+form to reduce \(n\)-th-order differential equations to first-order differential
+equations by stacking the dependent variable on $n-1$ of its derivatives in the
+state vector.
+[fn:scnl] http://learnyouahaskell.com/higher-order-functions
+[fn:stsp] https://en.wikipedia.org/wiki/State-space_representation
+[fn:thnk] Wolfram's ampersand postfix operator can covert its operand into a thunk.
+[fn:time] In most applications, the independent variable is physical time,
+however, it need not be. For convenience, we use the term /time/ to mean /the independent variable of the problem/ simply because it is shorter to write. 
+[fn:uncl] The initial uncial (lower-case) letter signifies that /we/ wrote this function; it wasn't supplied by Wolfram.
+[fn:wfld] http://reference.wolfram.com/language/ref/FoldList.html?q=FoldList
+[fn:wlf1] http://tinyurl.com/nfz9fyo
+[fn:wlf2] http://rebcabin.github.io/blog/2013/02/04/welfords-better-formula/
+[fn:wolf] http://reference.wolfram.com/language/
+[fn:zarc] Zarchan and Musoff, /Fundamentals of Kalman Filtering, A Practical
+Approach, Fourth Edition/, Ch. 4
+[fn:zerr] Zarchan and Musoff, on page 228, report $0.0034$ for the density of air in
+$\textrm{slug}/\textrm{ft}^3$ at the surface; we believe the correct
+value is about $0.00242$ but continue with $0.0034$ for comparison's sake.
+
