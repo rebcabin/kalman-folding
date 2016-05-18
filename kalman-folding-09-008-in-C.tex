@@ -1,0 +1,108 @@
+% Created 2016-05-17 Tue 14:28
+\documentclass[10pt,oneside,x11names]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{palatino}
+\usepackage{siunitx}
+\usepackage{esdiff}
+\usepackage{xfrac}
+\usepackage{nicefrac}
+\usepackage{faktor}
+\usepackage[euler-digits,euler-hat-accent]{eulervm}
+\author{Brian Beckman}
+\date{\textit{<2016-05-17 Tue>}}
+\title{Kalman Folding 9: in C (WORKING DRAFT)\\\medskip
+\large Extracting Models from Data, One Observation at a Time}
+\hypersetup{
+ pdfauthor={Brian Beckman},
+ pdftitle={Kalman Folding 9: in C (WORKING DRAFT)},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
+\section{Literate Code}
+\label{sec:orgheadline4}
+
+\subsection{Step 1: Getting C to Work}
+\label{sec:orgheadline1}
+
+First, make sure the following works\footnote{Make sure the first example from \url{http://tinyurl.com/kz2lz7m} works} in org-babel and org-babel tangle. If it
+does work, you have a correctly installed C compiler.
+
+\begin{verbatim}
+int a=7;
+int b=7;
+printf("%d\n", a*b);
+\end{verbatim}
+
+\subsection{Step 2: Getting LAPACK to work}
+\label{sec:orgheadline3}
+
+Get LAPACK.\footnote{\url{http://www.netlib.org/lapack/}}
+This builds BLAS as a side effect.
+
+\begin{verbatim}
+pushd ~/Documents/lapack-3.6.0
+cmake .
+make
+make test
+\end{verbatim}
+
+\begin{verbatim}
+pushd ~/Documents/lapack-3.6.0
+make install
+\end{verbatim}
+
+\subsubsection{Make LAPACKE}
+\label{sec:orgheadline2}
+
+This is the C interface to LAPACK.  The following mercilessly hacks around a couple of
+problems in the build of \texttt{examples}, but it's enough to get the example working.
+
+\begin{verbatim}
+pushd ~/Documents/lapack-3.6.0
+cp make.inc.example make.inc
+cd LAPACKE
+make lapacke
+\end{verbatim}
+
+\begin{verbatim}
+pushd ~/Documents/lapack-3.6.0
+find . -name "*.a"
+\end{verbatim}
+
+\begin{verbatim}
+pushd ~/Documents/lapack-3.6.0
+cd LAPACKE
+cp ./include/lapacke*.h /usr/local/include
+cd example
+cp ../../liblapacke.a /usr/local/lib
+cp ../../lib/*.a ../..
+cp ../../libblas.a ../../librefblas.a
+make
+\end{verbatim}
+Emacs 24.5.1 (Org mode 8.3.4)
+\end{document}
