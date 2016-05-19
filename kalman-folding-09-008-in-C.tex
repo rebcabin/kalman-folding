@@ -1,4 +1,4 @@
-% Created 2016-05-17 Tue 14:28
+% Created 2016-05-18 Wed 16:50
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -44,22 +44,219 @@
 
 
 \section{Literate Code}
-\label{sec:orgheadline4}
+\label{sec:orgheadline10}
 
-\subsection{Step 1: Getting C to Work}
+\subsection{Recurrence for the Mean}
+\label{sec:orgheadline7}
+\subsubsection{Business Code}
 \label{sec:orgheadline1}
 
-First, make sure the following works\footnote{Make sure the first example from \url{http://tinyurl.com/kz2lz7m} works} in org-babel and org-babel tangle. If it
-does work, you have a correctly installed C compiler.
+C code is usually much longer than the corresponding Wolfram code (or Lisp, or
+Haskell, or OCaml, etc.). The extra length, overall, is due mostly to the need
+for manual memory management in C. However, we also don't have pattern matching
+for unpacking inputs and we don't have literal list / array notation for
+expressing some inputs and for packing outputs.
+
+The goal of our C code is to make the final result as clean and as close to the
+original design in Wolfram as possible. For instance, the original source for
+\emph{Recurrence for the Mean} in paper 1\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} is
 
 \begin{verbatim}
-int a=7;
-int b=7;
-printf("%d\n", a*b);
+cume[{x_, n_}, z_] := (* pattern matching for unpacking inputs *)
+  With[{K = 1/(n + 1)},
+   {x + K (z - x), n + 1}]; (* literal notation for packing outputs *)
+Fold[cume, {0, 0}, {55, 89, 144}] (* literal notation for some inputs *)
+~~> {96, 3}
 \end{verbatim}
 
-\subsection{Step 2: Getting LAPACK to work}
+The equivalent ``business'' code in C is still longer, but can see that the code
+for computing the gain and for the resulting \emph{Accumulation} is virtually
+identical (we must use an explicit multiplication operator \texttt{*}, whereas a space
+suffices in Wolfram for scalar multiplication). At least the memory management
+is hidden in the types \emph{Accumulation} and \emph{Observation}, articulated further
+below.
+
+\begin{verbatim}
+{   Accumulator cume = ^(Accumulation a, Observation z)
+        {   /* unpack inputs */
+            T x = a.elements[0];
+            T n = a.elements[1];
+            /* compute gain */
+            T K = 1.0 / (1.0 + n);
+            /* busines logic, and packing results */
+            Accumulation r;
+            r.elements[0] = x + K * (z - x);
+            r.elements[1] = 1.0 + n;
+
+            return r;   };
+
+    Accumulation x0 = zeroAccumulation ();
+
+    Observation tmp[3] = {55, 89, 144};
+    Observations zs = createObservations(3, tmp);
+
+    Accumulation result = fold (cume, x0, zs);
+
+    printAccumulation (result);
+    return 0;   }
+\end{verbatim}
+
+\subsubsection{Accumulation Type}
+\label{sec:orgheadline2}
+
+The code for the Accumulation type is a bit elaborate, but the extra
+abstractions will serve us well when we get to the Kalman filter.
+
+The Accumulation structure presumes that all values are copied around on every
+use, and that's safe, and also means that we don't need alloc \& free routines
+for this type. These accumulation types are usually small, so the time needed to
+copy them around may be acceptable. More sophisticated memory management for
+them entails more code, so we opt for keeping the code small at the cost of some
+copying that could be optimized away.
+
+Also, in the interest of saving space, specifically, staircases of closing curly
+braces on lines by themselves, we adopt the \emph{Pico}\footnote{\url{http://tinyurl.com/gku2k74}} style for bracing. 
+
+\begin{verbatim}
+typedef double T;
+
+const size_t Accumulation_size = 2;
+typedef struct s_Accumulation
+{   T elements[Accumulation_size];   } Accumulation;
+
+Accumulation zeroAccumulation (void)
+{   Accumulation r;
+    memset ((void *)r.elements, 0, Accumulation_size * sizeof (T));
+    return r;   }
+
+void printAccumulation (Accumulation a)
+{    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
+\end{verbatim}
+
+\subsubsection{Observation Type}
 \label{sec:orgheadline3}
+
+Here, because we don't statically know the number of observations, we must use
+dynamic memory allocation. In an embedded application, we would use arena memory
+(fixed-length circular buffer pools of fixed-length structs) or stack allocation
+(\emph{calloc}). Here, for brevity and because this is a testing deployment, we use
+heap memory (stdlib's \emph{malloc} and \emph{free}). These are unacceptable in embedded
+applications because of fragmentation and unbounded execution times.
+
+When we get to lazy streams, we won't need these at all. They're only for arrays
+of observations all in memory at one time.
+
+The primary helper type is a bounded array of \emph{Observations} type that includes
+length information and a handy iterator-like \emph{current} index. Most of the code
+for this type concerns explicit memory management for this helper type.
+
+We also include an \emph{Observation} type, for asbstraction hygiene. 
+
+\begin{verbatim}
+typedef T Observation, * pObservation;
+typedef struct s_BoundedArray_Observations
+{   int count;
+    int current;
+    pObservation observations;   } Observations;
+
+/*private*/pObservation allocObservationArray (int count_)
+{   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+    pObservation po = (pObservation) malloc (count_ * sizeof (Observation));
+    if (NULL == po)
+    {   printf ("Failed to alloc %d observations\n", count_);
+        exit (-1);   }
+    return po;   }
+
+Observations createObservations (int count_, pObservation pObservations)
+{   pObservation po = allocObservationArray (count_);
+    memcpy ((void *)po, (void *)pObservations, sizeof (Observation) * count_);
+    Observations result;
+    result.count   = count_;
+    result.current = 0;
+    result.observations    = po;
+    return result;   }
+
+void freeObservations (Observations o)
+{   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+    free ((void *)o.observations);   }
+\end{verbatim}
+
+\subsubsection{Accumulator Type}
+\label{sec:orgheadline4}
+
+Our last type definition is for the \emph{Accumulator} function. Here we cheat a bit
+and use an extension to the C language called \emph{Blocks},\footnote{\url{http://tinyurl.com/bgwfkyc}} which
+implements full closures. We could explicitly implement enough of closures for
+our purposes, but this extension is widely available with clang and llvm on
+Apple computers and Linux, and it's too convenient to pass up. With compilers
+for bare-metal processors in embedded systems, we might not have it and have to
+do more work by hand. With this extension, the \emph{Accumulator} type, defined with
+the hat syntax \texttt{\textasciicircum{}}, behaves just like a function pointer, which would be defined
+with the ordinary pointer syntax, \texttt{*}.
+
+\begin{verbatim}
+typedef Accumulation (^Accumulator) (Accumulation a, Observation b);
+\end{verbatim}
+
+\subsubsection{The Fold Over Observations}
+\label{sec:orgheadline5}
+
+The final piece is the \emph{fold} operator. This particular one knows details of the
+\emph{Observations} type, so is specific to it. We have another fold over lazy
+streams, articulated below, just as with Wolfram.
+
+\begin{verbatim}
+Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
+{   for (zs.current = 0; zs.current < zs.count; ++zs.current)
+    {   x0 = f (x0, zs.observations[zs.current]);   }
+    return x0;   }
+\end{verbatim}
+
+\subsubsection{Pulling it All Together}
+\label{sec:orgheadline6}
+
+\begin{verbatim}
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <Block.h>
+<<c-accumulation-type>>
+<<c-observation-types>>
+<<c-accumulator-type>>
+<<c-fold-over-observations>>
+int main (int argc, char ** argv)
+<<c-business-logic>>
+\end{verbatim}
+
+\noindent Tangle this code out to a C file by executing `org-babel-tangle' while
+visiting this literate source code in emacs. For those who prefer vim, we may
+suggest \emph{Spacemacs},\footnote{\url{http://www.spacemacs.org}} which is a package for emacs with near-perfect vim
+emulation. A distribution of emacs for the Mac with adequate org-babel support is maintained
+by Vincent Goulet at the University of Laval.\footnote{\url{http://vgoulet.act.ulaval.ca/en/emacs/}}
+
+Compile and run the code as follows:
+
+\begin{verbatim}
+gcc -Wall -Werror recurrenceForTheMean.c -o recurrenceForTheMean
+./recurrenceForTheMean
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{ll}
+\{96.000000 & 3.000000\}\\
+\end{tabular}
+\end{center}
+
+\noindent producing results all-but-identical to those from the Wolfram language.
+
+\subsection{Step 2: Getting LAPACK to work}
+\label{sec:orgheadline9}
+
+Make sure you have \texttt{gfortran} installed:
+
+\begin{verbatim}
+gfortran --version
+\end{verbatim}
 
 Get LAPACK.\footnote{\url{http://www.netlib.org/lapack/}}
 This builds BLAS as a side effect.
@@ -77,7 +274,7 @@ make install
 \end{verbatim}
 
 \subsubsection{Make LAPACKE}
-\label{sec:orgheadline2}
+\label{sec:orgheadline8}
 
 This is the C interface to LAPACK.  The following mercilessly hacks around a couple of
 problems in the build of \texttt{examples}, but it's enough to get the example working.

@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/bbeckman/Documents/kalman-folding/C_CODE_PAPER_9/recurrenceForTheVariance/main.c
+stdio.h
+-
+string.h
+-
+stdlib.h
+-
+Block.h
+-
+

@@ -3,42 +3,93 @@
 #include <stdlib.h>
 #include <Block.h>
 
-/* Using some abbreviations lest the code be too long and harder to read. */
-
 typedef double T, * pT;
 
-const size_t Acmln_size = 3;
-typedef T Obn, * pObn;                         /* Observation */
-typedef struct s_Acmln
-{   T elts[Acmln_size];   } Acmln, * pAcmln; /* Accumulation */
+/* The Accumulation structure presumes that all values are copied around on
+   every use, and that's safe, and also means that we don't need alloc & free
+   routines for this type. These accumulation types are usually small, so the
+   time needed to copy them around may be acceptable. More sophisticated memory
+   management for them entails more code, so we opt for keeping the code small
+   at the cost of some copying that could be optimized away. */
+const size_t Accumulation_size = 3;
+typedef T Observation, * pObservation;
+typedef struct s_Accumulation
+{   T elements[Accumulation_size];   } Accumulation, * pAccumulation;
 
-Acmln zeroAcmln (void)
-{   Acmln r;
-    for (size_t i = 0; i < Acmln_size; ++i)
-    {   r.elts[i] = ((T)0);  }
+Accumulation zeroAccumulation (void)
+{   Accumulation r;
+    memset ((void *)r.elements, 0, Accumulation_size * sizeof (T));
     return r;   }
 
-typedef struct s_BoundedArray_Acmlns
-{   int count;
-    int max;
-    pAcmln * acmlns ;   } Acmlns;
-
-void printAcmln (Acmln a)
+void printAccumulation (Accumulation a)
 {   printf ("{");
-    for (size_t i = 0; i < Acmln_size; ++i)
-    {   printf ("%lf", a.elts[i]);
-        if (i < Acmln_size - 1)
+    for (size_t i = 0; i < Accumulation_size; ++i)
+    {   printf ("%lf", a.elements[i]);
+        if (i < Accumulation_size - 1)
         {   printf (", ");   }   }
     printf ("}\n");   }
 
-typedef struct s_BoundedArray_Obns
+/* This structure must manage memory because we do not statically know how many
+   of them there are. */
+typedef struct s_BoundedArray_Accumulations
+{   int count;
+    int max;
+    pAccumulation accumulations ;   } Accumulations;
+
+Accumulation lastAccumulations (Accumulations as)
+{   if (0 == as.count)
+    {   printf ("Attempt to pull non-existent element\n");
+        exit (-4);   }
+    return as.accumulations[as.count - 1];   }
+
+Accumulations appendAccumulations (Accumulations as, Accumulation a)
+{   Accumulations result = as;
+    if (result.count + 1 > result.max)
+    {   /* Double the storage. */
+        int new_max = 2 * result.max;
+        /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
+        pAccumulation new = (pAccumulation) malloc (sizeof (Accumulation) * new_max);
+        if (NULL == new)
+        {   printf ("Failed to alloc %d Accumulations\n", new_max);
+            exit (-2);   }
+        if (result.count != result.max)
+        {   printf ("Internal bugcheck\n");
+            exit (-3);   }
+        memset ((void *)new, 0, new_max * sizeof (Accumulation));
+        memcpy ((void *)new, (void *)result.accumulations, (sizeof (Accumulation) * result.max));
+        free ((void *) result.accumulations);
+        result.accumulations = new; 
+        result.max = new_max;   }
+    result.accumulations[result.count] = a;
+    ++ result.count;
+    return result;
+}
+
+Accumulations createAccumulations (void)
+{   Accumulations result;
+    const int init_size = 4;
+    result.max = init_size;
+    result.count = 0;
+    result.accumulations = (pAccumulation) malloc (sizeof (Accumulation) * init_size);
+    memset ((void *)result.accumulations, 0, sizeof (Accumulation) * init_size);
+    return result;   }
+
+void freeAccumulations (Accumulations as)
+{   memset ((void *) as.accumulations, 0, (sizeof (Accumulation) * as.count)); 
+    free ((void *) as.accumulations);   }
+
+void printAccumulations (Accumulations as)
+{   for (int j = 0; j < as.count; ++j )
+    {   printAccumulation (as.accumulations[j]);   }   }
+
+typedef struct s_BoundedArray_Observations
 {   int count;
     int current;
-    Obn * obns;   } Obns;
+    Observation * obns;   } Observations;
 
-/*private*/pObn allocObnArray (int count_)
+/*private*/pObservation allocObservationArray (int count_)
 {   /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
-    pObn po = (pObn) malloc (count_ * sizeof (Obn));
+    pObservation po = (pObservation) malloc (count_ * sizeof (Observation));
     if (NULL == po)
     {   printf ("Failed to alloc %d obns\n", count_);
         exit (-1);   }
@@ -46,10 +97,10 @@ typedef struct s_BoundedArray_Obns
 
 /* Public interface for creating arrays of observations. Part of the test
    infrastructure. */
-Obns createObns (int count_, pObn pObns)
-{   pObn po = allocObnArray (count_);
-    memcpy ((void *)po, (void *)pObns, sizeof (Obn) * count_);
-    Obns result;
+Observations createObservations (int count_, pObservation pObservations)
+{   pObservation po = allocObservationArray (count_);
+    memcpy ((void *)po, (void *)pObservations, sizeof (Observation) * count_);
+    Observations result;
     result.count   = count_;
     result.current = 0;
     result.obns    = po;
@@ -57,40 +108,49 @@ Obns createObns (int count_, pObn pObns)
 
 /* Public interface for destroying arrays of observations. Part of the test
    infrastructure. */
-void freeObns (Obns o)
+void freeObservations (Observations o)
 {   /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
     free ((void *)o.obns);   }
 
-typedef Acmln (^Acmlr) (Acmln a, Obn b); /* Accumulator */
+typedef Accumulation (^Accumulator) (Accumulation a, Observation b); /* Accumulator */
 
-Acmln fold (Acmlr f, Acmln a0, Obns zs)
+Accumulation fold (Accumulator f, Accumulation a0, Observations zs)
 {   for (zs.current = 0; zs.current < zs.count; ++zs.current)
     {   a0 = f (a0, zs.obns[zs.current]);   }
     return a0;   }
 
-pAcmln foldList (Acmlr f, Acmln a0, Obns zs)
-{   return NULL;   }
+Accumulations foldList (Accumulator f, Accumulation a0, Observations zs)
+{   Accumulations result = createAccumulations ();
+    result = appendAccumulations (result, a0);
+    for (zs.current = 0; zs.current < zs.count; ++zs.current)
+    {   result = appendAccumulations (result, f(lastAccumulations(result), zs.obns[zs.current]));   }
+        return result;   }
 
 int main (int argc, char ** argv)
-{   Obn tmp[3] = {55, 89, 144};
-    Obns zs = createObns(3, tmp);
-    Acmln x0 = zeroAcmln ();
-    Acmln result = fold (^(Acmln a, Obn z)
-                         {   T var = a.elts[0];
-                             T x   = a.elts[1];
-                             T n   = a.elts[2];
+{   Observation tmp[3] = {55, 89, 144};
+    Observations zs = createObservations(3, tmp);
+    Accumulation x0 = zeroAccumulation ();
+    Accumulator cume = ^(Accumulation a, Observation z)
+        {   T var = a.elements[0];
+            T x   = a.elements[1];
+            T n   = a.elements[2];
 
-                             T K = 1.0 / (1.0 + n);
-                             T x2 = x + K * (z - x);
-                             T ssr2 = (n - 1.0) * var + K * n * (z - x) * (z - x);
+            T K = 1.0 / (1.0 + n);
+            T x2 = x + K * (z - x);
+            T ssr2 = (n - 1.0) * var + K * n * (z - x) * (z - x);
 
-                             Acmln r;
-                             r.elts[0] = ssr2 / (n > 1.0 ? n : 1.0);
-                             r.elts[1] = x2;
-                             r.elts[2] = n + 1.0;
-                             return r;},
-                         x0,
-                         zs);
-    printAcmln (result);
-    freeObns (zs);
+            Accumulation r;
+            r.elements[0] = ssr2 / (n > 1.0 ? n : 1.0);
+            r.elements[1] = x2;
+            r.elements[2] = n + 1.0;
+            return r;   };
+
+    Accumulation result = fold (cume, x0, zs);
+    printAccumulation (result);
+
+    Accumulations results = foldList (cume, x0, zs);
+    printAccumulations (results);
+
+    freeAccumulations (results);
+    freeObservations (zs);
     return 0;   }

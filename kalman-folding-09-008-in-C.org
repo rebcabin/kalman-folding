@@ -259,543 +259,6 @@ paper in the series, /Kalman Folding, Part 1/.[fn:klfl]
 Below, we reproduce these values exactly, to the bit level, by running
 /kalmanStatic/ over lazy streams and asynchronous observables.
 
-* COMMENT Types for Kalman Folding
-
-Kalman and all its variants are examples of /statistical function inversion./ We
-have models that predict outcomes from inputs; we observe outcomes and want
-estimates of the inputs. Structurally, all such incremental model inversions
-take a pair of a state estimate (with uncertainty) and an observation, and
-produce a new state estimate (with uncertainty). Such an inverted model has
-signature, using a type notation similar to that of Haskell or Scala
-
-#+BEGIN_LaTeX
-\begin{equation*}
-\textrm{inverted-model}
-\left[S,T\right]
-::
-\left(S\rightarrow{T}\rightarrow{S}\right)
-\end{equation*}
-#+END_LaTeX
-
-\noindent where the
-return type is on the far right and the other types that appear before arrows
-are the types of input arguments.
-This function signature is exactly that required for the first argument of a
-functional fold (more precisely, a /left/ fold). The signature of /fold/ is as
-follows:
-
-#+BEGIN_LaTeX
-\begin{equation*}
-\textrm{fold}
-\left[S,T\right]
-::
-\left(S\rightarrow{T}\rightarrow{S}\right)
-\rightarrow{S}
-\rightarrow{\textrm{Sequence}\left[T\right]}
-\rightarrow{S}
-\end{equation*}
-#+END_LaTeX
-
-Read this, abstractly, as follows
-
-#+BEGIN_QUOTE
-\emph{Fold} over types $S$ and $T$ is a function that
-takes three arguments:
-1. another function (called the /accumulator function/)
-2. an initial instance of type $S$
-3. a sequence of instances of type $T$
-and produces an instance of type $S$. The
-accumulator function, in turn, is a binary function that takes an $S$ and a $T$ and
-produces an $S$.
-#+END_QUOTE
-
-More concretely, In the context of Kalman filtering:
-
-#+BEGIN_LaTeX
-\begin{equation*}
-\text{AccumulatorFunction}
-::
-\text{Accumulation}
-\rightarrow
-\text{Observation}
-\rightarrow
-\text{Accumulation}
-\end{equation*}
-#+END_LaTeX
-
-\noindent where the types /Accumulation/ and /Observation/ are arbitrary. 
-
-It's the job of /Fold/ to pass the elements of the input sequence to the
-accumulator function one observation at a time, and to maintain and ultimately
-return the final accumulation. The second argument to /Fold/ is
-the desired, initial value of the accumulation. The
-third and final argument to /Fold/ is the sequence of observations, of type
-$\text{Sequence}\left[\,\text{Observation}\,\right]$
-
-/Fold/ looks like a trinary function of an accumulator function, an
-initial accumulation, and a sequence, yielding an accumulation. Folds thus have
-the following type:
-
-#+BEGIN_LaTeX
-\begin{equation*}
-\text{Fold :: }
-\text{AccumulatorFunction}
-\rightarrow
-\text{Accumulation}
-\rightarrow
-\text{Sequence}\left[\,\text{Observation}\,\right]
-\rightarrow
-\text{Accumulation}
-\end{equation*}
-#+END_LaTeX
-
-\noindent where /Sequence/ can be /List/, /Stream/, /Observable/, or any type
-that can be accessed sequentially. 
-
-* COMMENT Over Lazy Streams and Asynchronous Observables
-
-The accumulator function knows nothing about the source of the observations. If
-we can figure out how to implement /Fold/ and /FoldList/ for things other than
-/List/, we will have Kalman filtering over those sources, too.
-
-The following are research-grade sketches of implementations of /Fold/ over lazy
-streams[fn:musc] and asynchronous observables.[fn:intr] They provide just enough
-to support the Kalman-folding examples.
-
-** Folding Over Lazy Streams
-
-Represent a lazy stream as a pair of a value and a /thunk/ (function of
-no arguments).[fn:cons] The thunk must produce another lazy stream when called. Such
-a stream can be infinite in abstract length because the elements of the stream are only
-concretized in memory when demanded by calling thunks.
-
-Streams are a natural fit for integrals of differential equations. We see in
-other papers of this series how we an use them to deeply modularize filters
-over rich non-linear models. In this paper, we show only how to fold a linear
-Kalman filter over a stream.
-
-By convention, a finite stream has a ~Null~ thunk at the end. Thus, the empty
-stream, obtained by invoking such a thunk, is ~Null[]~, with square brackets
-denoting invocation with no arguments.
-
-One of Wolfram's notations for a literal thunk is an expression with an
-ampersand in postfix position. An ampersand turns the expression to its left
-into a thunk. For instance, here's a function that returns an infinite stream of
-natural numbers starting at $n$:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-integersFrom[n_Integer] := {n, integersFrom[n + 1] &}
-\end{verbatim}
-#+END_LaTeX
-
-Calling, say, ~integersFrom[42]~ produces ~{42, integersFrom[42 + 1]&}~, a pair
-of an integer, $42$, and another stream, ~integersFrom[42+1]&~. We get the
-stream by extracting the second part of the pair /via/ Wolfram's double-bracket notation
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-integersFrom[42][[2]] ~~> integersFrom[42 + 1]&
-\end{verbatim}
-#+END_LaTeX
-
-\noindent and then call it with empty brackets (it's a thunk, and takes no
-arguments):
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-integersFrom[42][[2]][] ~~> {43, integersFrom[43 + 1]&}
-\end{verbatim}
-#+END_LaTeX
-
-\noindent and so on. We can get a few more by repeating the process
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-integersFrom[42][[2]][][[2]][][[2]][] ~~> {45, integersFrom[45 + 1]&}
-\end{verbatim}
-#+END_LaTeX
-
-\noindent but the best way to extract values from streams is to write recursive
-functions to demand any number of elements from the head. The variety of such
-functions, which include /map/, /select/, /fold/, is well known, large, and
-identical across lists, streams, observables, and, in fact, any collection that
-can support a /next/ operator. A good, contemporary full-service library for
-collection types is LINQ's Standard Query Operators (SQO),[fn:lsqo]. If building
-up a library from the present prototype level into something of product grade,
-presentable to intolerant users, the SQO are an excellent framework to emulate.
-
-As another example, the following function, when called with an appropriate
-input, say the $2\times{2}$ identity matrix, returns a lazy stream of matrices
-full of Fibonacci numbers:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-fs[f_] := {f, fs[{{0, 1}, {1, 1}}.f] &}
-\end{verbatim}
-#+END_LaTeX
-
-Here is an explicit invocation a few values down:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-fs[IdentityMatrix[2]][[2]][][[2]][][[2]][][[2]][][[2]][][[2]][][[
-        2]][][[2]][][[2]][][[2]][]
-~~>
-\end{verbatim}
-\begin{equation*}
-\begin{Bmatrix}
-\begin{pmatrix} 34 & 55 \\ 55 & 89 \end{pmatrix},
-fs
-\begin{bmatrix}
-\begin{pmatrix} 34 & 55 \\ 55 & 89 \end{pmatrix} \cdot
-\begin{pmatrix} 0 & 1 \\ 1 & 1 \end{pmatrix} 
-\end{bmatrix}\, \&
-\end{Bmatrix}
-\end{equation*}
-#+END_LaTeX
-
-\noindent the point being that lazy streams are versatile. 
-
-We now write bi-directional conversions between streams and lists so we can test
-an example, then we write /foldStream/.
-
-*** Disperse :: List $\rightarrow$ Stream
-
-We'll need a way to convert a list into a stream.  There are three cases: an
-empty list, a singleton list, and the inductive or recursive  case.
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-disperse[{}] := Null[]; (* empty list yields empty stream       *)
-disperse[{x_}] := {x, Null}; (* the stream for a singleton list *)
-disperse[{v_, xs__}] := {v, disperse[{xs}] &}; (* recursion     *)
-\end{verbatim}
-#+END_LaTeX
-
-*** Reify :: Stream $\rightarrow$ List
-
-We need to go the other way, too; don't call this on a stream of infinite length:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-reify[Null[]] := {};         (* produce empty list from empty stream *)
-rify[{v_, Null}] := {v};     (* singleton list from singleton stream *)
-reify[{v_, thunk_}] := Join[{v}, reify[thunk[]]]; (* recursion       *)
-\end{verbatim}
-#+END_LaTeX
-
-*** foldStream 
-
-Our equivalent for Wolfram's /FoldList/ is /foldStream/.[fn:uncl] Its type is similar
-
-#+BEGIN_LaTeX
-\begin{align*}
-\text{foldStream :: }
-\text{AccumulatorFunction}
-\rightarrow
-\text{Accumulation}\\
-\rightarrow
-\text{Stream}\left[\,\text{Observation}\,\right]
-\rightarrow
-\text{Stream}\left[\,\text{Accumulation}\,\right]
-\end{align*}
-#+END_LaTeX
-
-Here is an implementation:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-foldStream[f_, s_, Null[]] := (* acting on an empty stream *)
-  {s, Null}; (* produce a singleton stream containing 's'  *)
-foldStream[f_, s_, {z_, thunk_}] :=
-  (* pass in a new thunk that recurses on the old thunk    *)
-  {s, foldStream[f, f[s, z], thunk[]] &};
-\end{verbatim}
-#+END_LaTeX
-
-*** Test
-
-Test it over the /dispersion/ of the example data:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-foldStream[
-  kalmanStatic[IdentityMatrix[1]], (* same 'kalmanStatic;' no changes *)
-  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
-  disperse[{{{{1,  0., 0.,  0.}}, { -2.28442}}, 
-            {{{1,  1., 1.,  1.}}, { -4.83168}}, 
-            {{{1, -1., 1., -1.}}, {-10.46010}}, 
-            {{{1, -2., 4., -8.}}, {  1.40488}}, 
-            {{{1,  2., 4.,  8.}}, {-40.8079}}}]
-  ] // reify
-\end{verbatim}
-#+END_LaTeX
-
-The only changes to the earlier fold over lists is the initial call of /disperse/ to
-convert the test case into a stream, and the final postfix call ~// reify~
-to turn the result back into a list for display. The final results are identical
-to those in equation \ref{eqn:kalman-filter-results}, but we see all the
-intermediate results as well, confirming that Kalman folds over observations one
-at a time. We would have seen exactly the same output had we called /FoldList/
-instead of /Fold/ over lists above.
-
-#+BEGIN_LaTeX
-\begin{equation}
-\label{eql:full-big-results}
-\begin{pmatrix}
-\begin{bmatrix}
- 0 \\
- 0 \\
- 0 \\
- 0 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 1000. & 0 & 0 & 0 \\
- 0 & 1000. & 0 & 0 \\
- 0 & 0 & 1000. & 0 \\
- 0 & 0 & 0 & 1000. \\
-\end{bmatrix}
-\\ & \\
-\begin{bmatrix}
- -2.28214 \\
- 0 \\
- 0 \\
- 0 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 0.999001 & 0 & 0 & 0 \\
- 0 & 1000. & 0 & 0 \\
- 0 & 0 & 1000. & 0 \\
- 0 & 0 & 0 & 1000. \\
-\end{bmatrix}
-\\ \\
-\begin{bmatrix}
- -2.28299 \\
- -0.849281 \\
- -0.849281 \\
- -0.849281 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 0.998669 & -0.332779 & -0.332779 & -0.332779 \\
- -0.332779 & 666.889 & -333.111 & -333.111 \\
- -0.332779 & -333.111 & 666.889 & -333.111 \\
- -0.332779 & -333.111 & -333.111 & 666.889 \\
-\end{bmatrix}
-\\ \\
-\begin{bmatrix}
- -2.28749 \\
- 1.40675 \\
- -5.35572 \\
- 1.40675 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 0.998004 & 0 & -0.997506 & 0 \\
- 0 & 500.125 & 0 & -499.875 \\
- -0.997506 & 0 & 1.49676 & 0 \\
- 0 & -499.875 & 0 & 500.125 \\
-\end{bmatrix}
-\\ \\
-\begin{bmatrix}
- -2.29399 \\
- 7.92347 \\
- -5.34488 \\
- -5.1154 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 0.997508 & 0.49762 & -0.996678 & -0.498035 \\
- 0.49762 & 1.3855 & -0.829836 & -0.719881 \\
- -0.996678 & -0.829836 & 1.49538 & 0.830528 \\
- -0.498035 & -0.719881 & 0.830528 & 0.553787 \\
-\end{bmatrix}
-\\ \\
-\begin{bmatrix}
- -2.97423 \\
- 7.2624 \\
- -4.21051 \\
- -4.45378 \\
-\end{bmatrix}
-&
-\begin{bmatrix}
- 0.485458 & 0 & -0.142778 & 0 \\
- 0 & 0.901908 & 0 & -0.235882 \\
- -0.142778 & 0 & 0.0714031 & 0 \\
- 0 & -0.235882 & 0 & 0.0693839 \\
-\end{bmatrix}
-\end{pmatrix}
-\end{equation}
-#+END_LaTeX
-
-** Folding Over an Asynchronous Observable
-
-Just as /FoldList/ produces a list from a list, and /foldStream/ produces a
-stream from a stream, /foldObservable/ produces an observable from an
-observable. Its full signature is
-
-#+BEGIN_LaTeX
-\begin{align*}
-\text{foldObservable :: }
-\text{AccumulatorFunction}
-\rightarrow
-\text{Accumulation}\\
-\rightarrow
-\text{Observable}\left[\,\text{Observation}\,\right]
-\rightarrow
-\text{Observable}\left[\,\text{Accumulation}\,\right]
-\end{align*}
-#+END_LaTeX
-
-Lists provide data elements distributed in space (memory). Lazy streams provide
-data in constant memory, but distributed in a kind of virtual time, delivered
-when demanded, the way a debugger fakes time. Observables provide data elements
-distributed asynchronously in real time. To consume elements of an observable,
-subscribe an observer to it. An observer has a callback function, and the
-observable will invoke the callback for each observation, asynchronously, as the
-observation arrives. The callback function takes a single argument that receives
-the observation.
-
-#+BEGIN_COMMENT
-One pretty way to consume elements from a list is with a function like Scala's
-/foreach/,[fn:scla] which takes a callback function and calls it for each
-element in the sequence. This is /just like/ the /Subscribe/ function of the
-standard Observable interface, so much so that we may regard /foreach/ and
-/Subscribe/ as semantically identical. Thus, building a simulacrum of Observable
-for the sake of testing Kalman folding is not much harder than writing
-/foreach/. We do  not develop observables fully, here. For that, see a
-reference like Campbell's /Intro to Rx/.[fn:intr] Instead, we content ourselves
-with a simulacrum and, as with Lazy Streams, a way to get back and forth from
-Wolfram's lists.
-#+END_COMMENT
-
-We do not develop observables fully, here. For that, see a reference like
-Campbell's /Intro to Rx/.[fn:intr] Instead, we content ourselves with just
-enough to demonstrate Kalman folding over them and, as with lazy streams, a way
-to get back and forth from lists.
-
-We model observables as stateful thunks that produce new values every time
-they're invoked, then invoke the thunks inside asynchronous Wolfram tasks that
-start at the moment some observer subscribes.[fn:cold]
-
-*** Subscribe :: Observable $\rightarrow$ Observer $\rightarrow$ Null
-
-Wolfram supplies a primitive, /RunScheduledTask/, for evaluating expressions
-asynchronously, once per second by default. The expression that we pass to
-/RunScheduledTask/, just calls the observer on the evaluated observable:
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-subscribe[observable_, observer_] :=
-  RunScheduledTask[observer[observable[]]];
-\end{verbatim}
-#+END_LaTeX
-
-*** Dispense :: List $\rightarrow$ Observable
-
-The following is a specification of a task to run. Nothing happens till you
-subscribe something to it. 
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-dispense[aList_List] :=
- Module[{state = aList},
-  If[{} === state,
-    Null, (* empty obs from empty list *)
-    (state = Rest[state]; First[state]]);] &]
-\end{verbatim}
-#+END_LaTeX
-
-*** Harvest :: Observable $\rightarrow$ List
-
-Set up a conventional, external variable, ~r$~, so that we can interactively
-look at the results in a Wolfram ~Dynamic[r$]~ form. Our /harvest/ 
-subscribes an observer that appends observations to a list held in ~r$~.
-Semicolon-separated expressions are sequenced, as with Scheme's ~begin~ or
-Lisp's ~progn~.
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-harvest[obl_] :=
-  (r$ = {};
-   subscribe[obl, Function[v, If[v =!= Null, AppendTo[r$, v]]]]);
-\end{verbatim}
-#+END_LaTeX
-
-We must eventually clean up the tasks and the external variable.
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-cleanup[] := (ClearAll[r$];
-              RemoveScheduledTask[ScheduledTasks[]];);
-\end{verbatim}
-#+END_LaTeX
-
-*** foldObservable 
-
-The concrete type of /foldObservable/ is obvious: just replace /Stream/ with
-/Observable/ in a copy of the type of /foldStream/.
-
-#+BEGIN_LaTeX
-\begin{align*}
-\text{foldObservable :: }
-\text{AccumulatorFunction}
-\rightarrow
-\text{Accumulation}\\
-\rightarrow
-\text{Observable}\left[\,\text{Observation}\,\right]
-\rightarrow
-\text{Observable}\left[\,\text{Accumulation}\,\right]
-\end{align*}
-#+END_LaTeX
-
-One might ask about the appropriate generalization of higher-order types like
-this, where we could go up a level, parameterize on types like /Stream/ and
-/Observable/, and make the concrete types of /foldStream/ and /foldObservable/
-instances of that higher, parameterized type. This is a sensible question, and
-the answer leads to category theory and monads,[fn:mond] out of scope for this
-paper.
-
-This implementation isn't hygeinic: it uses global variables (suffixed with ~$~
-signs). It's just enough to test Kalman folding over observables.
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-foldObservable[f_, s_, obl_] :=
- Module[{newObl, s$ = s},
-  newObl[] := With[{result = s$},
-    s$ = f[s$, obl[]];
-    result];
-  newObl] (* return new observable *)
-\end{verbatim}
-#+END_LaTeX
-
-*** Test
-
-The following call has the same shape as our call of /foldStream/ above, except
-calling /dispense/ instead of /disperse/ and /harvest/ instead of /reify/.
-
-#+BEGIN_LaTeX
-\begin{verbatim}
-Dynamic[r$]
-foldObservable[
-  kalmanStatic[IdentityMatrix[1]],
-  {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
-  dispense[{{{{1,  0., 0.,  0.}}, { -2.28442}}, 
-            {{{1,  1., 1.,  1.}}, { -4.83168}}, 
-            {{{1, -1., 1., -1.}}, {-10.46010}}, 
-            {{{1, -2., 4., -8.}}, {  1.40488}}, 
-            {{{1,  2., 4.,  8.}}, {-40.8079}}}]
-  ] // harvest;
-r$
-\end{verbatim}
-#+END_LaTeX
-
-The results are exactly the same as in equation \ref{eql:full-big-results}. 
-
 * COMMENT Concluding Remarks
 
 With prototypes for /foldStream/ and /foldObservable/, we have demonstrated
@@ -813,7 +276,7 @@ example,[fn:klfl] and there are no surprises.
 
 * Literate Code
 
-** Step 1: Getting C to Work
+** COMMENT Step 1: Getting C to Work
 
 First, make sure the following works[fn:obc1] in org-babel and org-babel tangle. If it
 does work, you have a correctly installed C compiler.
@@ -827,55 +290,203 @@ does work, you have a correctly installed C compiler.
 #+RESULTS:
 : 49
 
-Try a function call
+** Recurrence for the Mean
+*** Business Code
 
+C code is usually much longer than the corresponding Wolfram code (or Lisp, or
+Haskell, or OCaml, etc.). The extra length, overall, is due mostly to the need
+for manual memory management in C. However, we also don't have pattern matching
+for unpacking inputs and we don't have literal list / array notation for
+expressing some inputs and for packing outputs.
+
+The goal of our C code is to make the final result as clean and as close to the
+original design in Wolfram as possible. For instance, the original source for
+/Recurrence for the Mean/ in paper 1[fn:klf1] is
+
+#+BEGIN_SRC Mathematica
+cume[{x_, n_}, z_] := (* pattern matching for unpacking inputs *)
+  With[{K = 1/(n + 1)},
+   {x + K (z - x), n + 1}]; (* literal notation for packing outputs *)
+Fold[cume, {0, 0}, {55, 89, 144}] (* literal notation for some inputs *)
+~~> {96, 3}
+#+END_SRC
+
+The equivalent ``business'' code in C is still longer, but can see that the code
+for computing the gain and for the resulting /Accumulation/ is virtually
+identical (we must use an explicit multiplication operator =*=, whereas a space
+suffices in Wolfram for scalar multiplication). At least the memory management
+is hidden in the types /Accumulation/ and /Observation/, articulated further
+below.
+
+#+NAME: c-business-logic
+#+BEGIN_SRC C :results none
+  {   Accumulator cume = ^(Accumulation a, Observation z)
+          {   /* unpack inputs */
+              T x = a.elements[0];
+              T n = a.elements[1];
+              /* compute gain */
+              T K = 1.0 / (1.0 + n);
+              /* busines logic, and packing results */
+              Accumulation r;
+              r.elements[0] = x + K * (z - x);
+              r.elements[1] = 1.0 + n;
+
+              return r;   };
+
+      Accumulation x0 = zeroAccumulation ();
+
+      Observation tmp[3] = {55, 89, 144};
+      Observations zs = createObservations(3, tmp);
+
+      Accumulation result = fold (cume, x0, zs);
+
+      printAccumulation (result);
+      return 0;   }
+#+END_SRC
+
+*** Accumulation Type
+
+The code for the Accumulation type is a bit elaborate, but the extra
+abstractions will serve us well when we get to the Kalman filter.
+
+The Accumulation structure presumes that all values are copied around on every
+use, and that's safe, and also means that we don't need alloc & free routines
+for this type. These accumulation types are usually small, so the time needed to
+copy them around may be acceptable. More sophisticated memory management for
+them entails more code, so we opt for keeping the code small at the cost of some
+copying that could be optimized away.
+
+Also, in the interest of saving space, specifically, staircases of closing curly
+braces on lines by themselves, we adopt the /Pico/[fn:pico] style for bracing. 
+
+#+NAME: c-accumulation-type
 #+BEGIN_SRC C
-  #include <stdio.h>
-  #include <string.h>
+  typedef double T;
 
-  typedef const int   Observation;
-  typedef Observation Accumulation;
+  const size_t Accumulation_size = 2;
+  typedef struct s_Accumulation
+  {   T elements[Accumulation_size];   } Accumulation;
 
-  typedef struct s_BoundedArray
+  Accumulation zeroAccumulation (void)
+  {   Accumulation r;
+      memset ((void *)r.elements, 0, Accumulation_size * sizeof (T));
+      return r;   }
+
+  void printAccumulation (Accumulation a)
+  {    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
+#+END_SRC
+
+*** Observation Type
+
+Here, because we don't statically know the number of observations, we must use
+dynamic memory allocation. In an embedded application, we would use arena memory
+(fixed-length circular buffer pools of fixed-length structs) or stack allocation
+(/calloc/). Here, for brevity and because this is a testing deployment, we use
+heap memory (stdlib's /malloc/ and /free/). These are unacceptable in embedded
+applications because of fragmentation and unbounded execution times.
+
+When we get to lazy streams, we won't need these at all. They're only for arrays
+of observations all in memory at one time.
+
+The primary helper type is a bounded array of /Observations/ type that includes
+length information and a handy iterator-like /current/ index. Most of the code
+for this type concerns explicit memory management for this helper type.
+
+We also include an /Observation/ type, for asbstraction hygiene. 
+
+#+NAME: c-observation-types
+#+BEGIN_SRC C
+  typedef T Observation, * pObservation;
+  typedef struct s_BoundedArray_Observations
   {   int count;
       int current;
-      Observation * observations;   } Observations;
+      pObservation observations;   } Observations;
 
-  Observation * safeAlloc (int count_)
-  {   /* use Arena memory or stack, not malloc, in embdded apps. */
-      Observation * po = malloc (count_ * sizeof (Observation));
+  /*private*/pObservation allocObservationArray (int count_)
+  {   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+      pObservation po = (pObservation) malloc (count_ * sizeof (Observation));
       if (NULL == po)
       {   printf ("Failed to alloc %d observations\n", count_);
           exit (-1);   }
       return po;   }
 
-  void safeFree (Observation * po)
-  {   /* Don't use malloc & free in embedded apps. */
-      free (po);   }
-
-  Observations createObservations (int count_, Observation * pObns)
-  {   Observation * po = safeAlloc (count);
-      memcpy (po, pObns, sizeof (Observation)*count_);
+  Observations createObservations (int count_, pObservation pObservations)
+  {   pObservation po = allocObservationArray (count_);
+      memcpy ((void *)po, (void *)pObservations, sizeof (Observation) * count_);
       Observations result;
-      result.count        = count_;
-      result.current      = 0;
-      result.observations = po;
+      result.count   = count_;
+      result.current = 0;
+      result.observations    = po;
       return result;   }
 
-  Observation mul (Observation a, Observation b) 
-  {   return a * b;   }
-
-  typedef Accumulation (* Accumulator) (Accumulation a, Observation b);
-
-  Accumulation fold (Accumulator f, Accumulation x0, Observations zs) 
-  {   for (zs.current = 0; zs.current < zs.count; ++zs.current)
-      {   x0 = f (x0, zs.observations[zs.current]);   }   }
-
-  int main (int argc, char ** argv)
-  {   Accumulator f = mul;
-      printf ("%d\n", f (6, 7));
-      return 0;   }
+  void freeObservations (Observations o)
+  {   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+      free ((void *)o.observations);   }
 #+END_SRC
+
+*** Accumulator Type
+
+Our last type definition is for the /Accumulator/ function. Here we cheat a bit
+and use an extension to the C language called /Blocks/,[fn:blck] which
+implements full closures. We could explicitly implement enough of closures for
+our purposes, but this extension is widely available with clang and llvm on
+Apple computers and Linux, and it's too convenient to pass up. With compilers
+for bare-metal processors in embedded systems, we might not have it and have to
+do more work by hand. With this extension, the /Accumulator/ type, defined with
+the hat syntax =^=, behaves just like a function pointer, which would be defined
+with the ordinary pointer syntax, =*=.
+
+#+NAME: c-accumulator-type
+#+BEGIN_SRC C
+typedef Accumulation (^Accumulator) (Accumulation a, Observation b);
+#+END_SRC
+
+*** The Fold Over Observations
+
+The final piece is the /fold/ operator. This particular one knows details of the
+/Observations/ type, so is specific to it. We have another fold over lazy
+streams, articulated below, just as with Wolfram.
+
+#+NAME: c-fold-over-observations
+#+BEGIN_SRC C
+  Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
+  {   for (zs.current = 0; zs.current < zs.count; ++zs.current)
+      {   x0 = f (x0, zs.observations[zs.current]);   }
+      return x0;   }
+#+END_SRC
+
+*** Pulling it All Together
+
+#+BEGIN_SRC C :tangle recurrenceForTheMean.c :noweb tangle
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+  #include <Block.h>
+  <<c-accumulation-type>>
+  <<c-observation-types>>
+  <<c-accumulator-type>>
+  <<c-fold-over-observations>>
+  int main (int argc, char ** argv)
+  <<c-business-logic>>
+#+END_SRC
+
+\noindent Tangle this code out to a C file by executing `org-babel-tangle' while
+visiting this literate source code in emacs. For those who prefer vim, we may
+suggest /Spacemacs/,[fn:spcm] which is a package for emacs with near-perfect vim
+emulation. A distribution of emacs for the Mac with adequate org-babel support is maintained
+by Vincent Goulet at the University of Laval.[fn:lavl]
+
+Compile and run the code as follows:
+
+#+BEGIN_SRC bash :exports both
+gcc -Wall -Werror recurrenceForTheMean.c -o recurrenceForTheMean
+./recurrenceForTheMean
+#+END_SRC
+
+#+RESULTS:
+| {96.000000 | 3.000000} |
+
+\noindent producing results all-but-identical to those from the Wolfram language.
 
 ** COMMENT Step 2: Getting BLAS to Work (OPTIONAL)
 
@@ -1154,6 +765,7 @@ make
 [fn:affn] https://en.wikipedia.org/wiki/Affine_transformation
 [fn:bars] Bar-Shalom, Yaakov, /et al/. Estimation with applications to tracking and navigation. New York: Wiley, 2001.
 [fn:bier] http://tinyurl.com/h3jh4kt
+[fn:blck] http://tinyurl.com/bgwfkyc
 [fn:bssl] https://en.wikipedia.org/wiki/Bessel's_correction
 [fn:blas] http://www.netlib.org/blas/
 [fn:busi] https://en.wikipedia.org/wiki/Business_logic
@@ -1187,6 +799,7 @@ is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this pa
 [fn:klf7] B. Beckman, /Kalman Folding 7: A Small Streams Library/, to appear.
 [fn:klf9] B. Beckman, /Kalman Folding 9: in C/, to appear.
 [fn:klfl] B. Beckman, /Kalman Folding, Part 1/, to appear.
+[fn:lavl] http://vgoulet.act.ulaval.ca/en/emacs/
 [fn:layi] https://en.wikipedia.org/wiki/Fundamental_theorem_of_software_engineering
 [fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram
 uses the name /Function/.
@@ -1202,6 +815,7 @@ uses the name /Function/.
 [fn:ndim] https://en.wikipedia.org/wiki/Nondimensionalization
 [fn:obc1] Make sure the first example from http://tinyurl.com/kz2lz7m works
 [fn:patt] http://tinyurl.com/j5jzy69
+[fn:pico] http://tinyurl.com/gku2k74
 [fn:pseu] http://tinyurl.com/j8gvlug
 [fn:rasp] http://www.wolfram.com/raspberry-pi/
 [fn:rcrn] https://en.wikipedia.org/wiki/Recurrence_relation
@@ -1215,6 +829,7 @@ form to reduce \(n\)-th-order differential equations to first-order differential
 equations by stacking the dependent variable on $n-1$ of its derivatives in the
 state vector.
 [fn:scnl] http://learnyouahaskell.com/higher-order-functions
+[fn:spcm] http://www.spacemacs.org
 [fn:stsp] https://en.wikipedia.org/wiki/State-space_representation
 [fn:trak] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, To appear.
 [fn:uncl] The initial uncial (lower-case) letter signifies that /we/ wrote this function; it wasn't supplied by Wolfram.

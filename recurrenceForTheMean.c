@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <Block.h>
-
 typedef double T;
 
 const size_t Accumulation_size = 2;
@@ -16,7 +15,6 @@ Accumulation zeroAccumulation (void)
 
 void printAccumulation (Accumulation a)
 {    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
-
 typedef T Observation, * pObservation;
 typedef struct s_BoundedArray_Observations
 {   int count;
@@ -43,14 +41,11 @@ Observations createObservations (int count_, pObservation pObservations)
 void freeObservations (Observations o)
 {   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
     free ((void *)o.observations);   }
-
 typedef Accumulation (^Accumulator) (Accumulation a, Observation b);
-
 Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
 {   for (zs.current = 0; zs.current < zs.count; ++zs.current)
     {   x0 = f (x0, zs.observations[zs.current]);   }
     return x0;   }
-
 int main (int argc, char ** argv)
 {   Accumulator cume = ^(Accumulation a, Observation z)
         {   /* unpack inputs */

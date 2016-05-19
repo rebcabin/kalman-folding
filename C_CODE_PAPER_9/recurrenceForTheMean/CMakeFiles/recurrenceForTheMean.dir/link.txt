@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Werror -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/recurrenceForTheMean.dir/main.c.o  -o recurrenceForTheMean 
