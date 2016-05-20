@@ -3,14 +3,8 @@
 #include <stdlib.h>
 #include <Block.h>
 
-typedef double T, * pT;
+typedef double T;
 
-/* The Accumulation structure presumes that all values are copied around on
-   every use, and that's safe, and also means that we don't need alloc & free
-   routines for this type. These accumulation types are usually small, so the
-   time needed to copy them around may be acceptable. More sophisticated memory
-   management for them entails more code, so we opt for keeping the code small
-   at the cost of some copying that could be optimized away. */
 const size_t Accumulation_size = 3;
 typedef T Observation, * pObservation;
 typedef struct s_Accumulation

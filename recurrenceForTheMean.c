@@ -3,10 +3,9 @@
 #include <stdlib.h>
 #include <Block.h>
 typedef double T;
-
-const size_t Accumulation_size = 2;
+const size_t Accumulation_size = 3;
 typedef struct s_Accumulation
-{   T elements[Accumulation_size];   } Accumulation;
+{   T elements[Accumulation_size];   } Accumulation, * pAccumulation;
 
 Accumulation zeroAccumulation (void)
 {   Accumulation r;
@@ -14,7 +13,12 @@ Accumulation zeroAccumulation (void)
     return r;   }
 
 void printAccumulation (Accumulation a)
-{    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
+{   printf ("{");
+    for (size_t i = 0; i < Accumulation_size; ++i)
+    {   printf ("%lf", a.elements[i]);
+        if (i < Accumulation_size - 1)
+        {   printf (", ");   }   }
+    printf ("}\n");   }
 typedef T Observation, * pObservation;
 typedef struct s_BoundedArray_Observations
 {   int count;

@@ -1,4 +1,4 @@
-% Created 2016-05-18 Wed 16:50
+% Created 2016-05-19 Thu 17:29
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -43,13 +43,62 @@
 \tableofcontents
 
 
+\section{Abstract}
+\label{sec:orgheadline1}
+
+In this literate program, we show one way to implement the basic Kalman fold in C.
+The background for Kalman folding appears in \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.}
+where we highlight the the unique advantages of a functional fold for deploying
+test-hardened code verbatim in harsh, mission-critical environments. In that and
+in other papers in this series, the emphasis is on mathematical clarity and
+conciseness. Here, the emphasis is on embedded systems by using the primary
+language for implementing such systems, C.
+
 \section{Literate Code}
-\label{sec:orgheadline10}
+\label{sec:orgheadline2}
+
+A \emph{literate program}\footnote{\url{https://en.wikipedia.org/wiki/Literate_programming}} is a single text document that contains both 
+\begin{itemize}
+\item \LaTeX{} typesetting instructions and
+\item source code and scripts for an application.
+\end{itemize}
+A literate program can
+be edited in any text editor and controlled with text-based versioning tools
+like git, but requires other tools to extract the typeset document and to
+extract the source code and lay it out on disk as required by compilers,
+linkers, and other build tools. My chosen tool is emacs and org-mode.\footnote{\url{https://en.wikipedia.org/wiki/Org-mode}}
+It allows interactive evaluation of code and you may wish to follow along
+interactively. To do that, you will need emacs and the text source for this
+document. The text source for this document is found here TODO. A distribution
+of emacs for the Mac with adequate org-babel support is maintained by Vincent
+Goulet at the University of Laval.\footnote{\url{http://vgoulet.act.ulaval.ca/en/emacs/}} Emacs for Linux and Windows is easy
+to find, but I do not discuss it further. \emph{Spacemacs}\footnote{\url{http://www.spacemacs.org}} offers vim
+emulation with the tools needed for literate programming.
+
+\section{This Document is Literate}
+\label{sec:orgheadline15}
+
+\subsection{Get C to Work}
+\label{sec:orgheadline3}
+
+First, make sure the following works\footnote{Make sure the first example from \url{http://tinyurl.com/kz2lz7m} works} in org-babel and org-babel tangle. If it
+does work, you have a correctly installed C compiler.
+
+\begin{verbatim}
+int a=7;
+int b=7;
+printf("%d\n", a*b);
+// ~~> produces
+\end{verbatim}
+
+\begin{verbatim}
+49
+\end{verbatim}
 
 \subsection{Recurrence for the Mean}
-\label{sec:orgheadline7}
+\label{sec:orgheadline11}
 \subsubsection{Business Code}
-\label{sec:orgheadline1}
+\label{sec:orgheadline4}
 
 C code is usually much longer than the corresponding Wolfram code (or Lisp, or
 Haskell, or OCaml, etc.). The extra length, overall, is due mostly to the need
@@ -59,7 +108,7 @@ expressing some inputs and for packing outputs.
 
 The goal of our C code is to make the final result as clean and as close to the
 original design in Wolfram as possible. For instance, the original source for
-\emph{Recurrence for the Mean} in paper 1\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} is
+\emph{Recurrence for the Mean} in paper 1\footnotemark[1]{} is
 
 \begin{verbatim}
 cume[{x_, n_}, z_] := (* pattern matching for unpacking inputs *)
@@ -100,9 +149,23 @@ below.
     printAccumulation (result);
     return 0;   }
 \end{verbatim}
+\captionof{figure}{\label{orgsrcblock1}
+Business logic in C}
+
+\subsubsection{Primary Numerical Type}
+\label{sec:orgheadline5}
+
+We abstract out the primary numerical type into the traditional \texttt{T} to make it
+easier to change. 
+
+\begin{verbatim}
+typedef double T;
+\end{verbatim}
+\captionof{figure}{\label{orgsrcblock2}
+Primary numerical type}
 
 \subsubsection{Accumulation Type}
-\label{sec:orgheadline2}
+\label{sec:orgheadline6}
 
 The code for the Accumulation type is a bit elaborate, but the extra
 abstractions will serve us well when we get to the Kalman filter.
@@ -118,11 +181,9 @@ Also, in the interest of saving space, specifically, staircases of closing curly
 braces on lines by themselves, we adopt the \emph{Pico}\footnote{\url{http://tinyurl.com/gku2k74}} style for bracing. 
 
 \begin{verbatim}
-typedef double T;
-
-const size_t Accumulation_size = 2;
+const size_t Accumulation_size = 3;
 typedef struct s_Accumulation
-{   T elements[Accumulation_size];   } Accumulation;
+{   T elements[Accumulation_size];   } Accumulation, * pAccumulation;
 
 Accumulation zeroAccumulation (void)
 {   Accumulation r;
@@ -130,25 +191,36 @@ Accumulation zeroAccumulation (void)
     return r;   }
 
 void printAccumulation (Accumulation a)
-{    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
+{   printf ("{");
+    for (size_t i = 0; i < Accumulation_size; ++i)
+    {   printf ("%lf", a.elements[i]);
+        if (i < Accumulation_size - 1)
+        {   printf (", ");   }   }
+    printf ("}\n");   }
 \end{verbatim}
+\captionof{figure}{\label{orgsrcblock3}
+Accumulation type}
 
-\subsubsection{Observation Type}
-\label{sec:orgheadline3}
+We have harmlessly used \(3\) for the accumulation size because we want to reuse
+this code later. We could make it variable at the cost of more unilluminating
+code.
 
-Here, because we don't statically know the number of observations, we must use
+\subsubsection{Observation Types}
+\label{sec:orgheadline7}
+
+Because we don't statically know the number of observations, we must use
 dynamic memory allocation. In an embedded application, we would use arena memory
 (fixed-length circular buffer pools of fixed-length structs) or stack allocation
 (\emph{calloc}). Here, for brevity and because this is a testing deployment, we use
 heap memory (stdlib's \emph{malloc} and \emph{free}). These are unacceptable in embedded
-applications because of fragmentation and unbounded execution times.
+applications because of fragmentation and unbounded execution times. 
 
 When we get to lazy streams, we won't need these at all. They're only for arrays
 of observations all in memory at one time.
 
 The primary helper type is a bounded array of \emph{Observations} type that includes
-length information and a handy iterator-like \emph{current} index. Most of the code
-for this type concerns explicit memory management for this helper type.
+the length and a handy iterator-like \emph{current} index. Most of the code for this
+type concerns explicit memory management for this helper type.
 
 We also include an \emph{Observation} type, for asbstraction hygiene. 
 
@@ -180,9 +252,11 @@ void freeObservations (Observations o)
 {   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
     free ((void *)o.observations);   }
 \end{verbatim}
+\captionof{figure}{\label{orgsrcblock4}
+Observation types}
 
 \subsubsection{Accumulator Type}
-\label{sec:orgheadline4}
+\label{sec:orgheadline8}
 
 Our last type definition is for the \emph{Accumulator} function. Here we cheat a bit
 and use an extension to the C language called \emph{Blocks},\footnote{\url{http://tinyurl.com/bgwfkyc}} which
@@ -197,9 +271,11 @@ with the ordinary pointer syntax, \texttt{*}.
 \begin{verbatim}
 typedef Accumulation (^Accumulator) (Accumulation a, Observation b);
 \end{verbatim}
+\captionof{figure}{\label{orgsrcblock5}
+Accumulator type}
 
 \subsubsection{The Fold Over Observations}
-\label{sec:orgheadline5}
+\label{sec:orgheadline9}
 
 The final piece is the \emph{fold} operator. This particular one knows details of the
 \emph{Observations} type, so is specific to it. We have another fold over lazy
@@ -211,15 +287,18 @@ Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
     {   x0 = f (x0, zs.observations[zs.current]);   }
     return x0;   }
 \end{verbatim}
+\captionof{figure}{\label{orgsrcblock6}
+Fold over observations in bounded arrays}
 
 \subsubsection{Pulling it All Together}
-\label{sec:orgheadline6}
+\label{sec:orgheadline10}
 
 \begin{verbatim}
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <Block.h>
+<<c-numerical-type>>
 <<c-accumulation-type>>
 <<c-observation-types>>
 <<c-accumulator-type>>
@@ -227,12 +306,10 @@ Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
 int main (int argc, char ** argv)
 <<c-business-logic>>
 \end{verbatim}
+\captionof{figure}{Recurrence for the mean: entire program}
 
-\noindent Tangle this code out to a C file by executing `org-babel-tangle' while
-visiting this literate source code in emacs. For those who prefer vim, we may
-suggest \emph{Spacemacs},\footnote{\url{http://www.spacemacs.org}} which is a package for emacs with near-perfect vim
-emulation. A distribution of emacs for the Mac with adequate org-babel support is maintained
-by Vincent Goulet at the University of Laval.\footnote{\url{http://vgoulet.act.ulaval.ca/en/emacs/}}
+Tangle this code out to a C file by executing `org-babel-tangle' while
+visiting this literate source code in emacs. 
 
 Compile and run the code as follows:
 
@@ -240,17 +317,353 @@ Compile and run the code as follows:
 gcc -Wall -Werror recurrenceForTheMean.c -o recurrenceForTheMean
 ./recurrenceForTheMean
 \end{verbatim}
+\captionof{figure}{Build and execute script for recurrence-for-the-mean}
 
-\begin{center}
-\begin{tabular}{ll}
-\{96.000000 & 3.000000\}\\
+\begin{table}[htb]
+\caption{Output of recurrence-for-the-mean}
+\centering
+\begin{tabular}{lrl}
+\{96.000000 & 3.0 & 0.000000\}\\
 \end{tabular}
-\end{center}
+\end{table}
 
 \noindent producing results all-but-identical to those from the Wolfram language.
 
+\subsection{FoldList and Recurrence for the Variance}
+\label{sec:orgheadline14}
+
+The original paper introduced Wolfram's \emph{FoldList} along with the recurrence for
+the variance. We do likewise here, implementing our own \emph{foldList} in C.
+
+\subsubsection{Bounded Array for Accumulations}
+\label{sec:orgheadline12}
+
+\emph{FoldList} produces a list of accumulations, one for the initial accumulation
+and another for each observation. With lists of observations all in memory, we
+could calculate the length of the output and preallocate a list of accumlations
+of the correct size, but we are not able to do that with lazy streams of
+observations or asynchronous observables of observations. We opt, then, for
+on-demand, dynamic memory management for the output accumulations.
+``On-demand,'' here, means growing the output array as new accumulations arrive.
+We use the common trick of doubling the capacity of the output array every time
+the capacity is exceeded. This trick is a reasonable compromise of space and
+time efficiency. 
+
+We emulate the \emph{bounded-array} interface created for observations, and add three
+more functions to the usual \emph{create}, \emph{free}, and \emph{print}.
+\begin{description}
+\item[{lastAccumulations}] returns the last accumulation in a bounded array; needed for
+\emph{foldList}
+\item[{appendAccumulations}] appends a new accumulation to a bounded array of
+accumulations, growing the capacity if needed
+\item[{foldList}] takes an accumulator \(f\), an initial accumulation \(a_0\), a bounded
+array of observations \(zs\), and produces a bounded array of accumulations.
+\end{description}
+
+\begin{verbatim}
+typedef struct s_BoundedArray_Accumulations
+{   int count;
+    int max;
+    pAccumulation accumulations ;   } Accumulations;
+
+Accumulation lastAccumulations (Accumulations as)
+{   if (0 == as.count)
+    {   printf ("Attempt to pull non-existent element\n");
+        exit (-4);   }
+    return as.accumulations[as.count - 1];   }
+
+Accumulations appendAccumulations (Accumulations as, Accumulation a)
+{   Accumulations result = as;
+    if (result.count + 1 > result.max)
+    {   /* Double the storage. */
+        int new_max = 2 * result.max;
+        /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
+        pAccumulation new = (pAccumulation) 
+          malloc (sizeof (Accumulation) * new_max);
+        if (NULL == new)
+        {   printf ("Failed to alloc %d Accumulations\n", new_max);
+            exit (-2);   }
+        if (result.count != result.max)
+        {   printf ("Internal bugcheck\n");
+            exit (-3);   }
+        memset ((void *)new, 0, new_max * sizeof (Accumulation));
+        memcpy ((void *)new, (void *)result.accumulations, 
+          (sizeof (Accumulation) * result.max));
+        free ((void *) result.accumulations);
+        result.accumulations = new; 
+        result.max = new_max;   }
+    result.accumulations[result.count] = a;
+    ++ result.count;
+    return result;   }
+
+Accumulations createAccumulations (void)
+{   Accumulations result;
+    const int init_size = 4;
+    result.max = init_size;
+    result.count = 0;
+    result.accumulations = (pAccumulation)
+      malloc (sizeof (Accumulation) * init_size);
+    memset ((void *)result.accumulations, 0,
+      sizeof (Accumulation) * init_size);
+    return result;   }
+
+void freeAccumulations (Accumulations as)
+{   memset ((void *) as.accumulations, 0,
+      (sizeof (Accumulation) * as.count)); 
+    free ((void *) as.accumulations);   }
+
+void printAccumulations (Accumulations as)
+{   for (int j = 0; j < as.count; ++j )
+    {   printAccumulation (as.accumulations[j]);   }   }
+
+Accumulations foldList (Accumulator f, Accumulation a0, Observations zs)
+{   Accumulations result = createAccumulations ();
+    result = appendAccumulations (result, a0);
+    for (zs.current = 0; zs.current < zs.count; ++zs.current)
+    {   result = appendAccumulations (
+          result,
+          f(lastAccumulations(result),
+          zs.observations[zs.current]));   }
+        return result;   }
+\end{verbatim}
+\captionof{figure}{\label{orgsrcblock7}
+Bounded array for accumulations}
+
+\subsubsection{Pulling Together Recurrence for the Variance}
+\label{sec:orgheadline13}
+
+\begin{verbatim}
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+  #include <Block.h>
+  <<c-numerical-type>>
+  <<c-accumulation-type>>
+  <<c-observation-types>>
+  <<c-accumulator-type>>
+  <<c-fold-over-observations>>
+  <<c-bounded-array-for-accumulations>>
+  int main (int argc, char ** argv)
+{   Observation tmp[3] = {55, 89, 144};
+    Observations zs = createObservations(3, tmp);
+    Accumulation x0 = zeroAccumulation ();
+    Accumulator cume = ^(Accumulation a, Observation z)
+        {   T var = a.elements[0];
+            T x   = a.elements[1];
+            T n   = a.elements[2];
+
+            T K = 1.0 / (1.0 + n);
+            T x2 = x + K * (z - x);
+            T ssr2 = (n - 1.0) * var + K * n * (z - x) * (z - x);
+
+            Accumulation r;
+            r.elements[0] = ssr2 / (n > 1.0 ? n : 1.0);
+            r.elements[1] = x2;
+            r.elements[2] = n + 1.0;
+            return r;   };
+
+    Accumulations results = foldList (cume, x0, zs);
+    printAccumulations (results);
+
+    freeAccumulations (results);
+    freeObservations (zs);
+    return 0;   }
+\end{verbatim}
+\captionof{figure}{Recurrence for the variance: entire program}
+
+\begin{verbatim}
+gcc -Wall -Werror recurrenceForTheVariance.c -o recurrenceForTheVariance
+./recurrenceForTheVariance
+\end{verbatim}
+\captionof{figure}{Build and execute script for recurrence-for-the-variance}
+
+\begin{table}[htb]
+\caption{Output of recurrence-for-the-variance}
+\centering
+\begin{tabular}{lrl}
+\{0.000000 & 0.0 & 0.000000\}\\
+\{0.000000 & 55.0 & 1.000000\}\\
+\{578.000000 & 72.0 & 2.000000\}\\
+\{2017.000000 & 96.0 & 3.000000\}\\
+\end{tabular}
+\end{table}
+
+This result is semantically identical to that produced by the following Wolfram
+code:
+
+\begin{verbatim}
+cume[{var_, x_, n_}, z_] :=
+  With[{K = 1/(n + 1)},
+   With[{x2 = x + K (z - x),
+     ssr2 = (n - 1) var + K n (z - x)^2},
+    {ssr2/Max[1, n], x2, n + 1}]];
+Fold[cume, {0, 0, 0}, zs]
+~~> {2017, 96, 3}
+\end{verbatim}
+\captionof{figure}{Wolfram code for recurrence for the variance}
+
+\section{Basic Kalman Folding}
+\label{sec:orgheadline20}
+
+We need matrix operations, now, and we'll use the Gnu Scientific Library,
+GSL\footnote{\url{http://www.gnu.org/software/gsl/}}, which includes support for CBLAS\footnote{\url{http://www.netlib.org/blas/}} and LAPACKE.\footnote{\url{http://www.netlib.org/lapack/lapacke.html}}
+
+\subsection{Get GSL to Work}
+\label{sec:orgheadline16}
+
+Get gsl, build it (\texttt{./configure}, \texttt{make}),
+check it (\texttt{make check}), install it (\texttt{make install}). The following should work
+if you use all the default settings; you may need to install \emph{gfortran}
+separately. 
+
+You must link these against \texttt{libgsl}. Note the flags on the
+\texttt{begin-src} line if you are visiting the org-mode file in emacs.
+
+
+\begin{verbatim}
+double x = 5.0;
+double y = gsl_sf_bessel_J0 (x);
+printf ("J0(%g) = %.18e\n", x, y);
+// ~~> produces
+\end{verbatim}
+
+\begin{verbatim}
+J0(5) = -1.775967713143382642e-01
+\end{verbatim}
+
+\begin{verbatim}
+gsl_block * b = gsl_block_alloc (100);
+
+printf ("length of block = %zu\n", b->size);
+printf ("block data address = %p\n", b->data);
+
+gsl_block_free (b);
+// ~~> produces
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{llllr}
+length & of & block & = & 100\\
+block & data & address & = & 0x7fe6d1403580\\
+\end{tabular}
+\end{center}
+
+\begin{verbatim}
+ int i;
+ gsl_vector * v = gsl_vector_alloc (3);
+
+ for (i = 0; i < 3; i++) 
+ {   gsl_vector_set (v, i, 1.23 + i);   }
+
+ for (i = 0; i < 3; i++)
+ {   printf ("v_%d = %g\n", i, gsl_vector_get (v, i));   }
+
+ gsl_vector_free (v);
+// ~~> produces
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{llr}
+v\(_{\text{0}}\) & = & 1.23\\
+v\(_{\text{1}}\) & = & 2.23\\
+v\(_{\text{2}}\) & = & 3.23\\
+\end{tabular}
+\end{center}
+
+\begin{verbatim}
+ int i, j;
+ gsl_matrix * m = gsl_matrix_alloc (10, 3);
+
+ for (i = 0; i < 10; i++)
+   for (j = 0; j < 3; j++)
+     gsl_matrix_set (m, i, j, 0.23 + 100*i + j);
+
+ for (i = 0; i < 10; i++)
+   for (j = 0; j < 3; j++)
+     printf ("m(%d,%d) = %g\n", i, j,
+             gsl_matrix_get (m, i, j));
+
+ gsl_matrix_free (m);
+// ~~> produces
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{ll}
+m(0 & 0) = 0.23\\
+m(0 & 1) = 1.23\\
+m(0 & 2) = 2.23\\
+m(1 & 0) = 100.23\\
+m(1 & 1) = 101.23\\
+m(1 & 2) = 102.23\\
+m(2 & 0) = 200.23\\
+m(2 & 1) = 201.23\\
+m(2 & 2) = 202.23\\
+m(3 & 0) = 300.23\\
+m(3 & 1) = 301.23\\
+m(3 & 2) = 302.23\\
+m(4 & 0) = 400.23\\
+m(4 & 1) = 401.23\\
+m(4 & 2) = 402.23\\
+m(5 & 0) = 500.23\\
+m(5 & 1) = 501.23\\
+m(5 & 2) = 502.23\\
+m(6 & 0) = 600.23\\
+m(6 & 1) = 601.23\\
+m(6 & 2) = 602.23\\
+m(7 & 0) = 700.23\\
+m(7 & 1) = 701.23\\
+m(7 & 2) = 702.23\\
+m(8 & 0) = 800.23\\
+m(8 & 1) = 801.23\\
+m(8 & 2) = 802.23\\
+m(9 & 0) = 900.23\\
+m(9 & 1) = 901.23\\
+m(9 & 2) = 902.23\\
+\end{tabular}
+\end{center}
+
+\subsection{BLAS Through GSL}
+\label{sec:orgheadline17}
+
+You must link this against \texttt{libgsl} and \texttt{libblas}. Note the flags on the
+\texttt{begin-src} line if you are visiting the org-mode file in emacs.
+
+\begin{verbatim}
+double a[] = { 0.11, 0.12, 0.13,
+               0.21, 0.22, 0.23 };
+
+double b[] = { 1011, 1012,
+               1021, 1022,
+               1031, 1032 };
+
+double c[] = { 0.00, 0.00,
+               0.00, 0.00 };
+
+gsl_matrix_view A = gsl_matrix_view_array(a, 2, 3);
+gsl_matrix_view B = gsl_matrix_view_array(b, 3, 2);
+gsl_matrix_view C = gsl_matrix_view_array(c, 2, 2);
+
+/* Compute C = A B */
+
+gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,
+                1.0, &A.matrix, &B.matrix,
+                0.0, &C.matrix);
+
+printf ("[ %g, %g\n", c[0], c[1]);
+printf ("  %g, %g ]\n", c[2], c[3]);
+// ~~> produces
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{rr}
+[ 367.76 & 368.12\\
+674.06 & 674.72 ]\\
+\end{tabular}
+\end{center}
+
+
 \subsection{Step 2: Getting LAPACK to work}
-\label{sec:orgheadline9}
+\label{sec:orgheadline19}
 
 Make sure you have \texttt{gfortran} installed:
 
@@ -274,7 +687,7 @@ make install
 \end{verbatim}
 
 \subsubsection{Make LAPACKE}
-\label{sec:orgheadline8}
+\label{sec:orgheadline18}
 
 This is the C interface to LAPACK.  The following mercilessly hacks around a couple of
 problems in the build of \texttt{examples}, but it's enough to get the example working.

@@ -44,17 +44,18 @@ typeset PDF and HTML.
 #+END_SRC
 
 #+RESULTS:
-: #<buffer *inferior-lisp*>
 
-* COMMENT Abstract
+* Abstract
 
-In /Kalman Folding, Part 1/,[fn:klf1] we present basic, static Kalman filtering
-as a functional fold, highlighting the unique advantages of this form for
-deploying test-hardened code verbatim in harsh, mission-critical environments.
-In that paper, all examples folded over arrays in memory for convenience and
-repeatability. That is an example of developing filters in a friendly
-environment.
+In this literate program, we show one way to implement the basic Kalman fold in C.
+The background for Kalman folding appears in /Kalman Folding, Part 1/,[fn:klf1]
+where we highlight the the unique advantages of a functional fold for deploying
+test-hardened code verbatim in harsh, mission-critical environments. In that and
+in other papers in this series, the emphasis is on mathematical clarity and
+conciseness. Here, the emphasis is on embedded systems by using the primary
+language for implementing such systems, C.
 
+#+BEGIN_COMMENT
 Here, we prototype a couple of less friendly environments and demonstrate
 exactly the same Kalman accumulator function at work. These less friendly
 environments are
@@ -75,6 +76,7 @@ repeatability is available /only/ because of functional decomposition, which
 minimizes the coupling between the accumulator function and the environment and
 makes it possible to deploy exactly the same code, without even recompilation,
 in all environments.
+#+END_COMMENT
 
 * COMMENT Kalman Folding in the Wolfram Language
 
@@ -273,18 +275,115 @@ We have tested these prototypes against bigger
 examples like the tracking example[fn:trak] and the accelerometer
 example,[fn:klfl] and there are no surprises.
 
-
 * Literate Code
 
-** COMMENT Step 1: Getting C to Work
+A /literate program/[fn:litp] is a single text document that contains both 
+- \LaTeX{} typesetting instructions and 
+- source code and scripts for an application.
+A literate program can
+be edited in any text editor and controlled with text-based versioning tools
+like git, but requires other tools to extract the typeset document and to
+extract the source code and lay it out on disk as required by compilers,
+linkers, and other build tools. My chosen tools are emacs and org-babel.[fn:babl]
+They allow interactive evaluation of code in the original org-mode[fn:orgm]
+document. If you  wish to follow along
+interactively, you will need emacs and the text source for this
+document. The text source for this document is found here */TODO/*. A distribution
+of emacs for the Mac with adequate org-babel support is maintained by Vincent
+Goulet at the University of Laval.[fn:lavl] Emacs for Linux and Windows is easy
+to find, but I do not discuss it further. /Spacemacs/[fn:spcm] offers /vim/
+emulation with the tools needed for literate programming.
+
+* COMMENT Polemical Justification
+
+Most programmers have been taught to put documentation in their source code as
+formatted comments. Popular tools like [[http://www.stack.nl/~dimitri/doxygen/][Doxygen]][fn:doxy] and [[http://www.oracle.com/technetwork/articles/java/index-jsp-135444.html][Javadoc]][fn:javd]
+help with this, and the industry almost universally requires them.
+
+A much better idea is to put source code in the documentation. This is called
+/literate programming/. It's better because:
+
+1. Source code must be laid out in an order convenient for the compiler and
+   tools, not in an order convenient for human reasoning. Crucial high-level
+   information for human understanding can be buried in source files many levels
+   down in the basement of a source tree. It's better to explain code to people
+   in layered, logical order in a typeset document and have a tool rearrange the
+   code into compiler-convenient order. This is called /tangling/.
+
+1. The common practice of doc-in-code is lossy and discards /precisely/ the most
+   valuable information about software, namely
+   1. information about the code that is /not/ there: the trial and error that
+      you don't want others to repeat, the suboptimal designs that were tried
+      and discarded, the thinking and tinkering that led to the current code
+      base.
+   2. the higher-level structure and meaning: this is most important because
+      anyone who already knows the higher-level concepts can struggle through
+      source code without fancy Doxygen or Javadoc. But the reverse is not true:
+      no reasonable amount of detailed, low-level, function-and-parameter
+      documentation can reveal higher-level concepts, structures, diagrams,
+      patterns.
+
+2. The usual reality is that external design and architecture documents go out
+   of maintenance early and forever. If you are responsible enough to maintain
+   higher-level architecture and design, it's usually in multiple, external,
+   separate, disconnected documents in proprietary formats. They are impossible
+   to control with text-based versioning systems like git, so collaboration is
+   so difficult that people don't actually do it. The advantages of text-based
+   version control are so overwhelming that people end up maintaining /only/ the
+   documentation that's in pure text, and that documentation is usually /only/
+   buried in the source code. 
+   
+3. Source-code comments are almost always in pure ascii, and there is no
+   standard way that programmers will actually adopt to present typeset
+   mathematics, diagrams, charts, and other vital visual aids. But org-mode
+   supports \LaTeX for mathematics and Tikz,[fn:tikz], Ditaa, [fn:dtaa] and
+   PlantUML[fn:plnt] for diagramming in literate programs.
+
+4. We need documents in HTML, PDF, Word, Wiki, Markdown, and any number of other
+   formats. We seek tooling that can generate all of these /plus/ the source
+   directory tree from a single source document. 
+
+** What about IDEs?
+
+Integrated Development Environments (IDEs) offer a reasonable alternative to
+literate programming. IDEs can automate much of the mundane maintenance. A
+downside is that everyone on a project must use compatible tools. This can get
+expensive in licenses and training, and it's not practical in open-source
+projects.
+
+At the risk of contradicting myself, I am going to insist that everyone who
+implements my methodology use Spacemacs, a layer on Emacs that fully supports
+VIM users. Because Emacs is free, cross-platform, and general-purpose, insisting
+on it is not as bad as insisting that everyone use a particular IDE. I will
+argue that the goodness of the methodology presented here is sufficient reason
+to adopt it.
+
+I once tried a similar methodology based on Markdown, because anyone can edit
+markdown with any text-editing tool, and I thought it easier to sell than
+insisting everyone use Emacs. I was wrong. No one adopted my method, whereas
+lots of people are doing literate programming with org-mode and babel in Emacs.
+Why? Because the side benefits of org-mode are so overwhelming that they make
+Emacs worthwhile even if you're not doing literate programming.
+
+** What about Wiki?
+
+A new practice using wiki pages is emerging and may mitigate this `usual
+reality.' At present, the tools are primitive and unreliable, so I still edit
+everything in emacs and then /try/ to paste it into terrible online editors,
+often resulting in eternally spinning doughnuts. When the wiki tools become as
+good as emacs and org-mode, I may change.
+
+* This Document is Literate
+** Get C to Work
 
 First, make sure the following works[fn:obc1] in org-babel and org-babel tangle. If it
 does work, you have a correctly installed C compiler.
 
-#+begin_src C++ :includes '(<stdio.h>) :tangle k-folding.c
+#+begin_src C++ :includes '(<stdio.h>) :tangle k-folding.c :exports both
   int a=7;
   int b=7;
   printf("%d\n", a*b);
+  // ~~> produces
 #+end_src
 
 #+RESULTS:
@@ -303,7 +402,7 @@ The goal of our C code is to make the final result as clean and as close to the
 original design in Wolfram as possible. For instance, the original source for
 /Recurrence for the Mean/ in paper 1[fn:klf1] is
 
-#+BEGIN_SRC Mathematica
+#+BEGIN_SRC mathematica
 cume[{x_, n_}, z_] := (* pattern matching for unpacking inputs *)
   With[{K = 1/(n + 1)},
    {x + K (z - x), n + 1}]; (* literal notation for packing outputs *)
@@ -318,6 +417,7 @@ suffices in Wolfram for scalar multiplication). At least the memory management
 is hidden in the types /Accumulation/ and /Observation/, articulated further
 below.
 
+#+CAPTION: Business logic in C
 #+NAME: c-business-logic
 #+BEGIN_SRC C :results none
   {   Accumulator cume = ^(Accumulation a, Observation z)
@@ -344,6 +444,17 @@ below.
       return 0;   }
 #+END_SRC
 
+*** Primary Numerical Type
+
+We abstract out the primary numerical type into the traditional =T= to make it
+easier to change. 
+
+#+CAPTION: Primary numerical type
+#+NAME: c-numerical-type
+#+BEGIN_SRC C
+  typedef double T;
+#+END_SRC
+
 *** Accumulation Type
 
 The code for the Accumulation type is a bit elaborate, but the extra
@@ -359,13 +470,12 @@ copying that could be optimized away.
 Also, in the interest of saving space, specifically, staircases of closing curly
 braces on lines by themselves, we adopt the /Pico/[fn:pico] style for bracing. 
 
+#+CAPTION: Accumulation type
 #+NAME: c-accumulation-type
 #+BEGIN_SRC C
-  typedef double T;
-
-  const size_t Accumulation_size = 2;
+  const size_t Accumulation_size = 3;
   typedef struct s_Accumulation
-  {   T elements[Accumulation_size];   } Accumulation;
+  {   T elements[Accumulation_size];   } Accumulation, * pAccumulation;
 
   Accumulation zeroAccumulation (void)
   {   Accumulation r;
@@ -373,27 +483,37 @@ braces on lines by themselves, we adopt the /Pico/[fn:pico] style for bracing.
       return r;   }
 
   void printAccumulation (Accumulation a)
-  {    printf ("{%lf, %lf}\n", a.elements[0], a.elements[1]);   }
+  {   printf ("{");
+      for (size_t i = 0; i < Accumulation_size; ++i)
+      {   printf ("%lf", a.elements[i]);
+          if (i < Accumulation_size - 1)
+          {   printf (", ");   }   }
+      printf ("}\n");   }
 #+END_SRC
 
-*** Observation Type
+We have harmlessly used $3$ for the accumulation size because we want to reuse
+this code later. We could make it variable at the cost of more unilluminating
+code.
 
-Here, because we don't statically know the number of observations, we must use
+*** Observation Types
+
+Because we don't statically know the number of observations, we must use
 dynamic memory allocation. In an embedded application, we would use arena memory
 (fixed-length circular buffer pools of fixed-length structs) or stack allocation
 (/calloc/). Here, for brevity and because this is a testing deployment, we use
 heap memory (stdlib's /malloc/ and /free/). These are unacceptable in embedded
-applications because of fragmentation and unbounded execution times.
+applications because of fragmentation and unbounded execution times. 
 
 When we get to lazy streams, we won't need these at all. They're only for arrays
 of observations all in memory at one time.
 
 The primary helper type is a bounded array of /Observations/ type that includes
-length information and a handy iterator-like /current/ index. Most of the code
-for this type concerns explicit memory management for this helper type.
+the length and a handy iterator-like /current/ index. Most of the code for this
+type concerns explicit memory management for this helper type.
 
 We also include an /Observation/ type, for asbstraction hygiene. 
 
+#+CAPTION: Observation types
 #+NAME: c-observation-types
 #+BEGIN_SRC C
   typedef T Observation, * pObservation;
@@ -436,6 +556,7 @@ do more work by hand. With this extension, the /Accumulator/ type, defined with
 the hat syntax =^=, behaves just like a function pointer, which would be defined
 with the ordinary pointer syntax, =*=.
 
+#+CAPTION: Accumulator type
 #+NAME: c-accumulator-type
 #+BEGIN_SRC C
 typedef Accumulation (^Accumulator) (Accumulation a, Observation b);
@@ -447,6 +568,7 @@ The final piece is the /fold/ operator. This particular one knows details of the
 /Observations/ type, so is specific to it. We have another fold over lazy
 streams, articulated below, just as with Wolfram.
 
+#+CAPTION: Fold over observations in bounded arrays
 #+NAME: c-fold-over-observations
 #+BEGIN_SRC C
   Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
@@ -457,11 +579,13 @@ streams, articulated below, just as with Wolfram.
 
 *** Pulling it All Together
 
+#+CAPTION:  Recurrence for the mean: entire program
 #+BEGIN_SRC C :tangle recurrenceForTheMean.c :noweb tangle
   #include <stdio.h>
   #include <string.h>
   #include <stdlib.h>
   #include <Block.h>
+  <<c-numerical-type>>
   <<c-accumulation-type>>
   <<c-observation-types>>
   <<c-accumulator-type>>
@@ -470,71 +594,345 @@ streams, articulated below, just as with Wolfram.
   <<c-business-logic>>
 #+END_SRC
 
-\noindent Tangle this code out to a C file by executing `org-babel-tangle' while
-visiting this literate source code in emacs. For those who prefer vim, we may
-suggest /Spacemacs/,[fn:spcm] which is a package for emacs with near-perfect vim
-emulation. A distribution of emacs for the Mac with adequate org-babel support is maintained
-by Vincent Goulet at the University of Laval.[fn:lavl]
+Tangle this code out to a C file by executing `org-babel-tangle' while
+visiting this literate source code in emacs. 
 
 Compile and run the code as follows:
 
+#+CAPTION: Build and execute script for recurrence-for-the-mean
 #+BEGIN_SRC bash :exports both
 gcc -Wall -Werror recurrenceForTheMean.c -o recurrenceForTheMean
 ./recurrenceForTheMean
 #+END_SRC
 
+#+CAPTION: Output of recurrence-for-the-mean
 #+RESULTS:
-| {96.000000 | 3.000000} |
+| {96.000000 | 3.0 | 0.000000} |
 
 \noindent producing results all-but-identical to those from the Wolfram language.
 
-** COMMENT Step 2: Getting BLAS to Work (OPTIONAL)
+** FoldList and Recurrence for the Variance
 
-I am building my software on a Mac. The LINUX builds come up without difficulty
-if you have gcc and gfortran installed properly. I don't have anything to say
-about Windows. It's too different from LINUX and the Mac for me to bother with
-it.
+The original paper introduced Wolfram's /FoldList/ along with the recurrence for
+the variance. We do likewise here, implementing our own /foldList/ in C.
 
-*** Step 2.1: Fortran
+*** Bounded Array for Accumulations
 
-Make sure you have gfortran. 
+/FoldList/ produces a list of accumulations, one for the initial accumulation
+and another for each observation. With lists of observations all in memory, we
+could calculate the length of the output and preallocate a list of accumlations
+of the correct size, but we are not able to do that with lazy streams of
+observations or asynchronous observables of observations. We opt, then, for
+on-demand, dynamic memory management for the output accumulations.
+``On-demand,'' here, means growing the output array as new accumulations arrive.
+We use the common trick of doubling the capacity of the output array every time
+the capacity is exceeded. This trick is a reasonable compromise of space and
+time efficiency. 
 
-Get BLAS.[fn:blas]
+We emulate the /bounded-array/ interface created for observations, and add three
+more functions to the usual /create/, /free/, and /print/.
+- lastAccumulations :: returns the last accumulation in a bounded array; needed for
+     /foldList/
+- appendAccumulations :: appends a new accumulation to a bounded array of
+     accumulations, growing the capacity if needed
+- foldList :: takes an accumulator $f$, an initial accumulation $a_0$, a bounded
+     array of observations $zs$, and produces a bounded array of accumulations. 
 
-Unpack and go to the directory and just type make. It will probably work on
-LINUX and on a Mac. Note the full path name of the library that it creates.  On
-my Mac, that path is =~/Documents/BLAS-3.6.0/blas_LINUX.a=.
+#+CAPTION: Bounded array for accumulations
+#+NAME: c-bounded-array-for-accumulations
+#+BEGIN_SRC C
+  typedef struct s_BoundedArray_Accumulations
+  {   int count;
+      int max;
+      pAccumulation accumulations ;   } Accumulations;
 
-*** Step 2.2: C
+  Accumulation lastAccumulations (Accumulations as)
+  {   if (0 == as.count)
+      {   printf ("Attempt to pull non-existent element\n");
+          exit (-4);   }
+      return as.accumulations[as.count - 1];   }
 
-Get CBLAS.[fn:cbls] The README file needs some clarification: where it says
-``Legacy BLAS library,'' it means the one you just built with gfortran. The
-CBLAS samples link against that fortran library. 
+  Accumulations appendAccumulations (Accumulations as, Accumulation a)
+  {   Accumulations result = as;
+      if (result.count + 1 > result.max)
+      {   /* Double the storage. */
+          int new_max = 2 * result.max;
+          /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
+          pAccumulation new = (pAccumulation) 
+            malloc (sizeof (Accumulation) * new_max);
+          if (NULL == new)
+          {   printf ("Failed to alloc %d Accumulations\n", new_max);
+              exit (-2);   }
+          if (result.count != result.max)
+          {   printf ("Internal bugcheck\n");
+              exit (-3);   }
+          memset ((void *)new, 0, new_max * sizeof (Accumulation));
+          memcpy ((void *)new, (void *)result.accumulations, 
+            (sizeof (Accumulation) * result.max));
+          free ((void *) result.accumulations);
+          result.accumulations = new; 
+          result.max = new_max;   }
+      result.accumulations[result.count] = a;
+      ++ result.count;
+      return result;   }
 
-Follow the rest of the instrutions. I built the files with =-O3= and the C files
-with =-O3 -DADD_=. I copied =Makefile.LINUX= to =Makefile.MACOSX= and linked
-=Makefile.in= to =Makefile.MACOSX=, just the way =README= says to do. I think
-it's unnecessary. I could have just used the LINUX makefile, but I was being
-extra cautious and following all the directions. I named my CBLAS library
-cblas_MACOSX.a.
+  Accumulations createAccumulations (void)
+  {   Accumulations result;
+      const int init_size = 4;
+      result.max = init_size;
+      result.count = 0;
+      result.accumulations = (pAccumulation)
+        malloc (sizeof (Accumulation) * init_size);
+      memset ((void *)result.accumulations, 0,
+        sizeof (Accumulation) * init_size);
+      return result;   }
 
-Now it's time to run the test programs.
+  void freeAccumulations (Accumulations as)
+  {   memset ((void *) as.accumulations, 0,
+        (sizeof (Accumulation) * as.count)); 
+      free ((void *) as.accumulations);   }
 
-#+BEGIN_LaTeX
-\begin{verbatim}
-$ make
-$ cd testing
-$ make run
-\end{verbatim}
-#+END_LaTeX
+  void printAccumulations (Accumulations as)
+  {   for (int j = 0; j < as.count; ++j )
+      {   printAccumulation (as.accumulations[j]);   }   }
 
-\noindent Don't try to run the programs from the command line. Some of them will
-wait forever for a data file. Also, I had some minor difficulties when building
-for the debugger with =-O0 -g= and running under both =gdb= and =lldb=. Because
-everything is working with =-O3=, I gave up on the debugger versions. I'm OK
-with =printf= debugging, anyway. 
+  Accumulations foldList (Accumulator f, Accumulation a0, Observations zs)
+  {   Accumulations result = createAccumulations ();
+      result = appendAccumulations (result, a0);
+      for (zs.current = 0; zs.current < zs.count; ++zs.current)
+      {   result = appendAccumulations (
+            result,
+            f(lastAccumulations(result),
+            zs.observations[zs.current]));   }
+          return result;   }
+#+END_SRC
 
-** Step 2: Getting LAPACK to work
+*** Pulling Together Recurrence for the Variance
+
+#+CAPTION:  Recurrence for the variance: entire program
+#+BEGIN_SRC C :tangle recurrenceForTheVariance.c :noweb tangle
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+  #include <Block.h>
+  <<c-numerical-type>>
+  <<c-accumulation-type>>
+  <<c-observation-types>>
+  <<c-accumulator-type>>
+  <<c-fold-over-observations>>
+  <<c-bounded-array-for-accumulations>>
+  int main (int argc, char ** argv)
+{   Observation tmp[3] = {55, 89, 144};
+    Observations zs = createObservations(3, tmp);
+    Accumulation x0 = zeroAccumulation ();
+    Accumulator cume = ^(Accumulation a, Observation z)
+        {   T var = a.elements[0];
+            T x   = a.elements[1];
+            T n   = a.elements[2];
+
+            T K = 1.0 / (1.0 + n);
+            T x2 = x + K * (z - x);
+            T ssr2 = (n - 1.0) * var + K * n * (z - x) * (z - x);
+
+            Accumulation r;
+            r.elements[0] = ssr2 / (n > 1.0 ? n : 1.0);
+            r.elements[1] = x2;
+            r.elements[2] = n + 1.0;
+            return r;   };
+
+    Accumulations results = foldList (cume, x0, zs);
+    printAccumulations (results);
+
+    freeAccumulations (results);
+    freeObservations (zs);
+    return 0;   }
+#+END_SRC
+
+#+CAPTION: Build and execute script for recurrence-for-the-variance
+#+BEGIN_SRC bash :exports both
+gcc -Wall -Werror recurrenceForTheVariance.c -o recurrenceForTheVariance
+./recurrenceForTheVariance
+#+END_SRC
+
+#+CAPTION: Output of recurrence-for-the-variance
+#+RESULTS:
+| {0.000000    |  0.0 | 0.000000} |
+| {0.000000    | 55.0 | 1.000000} |
+| {578.000000  | 72.0 | 2.000000} |
+| {2017.000000 | 96.0 | 3.000000} |
+
+This result is semantically identical to that produced by the following Wolfram
+code:
+
+#+CAPTION: Wolfram code for recurrence for the variance
+#+BEGIN_SRC mathematica
+cume[{var_, x_, n_}, z_] :=
+  With[{K = 1/(n + 1)},
+   With[{x2 = x + K (z - x),
+     ssr2 = (n - 1) var + K n (z - x)^2},
+    {ssr2/Max[1, n], x2, n + 1}]];
+Fold[cume, {0, 0, 0}, zs]
+~~> {2017, 96, 3}
+#+END_SRC
+
+* Basic Kalman Folding
+
+We need matrix operations, and we choose the Gnu Scientific Library,
+GSL[fn:gslb], which includes support for CBLAS[fn:cbls].
+
+** Get GSL to Work
+
+Get gsl, build it (=./configure=, =make=),
+check it (=make check=), install it (=make install=). The following should work
+if you use all the default settings; you may need to install /gfortran/
+separately. 
+
+You must link these against =libgsl=. Note the flags on the
+=begin-src= line if you are visiting the org-mode file in emacs.
+
+
+#+begin_src C++ :includes '(<stdio.h> <gsl/gsl_sf_bessel.h>) :flags -lgsl -lm :exports both
+  double x = 5.0;
+  double y = gsl_sf_bessel_J0 (x);
+  printf ("J0(%g) = %.18e\n", x, y);
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+: J0(5) = -1.775967713143382642e-01
+
+#+begin_src C++ :includes '(<stdio.h> <gsl/gsl_block.h>) :flags -lgsl -lm :exports both
+  gsl_block * b = gsl_block_alloc (100);
+
+  printf ("length of block = %zu\n", b->size);
+  printf ("block data address = %p\n", b->data);
+
+  gsl_block_free (b);
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+| length | of   | block   | = |            100 |
+| block  | data | address | = | 0x7fe9a0c03580 |
+
+#+begin_src C++ :includes '(<stdio.h> <gsl/gsl_vector.h>) :flags -lgsl -lm :exports both
+   int i;
+   gsl_vector * v = gsl_vector_alloc (3);
+
+   for (i = 0; i < 3; i++) 
+   {   gsl_vector_set (v, i, 1.23 + i);   }
+
+   for (i = 0; i < 3; i++)
+   {   printf ("v_%d = %g\n", i, gsl_vector_get (v, i));   }
+
+   gsl_vector_free (v);
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+| v_0 | = | 1.23 |
+| v_1 | = | 2.23 |
+| v_2 | = | 3.23 |
+
+#+begin_src C++ :includes '(<stdio.h> <gsl/gsl_matrix.h>) :flags -lgsl -lm :exports both
+   int i, j;
+   gsl_matrix * m = gsl_matrix_alloc (10, 3);
+
+   for (i = 0; i < 10; i++)
+     for (j = 0; j < 3; j++)
+       gsl_matrix_set (m, i, j, 0.23 + 100*i + j);
+
+   for (i = 0; i < 10; i++)
+     for (j = 0; j < 3; j++)
+       printf ("m(%d,%d) = %g\n", i, j,
+               gsl_matrix_get (m, i, j));
+
+   gsl_matrix_free (m);
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+| m(0 | 0) = 0.23   |
+| m(0 | 1) = 1.23   |
+| m(0 | 2) = 2.23   |
+| m(1 | 0) = 100.23 |
+| m(1 | 1) = 101.23 |
+| m(1 | 2) = 102.23 |
+| m(2 | 0) = 200.23 |
+| m(2 | 1) = 201.23 |
+| m(2 | 2) = 202.23 |
+| m(3 | 0) = 300.23 |
+| m(3 | 1) = 301.23 |
+| m(3 | 2) = 302.23 |
+| m(4 | 0) = 400.23 |
+| m(4 | 1) = 401.23 |
+| m(4 | 2) = 402.23 |
+| m(5 | 0) = 500.23 |
+| m(5 | 1) = 501.23 |
+| m(5 | 2) = 502.23 |
+| m(6 | 0) = 600.23 |
+| m(6 | 1) = 601.23 |
+| m(6 | 2) = 602.23 |
+| m(7 | 0) = 700.23 |
+| m(7 | 1) = 701.23 |
+| m(7 | 2) = 702.23 |
+| m(8 | 0) = 800.23 |
+| m(8 | 1) = 801.23 |
+| m(8 | 2) = 802.23 |
+| m(9 | 0) = 900.23 |
+| m(9 | 1) = 901.23 |
+| m(9 | 2) = 902.23 |
+
+** BLAS Through GSL
+
+You must link this against =libgsl= and =libblas=. Note the flags on the
+=begin-src= line if you are visiting the org-mode file in emacs.
+
+#+begin_src C++ :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -lgsl -lblas -lm :exports both
+  /* DGEMM will transpose the following matrix. It's just a copy of a. */
+  double at[] = {1.0,  0.0,  0.0,  0.0,
+                 1.0,  1.0,  1.0,  1.0,
+                 1.0, -1.0,  1.0, -1.0,
+                 1.0, -2.0,  4.0, -8.0,
+                 1.0,  2.0,  4.0,  8.0 };
+
+  double a[] = { 1.0,  0.0,  0.0,  0.0,
+                 1.0,  1.0,  1.0,  1.0,
+                 1.0, -1.0,  1.0, -1.0,
+                 1.0, -2.0,  4.0, -8.0,
+                 1.0,  2.0,  4.0,  8.0 };
+
+  double c[] = { 0.00, 0.00, 0.00, 0.00,
+                 0.00, 0.00, 0.00, 0.00,
+                 0.00, 0.00, 0.00, 0.00,
+                 0.00, 0.00, 0.00, 0.00 };
+
+  gsl_matrix_view AT = gsl_matrix_view_array(at, 5, 4);
+  gsl_matrix_view A  = gsl_matrix_view_array(a,  5, 4);
+  gsl_matrix_view C  = gsl_matrix_view_array(c,  4, 4);
+
+  /* Compute C = AT.A */
+
+  gsl_blas_dgemm (CblasTrans, CblasNoTrans,
+                  1.0, &AT.matrix, &A.matrix,
+                  0.0, &C.matrix);
+
+  printf ("%g, %g, %g, %g\n",   c[ 0], c[ 1], c[ 2], c[ 3]);
+  printf ("%g, %g, %g, %g\n",   c[ 4], c[ 5], c[ 6], c[ 7]);
+  printf ("%g, %g, %g, %g\n",   c[ 8], c[ 9], c[10], c[11]);
+  printf ("%g, %g, %g, %g\n", c[12], c[13], c[14], c[15]);
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+|  5 |  0 | 10 |   0 |
+|  0 | 10 |  0 |  34 |
+| 10 |  0 | 34 |   0 |
+|  0 | 34 |  0 | 130 |
+
+** LAPACK and LAPACKE
+
+*** gfortran
 
 Make sure you have =gfortran= installed:
 
@@ -551,6 +949,8 @@ gfortran --version
 | under     | the     | terms        | of     | the      | GNU         | General | Public | License. |           |         |      |
 | For       | more    | information  | about  | these    | matters,    | see     | the    | file     | named     | COPYING |      |
 |           |         |              |        |          |             |         |        |          |           |         |      |
+
+*** LAPACK
 
 Get LAPACK.[fn:lpck]
 This builds BLAS as a side effect.
@@ -600,9 +1000,11 @@ make install
 | --                       | Installing:                | /usr/local/lib/liblapack.a                                      |          |            |
 | --                       | Installing:                | /usr/local/lib/libtmglib.a                                      |          |            |
 
-*** Make LAPACKE
+*** LAPACKE
 
-This is the C interface to LAPACK.  The following mercilessly hacks around a couple of
+This is the C interface to LAPACK.  It does not come up as trivially as does
+GSL. I had to move some files around manually.
+The following mercilessly hacks around a couple of
 problems in the build of =examples=, but it's enough to get the example working.
 
 #+BEGIN_SRC bash
@@ -758,38 +1160,359 @@ make
 |                       1.0 |                        2.0 |                       |                    |         |                         |
 |                           |                            |                       |                    |         |                         |
 
+*** Intermediate LAPACK Samples
+
+Here's an example where a singular matrix can't be inverted, and LAPACK tells us
+so by depositing a $3$  in =errorHandler=.  Change the matrix to a non-singular
+one and you should see a $0$ in =errorHandler=.
+
+#+begin_src C :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -llapack -llapacke :exports both :tangle SOexample.c
+  #include <stddef.h>
+  #include <lapacke.h>
+  int N = 3;
+  int NN = 9;
+  double M[3][3] = { {1 , 2 , 3},
+                     {4 , 5 , 6},
+                     {7 , 8 , 9} };
+  int pivotArray[3]; //since our matrix has three rows
+  int errorHandler;
+  double lapackWorkspace[9];
+
+  // dgetrf(M,N,A,LDA,IPIV,INFO) means invert LDA columns of an M by N matrix
+  // called A, sending the pivot indices to IPIV, and spitting error information
+  // to INFO. also don't forget (like I did) that when you pass a two-dimensional
+  // array to a function you need to specify the number of "rows"
+  dgetrf_(&N, &N, M[0], &N, pivotArray, &errorHandler);
+  printf ("dgetrf eh, %d, should be zero\n", errorHandler);
+
+  dgetri_(&N, M[0], &N, pivotArray, lapackWorkspace, &NN, &errorHandler);
+  printf ("dgetri eh, %d, should be zero\n", errorHandler);
+
+  for (size_t row = 0; row < N; ++row)
+  {   for (size_t col = 0; col < N; ++col)
+      {   printf ("%g", M[row][col]);
+          if (N-1 != col)
+          {   printf (", ");   }   }
+      if (N-1 != row)
+      {   printf ("\n");   }   }
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+| dgetrf eh |        3 | should be zero |
+| dgetri eh |        3 | should be zero |
+|         3 | 0.333333 |       0.666667 |
+|         6 |        2 |            0.5 |
+|         9 |        4 |              0 |
+
+Here is the example, again, this time calling the unerdlying fortran library directly:
+
+#+begin_src C :includes '(<stdio.h> <stddef.h>) :flags -llapack :exports both :tangle foo.c
+  int N = 3;
+  int NN = 9;
+  double M[3][3] = { {1 , 2 ,  3},
+                     {4 , 5 ,  6},
+                     {7 , 8 , 19} };
+  int pivotArray[3]; //since our matrix has three rows
+  int errorHandler;
+  double lapackWorkspace[9];
+  /*
+    SUBROUTINE DGETRF( M, N, A, LDA, IPIV, INFO )
+    ,*
+    ,*  -- LAPACK routine (version 3.1) --
+    ,*     Univ. of Tennessee, Univ. of California Berkeley and NAG Ltd..
+    ,*     November 2006
+    ,*
+    ,*     .. Scalar Arguments ..
+    INTEGER            INFO, LDA, M, N
+    ,*     ..
+    ,*     .. Array Arguments ..
+    INTEGER            IPIV( * )
+    DOUBLE PRECISION   A( LDA, * )
+    ,*/
+
+  extern void dgetrf_ (int * m, int * n, double * A, int * LDA, int * IPIV,
+                       int * INFO);
+
+  /* from http://www.netlib.no/netlib/lapack/double/dgetri.f
+    SUBROUTINE DGETRI( N, A, LDA, IPIV, WORK, LWORK, INFO )
+    ,*
+    ,*  -- LAPACK routine (version 3.1) --
+    ,*     Univ. of Tennessee, Univ. of California Berkeley and NAG Ltd..
+    ,*     November 2006
+    ,*
+    ,*     .. Scalar Arguments ..
+    INTEGER            INFO, LDA, LWORK, N
+    ,*     ..
+    ,*     .. Array Arguments ..
+    INTEGER            IPIV( * )
+    DOUBLE PRECISION   A( LDA, * ), WORK( * )
+    ,*/
+
+  extern void dgetri_ (int * n, double * A, int * LDA, int * IPIV,
+                       double * WORK, int * LWORK, int * INFO);
+
+  // dgetrf(M,N,A,LDA,IPIV,INFO) means invert LDA columns of an M by N matrix
+  // called A, sending the pivot indices to IPIV, and spitting error information
+  // to INFO. also don't forget (like I did) that when you pass a two-dimensional
+  // array to a function you need to specify the number of "rows"
+  dgetrf_(&N, &N, M[0], &N, pivotArray, &errorHandler);
+  printf ("dgetrf eh, %d, should be zero\n", errorHandler);
+
+  dgetri_(&N, M[0], &N, pivotArray, lapackWorkspace, &NN, &errorHandler);
+  printf ("dgetri eh, %d, should be zero\n", errorHandler);
+
+  for (size_t row = 0; row < N; ++row)
+   {   for (size_t col = 0; col < N; ++col)
+       {   printf ("%g", M[row][col]);
+           if (N-1 != col)
+           {   printf (", ");   }   }
+       if (N-1 != row)
+       {   printf ("\n");   }   }
+  // ~~> produces
+#+end_src
+
+#+RESULTS:
+| dgetrf eh |         0 | should be zero |
+| dgetri eh |         0 | should be zero |
+|  -1.56667 |  0.466667 |            0.1 |
+|   1.13333 | 0.0666667 |           -0.2 |
+|       0.1 |      -0.2 |            0.1 |
+
+*** KF in Fortran
+
+From Matthew Rocklin,[fn:mrck] here is a version in fortran, equivalent, up to
+sign of the residual, to our basic Kalman filter from paper 1.[fn:klf1] His =H=
+is our $\mathbold{A}$, his =Sigma= is our $\mathbold{P}$, his =mu= is our
+$\mathbold{x}$, his =R= is our $\mathbold{Z}$, his =data= is our $\mathbold{z}$.
+
+#+BEGIN_SRC fortran
+subroutine f(mu, Sigma, H, INFO, R, Sigmavar_2, data, muvar_2, k, n)
+implicit none
+
+integer, intent(in) :: k
+integer, intent(in) :: n
+real*8, intent(in) :: Sigma(n, n)        !  Sigma
+real*8, intent(in) :: H(k, n)            !  H
+real*8, intent(in) :: mu(n)              !  mu
+real*8, intent(in) :: R(k, k)            !  R, H*Sigma*H' + R
+real*8, intent(in) :: data(k)            !  (H*Sigma*H' + R)^-1*((-1)*data + H*mu), data, (-1)*   data + H*mu
+integer, intent(out) :: INFO             !  INFO
+real*8, intent(out) :: muvar_2(n)        !  mu, Sigma*H'*(H*Sigma*H' + R)^-1*((-1)*data + H*  mu) + mu
+real*8, intent(out) :: Sigmavar_2(n, n)  !  Sigma, (-1)*Sigma*H'*(H*Sigma*H' + R)^-1*H* Sigma + Sigma
+real*8 :: var_17(n, k)                   !  Sigma*H', 0
+real*8 :: Hvar_2(k, n)                   !  (H*Sigma*H' + R)^-1*H, H
+real*8 :: var_11(n)                      !  0, H'*(H*Sigma*H' + R)^-1*((-1)*data + H*mu)
+real*8 :: var_19(n, n)                   !  0, H'*(H*Sigma*H' + R)^-1*H
+real*8 :: var_5(n, n)                    !  0
+real*8 :: var_20(n, n)                   !  H'*(H*Sigma*H' + R)^-1*H*Sigma, 0
+
+call dcopy(n**2, var_5, 1, var_20, 1)
+call dsymm('L', 'U', n, k, 1, Sigma, n, H, k, 0, var_17, n)
+call dgemm('N', 'N', k, k, n, 1, H, k, var_17, n, 1, R, k)
+call dcopy(n**2, var_5, 1, var_19, 1)
+call dcopy(n, mu, 1, muvar_2, 1)
+call dcopy(n**2, Sigma, 1, Sigmavar_2, 1)
+call dcopy(k*n, H, 1, Hvar_2, 1)
+call dgemm('N', 'N', k, 1, n, 1, H, k, mu, n, -1, data, k)
+call dposv('U', k, n, R, k, Hvar_2, k, INFO)
+call dposv('U', k, 1, R, k, data, k, INFO)
+call dgemm('N', 'N', n, n, k, 1, H, k, Hvar_2, k, 0, var_19, n)
+call dgemm('N', 'N', n, 1, k, 1, H, k, data, k, 0, var_11, n)
+call dsymm('L', 'U', n, n, 1, var_19, n, Sigma, n, 0, var_20, n)
+call dsymm('L', 'U', n, 1, 1, Sigma, n, var_11, n, 1, muvar_2, n)
+call dsymm('L', 'U', n, n, -1, Sigmavar_2, n, var_20, n, 1, Sigmavar_2, n)
+
+RETURN
+END
+#+END_SRC
+
+To write this in C, we need =dcopy=, =dsymm=, =dgemm=, and =dposv=.
+
+#+BEGIN_SRC C :tangle bar.c
+  #include <stdio.h>
+
+  void print_matrix (double * M, int n_rows, int n_cols) {
+      for (int row = 0; row < n_rows; ++row)
+      {   for (int col = 0; col < n_cols; ++col)
+          {   printf ("%g", M[col + n_cols * row]);
+              if (n_cols-1 != col)
+              {   printf (", ");   }   }
+          if (n_rows-1 != row)
+          {   printf ("\n");   }   }
+          printf ("\n\n");   }
+
+  int main (int argc, char ** argv) {
+      int N = 3;
+      int M = 3;
+      int MN = 3 * 3;
+      double DX[3][3] = { {1 , 2 ,  3},
+                          {4 , 5 ,  6},
+                          {7 , 8 , 19} };
+      double DY[3][3] = { {0 , 0 ,  0},
+                          {0 , 0 ,  0},
+                          {0 , 0 ,  0} };
+      int INCX = 1;
+      int INCY = 1;
+      /* from http://www.netlib.org/lapack/explore-html/da/d6c/dcopy_8f_source.html
+         SUBROUTINE dcopy(N,DX,INCX,DY,INCY)
+         ,*
+         ,*  -- Reference BLAS level1 routine (version 3.4.0) --
+         ,*  -- Reference BLAS is a software package provided by Univ. of Tennessee,    --
+         ,*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
+         ,*     November 2011
+         ,*
+         ,*     .. Scalar Arguments ..
+         INTEGER INCX,INCY,N
+         ,*     ..
+         ,*     .. Array Arguments ..
+         DOUBLE PRECISION DX(*),DY(*)
+         ,*     ..
+         ,*/
+
+      extern void dcopy_ (int * N, double * DX, int * INCX, double * DY, int * INCY);
+
+      print_matrix ((double *)DX, N, N);
+      print_matrix ((double *)DY, N, N);
+
+      dcopy_ (&MN, DX[0], &INCX, DY[0], &INCY);
+
+      print_matrix ((double *)DX, N, N);
+      print_matrix ((double *)DY, N, N);   }
+#+END_SRC
+
+Tangle it to =bar.c=, then compile and run as follows:
+
+#+BEGIN_SRC bash
+gcc bar.c -lblas && ./a.out
+#+END_SRC
+
+#+RESULTS:
+| 1 | 2 |  3 |
+| 4 | 5 |  6 |
+| 7 | 8 | 19 |
+|   |   |    |
+| 0 | 0 |  0 |
+| 0 | 0 |  0 |
+| 0 | 0 |  0 |
+|   |   |    |
+| 1 | 2 |  3 |
+| 4 | 5 |  6 |
+| 7 | 8 | 19 |
+|   |   |    |
+| 1 | 2 |  3 |
+| 4 | 5 |  6 |
+| 7 | 8 | 19 |
+
+#+BEGIN_SRC fortran
+subroutine f(mu, Sigma, H, INFO, R, Sigmavar_2, data, muvar_2, k, n)
+implicit none
+
+integer, intent(in) :: k
+integer, intent(in) :: n
+real*8, intent(in) :: Sigma(n, n)        !  Sigma
+real*8, intent(in) :: H(k, n)            !  H
+real*8, intent(in) :: mu(n)              !  mu
+real*8, intent(in) :: R(k, k)            !  R, H*Sigma*H' + R
+real*8, intent(in) :: data(k)            !  (H*Sigma*H' + R)^-1*((-1)*data + H*mu), data, (-1)*   data + H*mu
+integer, intent(out) :: INFO             !  INFO
+real*8, intent(out) :: muvar_2(n)        !  mu, Sigma*H'*(H*Sigma*H' + R)^-1*((-1)*data + H*  mu) + mu
+real*8, intent(out) :: Sigmavar_2(n, n)  !  Sigma, (-1)*Sigma*H'*(H*Sigma*H' + R)^-1*H* Sigma + Sigma
+real*8 :: var_17(n, k)                   !  Sigma*H', 0
+real*8 :: Hvar_2(k, n)                   !  (H*Sigma*H' + R)^-1*H, H
+real*8 :: var_11(n)                      !  0, H'*(H*Sigma*H' + R)^-1*((-1)*data + H*mu)
+real*8 :: var_19(n, n)                   !  0, H'*(H*Sigma*H' + R)^-1*H
+real*8 :: var_5(n, n)                    !  0
+real*8 :: var_20(n, n)                   !  H'*(H*Sigma*H' + R)^-1*H*Sigma, 0
+
+call dcopy(n**2, var_5, 1, var_20, 1)
+call dsymm('L', 'U', n, k, 1, Sigma, n, H, k, 0, var_17, n)
+call dgemm('N', 'N', k, k, n, 1, H, k, var_17, n, 1, R, k)
+call dcopy(n**2, var_5, 1, var_19, 1)
+call dcopy(n, mu, 1, muvar_2, 1)
+call dcopy(n**2, Sigma, 1, Sigmavar_2, 1)
+call dcopy(k*n, H, 1, Hvar_2, 1)
+call dgemm('N', 'N', k, 1, n, 1, H, k, mu, n, -1, data, k)
+call dposv('U', k, n, R, k, Hvar_2, k, INFO)
+call dposv('U', k, 1, R, k, data, k, INFO)
+call dgemm('N', 'N', n, n, k, 1, H, k, Hvar_2, k, 0, var_19, n)
+call dgemm('N', 'N', n, 1, k, 1, H, k, data, k, 0, var_11, n)
+call dsymm('L', 'U', n, n, 1, var_19, n, Sigma, n, 0, var_20, n)
+call dsymm('L', 'U', n, 1, 1, Sigma, n, var_11, n, 1, muvar_2, n)
+call dsymm('L', 'U', n, n, -1, Sigmavar_2, n, var_20, n, 1, Sigmavar_2, n)
+
+RETURN
+END
+#+END_SRC
+
+#+begin_src C :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -llapack -llapacke :exports both
+  #include <lapacke.h>
+
+  size_t N = 2;
+
+  double A [4] = {
+      1,2,
+      3,4
+  };
+
+  int *IPIV = malloc (N * sizeof (int));
+  int LWORK = N*N;
+  double *WORK = malloc (LWORK * sizeof (double));
+  int INFO;
+
+  dgetrf_(&N,&N,A,&N,IPIV,&INFO);
+  dgetri_(&N,A,&N,IPIV,WORK,&LWORK,&INFO);
+
+  free (IPIV);
+  free (WORK);
+
+  // inverse(A, 2);
+
+  printf("%f %f\n", A[0], A[1]);
+  printf("%f %f\n", A[2], A[3]);
+#+end_src
+
+#+RESULTS:
+| -2.0 |  1.0 |
+|  1.5 | -0.5 |
 
 
 * Footnotes
 
+
 [fn:affn] https://en.wikipedia.org/wiki/Affine_transformation
+[fn:babl] http://orgmode.org/worg/org-contrib/babel/
 [fn:bars] Bar-Shalom, Yaakov, /et al/. Estimation with applications to tracking and navigation. New York: Wiley, 2001.
 [fn:bier] http://tinyurl.com/h3jh4kt
+[fn:blas] http://www.netlib.org/blas/
 [fn:blck] http://tinyurl.com/bgwfkyc
 [fn:bssl] https://en.wikipedia.org/wiki/Bessel's_correction
-[fn:blas] http://www.netlib.org/blas/
 [fn:busi] https://en.wikipedia.org/wiki/Business_logic
 [fn:cbls] http://www.netlib.org/blas/
-[fn:cdot] We sometimes use the center dot or the $\times$ symbols to clarify
-matrix multiplication. They have no other significance and we can always write
-matrix multiplication just by juxtaposing the matrices.
+[fn:cdot] We sometimes use the center dot or the $\times$ symbols to clarify matrix multiplication. They have no other significance and we can always write matrix multiplication just by juxtaposing the matrices.
 [fn:clos] https://en.wikipedia.org/wiki/Closure_(computer_programming)
 [fn:cold] This convention only models so-called /cold observables/, but it's enough to demonstrate Kalman's working over them.
 [fn:cons] This is quite similar to the standard --- not  Wolfram's --- definition of a list as a pair of a value and of another list.
 [fn:cova] We use the terms /covariance/ for matrices and /variance/ for scalars.
 [fn:csoc] https://en.wikipedia.org/wiki/Separation_of_concerns
 [fn:ctsc] https://en.wikipedia.org/wiki/Catastrophic_cancellation
+[fn:dtaa] http://tinyurl.com/cwcdwq8
+[fn:doxy] http://www.stack.nl/~dimitri/doxygen/
 [fn:dstr] http://tinyurl.com/ze6qfb3
+[fn:eclx] https://gitlab.com/embeddable-common-lisp/ecl/wikis/home
 [fn:elib] Brookner, Eli. Tracking and Kalman Filtering Made Easy, New York: Wiley, 1998. http://tinyurl.com/h8see8k
 [fn:fldl] http://tinyurl.com/jmxsevr
+[fn:fncc] http://blog.madhukaraphatak.com/functional-programming-in-c++/
 [fn:fwik] https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29
 [fn:gama] https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem
+[fn:gslb] http://www.gnu.org/software/gsl/
+[fn:gtst] https://code.google.com/p/googletest/
 [fn:intr] http://introtorx.com/
+[fn:ipyt] http://ipython.org/
+[fn:jass] http://www.jstatsoft.org/v46/i03
+[fn:javd] http://tinyurl.com/o424429
 [fn:jplg] JPL Geodynamics Program http://www.jpl.nasa.gov/report/1981.pdf
-[fn:just] justified by the fact that $\mathbold{D}$ is a diagonal
-matrix that commutes with all other products, therefore its left and right
-inverses are equal and can be written as a reciprocal; in fact, $\mathbold{D}$
-is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this paper
+[fn:just] justified by the fact that $\mathbold{D}$ is a diagonal matrix that commutes with all other products, therefore its left and right inverses are equal and can be written as a reciprocal; in fact, $\mathbold{D}$ is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this paper
 [fn:klde] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
 [fn:klf1] B. Beckman, /Kalman Folding, Part 1/, to appear.
 [fn:klf2] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, to appear.
@@ -799,44 +1522,51 @@ is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this pa
 [fn:klf7] B. Beckman, /Kalman Folding 7: A Small Streams Library/, to appear.
 [fn:klf9] B. Beckman, /Kalman Folding 9: in C/, to appear.
 [fn:klfl] B. Beckman, /Kalman Folding, Part 1/, to appear.
+[fn:kohl] https://chriskohlhepp.wordpress.com/embedding-lisp-in-cplusplus-a-recipe/
 [fn:lavl] http://vgoulet.act.ulaval.ca/en/emacs/
 [fn:layi] https://en.wikipedia.org/wiki/Fundamental_theorem_of_software_engineering
-[fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram
-uses the name /Function/.
+[fn:litp] https://en.wikipedia.org/wiki/Literate_programming
+[fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram uses the name /Function/.
 [fn:lmlf] https://en.wikipedia.org/wiki/Lambda_lifting
 [fn:lpck] http://www.netlib.org/lapack/
+[fn:lpke] http://www.netlib.org/lapack/lapacke.html
 [fn:lsqo] LINQ's Standard Query Operators
 [fn:lssq] https://en.wikipedia.org/wiki/Least_squares
 [fn:ltis] http://tinyurl.com/hhhcgca
 [fn:matt] https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf
 [fn:mcmc] https://en.wikipedia.org/wiki/Particle_filter
 [fn:mond] https://en.wikipedia.org/wiki/Monad
+[fn:mrck] https://gist.github.com/mrocklin/5144149
 [fn:musc] http://www1.cs.dartmouth.edu/~doug/music.ps.gz
 [fn:ndim] https://en.wikipedia.org/wiki/Nondimensionalization
 [fn:obc1] Make sure the first example from http://tinyurl.com/kz2lz7m works
+[fn:orgm] https://en.wikipedia.org/wiki/Org-mode
 [fn:patt] http://tinyurl.com/j5jzy69
 [fn:pico] http://tinyurl.com/gku2k74
+[fn:plnt] http://plantuml.com/emacs.html
 [fn:pseu] http://tinyurl.com/j8gvlug
 [fn:rasp] http://www.wolfram.com/raspberry-pi/
 [fn:rcrn] https://en.wikipedia.org/wiki/Recurrence_relation
+[fn:root] https://root.cern.ch/root-user-guides-and-manuals
 [fn:rsfr] http://rosettacode.org/wiki/Loops/Foreach
 [fn:rxbk] http://www.introtorx.com/content/v1.0.10621.0/07_Aggregation.html
+[fn:sage] http://www.sagemath.org/
 [fn:scan] and of Haskell's scans and folds, and Rx's scans and folds, /etc./
 [fn:scla] http://tinyurl.com/hhdot36
-[fn:scnd] A state-space form containing a position and derivative is commonplace
-in second-order dynamics like Newton's Second Law. We usually employ state-space
-form to reduce \(n\)-th-order differential equations to first-order differential
-equations by stacking the dependent variable on $n-1$ of its derivatives in the
-state vector.
+[fn:scnd] A state-space form containing a position and derivative is commonplace in second-order dynamics like Newton's Second Law. We usually employ state-space form to reduce \(n\)-th-order differential equations to first-order differential equations by stacking the dependent variable on $n-1$ of its derivatives in the state vector.
 [fn:scnl] http://learnyouahaskell.com/higher-order-functions
+[fn:scp1] https://en.wikipedia.org/wiki/Scripting_language
+[fn:scp2] http://tinyurl.com/mj3n9aq
+[fn:scp3] http://tinyurl.com/3tunry3
+[fn:siod] http://tinyurl.com/o5jx6xr
+[fn:spac] https://github.com/syl20bnr/spacemacs
 [fn:spcm] http://www.spacemacs.org
 [fn:stsp] https://en.wikipedia.org/wiki/State-space_representation
+[fn:tikz] http://tinyurl.com/juw7524
 [fn:trak] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, To appear.
 [fn:uncl] The initial uncial (lower-case) letter signifies that /we/ wrote this function; it wasn't supplied by Wolfram.
 [fn:wfld] http://reference.wolfram.com/language/ref/FoldList.html?q=FoldList
 [fn:wlf1] http://tinyurl.com/nfz9fyo
 [fn:wlf2] http://rebcabin.github.io/blog/2013/02/04/welfords-better-formula/
 [fn:wolf] http://reference.wolfram.com/language/
-[fn:zarc] Zarchan and Musoff, /Fundamentals of Kalman Filtering, A Practical
-Approach, Fourth Edition/, Ch. 4
-
+[fn:zarc] Zarchan and Musoff, /Fundamentals of Kalman Filtering, A Practical Approach, Fourth Edition/, Ch. 4
