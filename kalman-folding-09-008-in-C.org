@@ -28,7 +28,7 @@
 This section is just about setting up org-mode. It shouldn't export to the
 typeset PDF and HTML.
 
-#+BEGIN_SRC emacs-lisp :exports results none
+#+BEGIN_SRC emacs-lisp :exports :results none
   (defun update-equation-tag ()
     (interactive)
     (save-excursion
@@ -43,17 +43,15 @@ typeset PDF and HTML.
   ; (slime)
 #+END_SRC
 
-#+RESULTS:
-
 * Abstract
 
-In this literate program, we show one way to implement the basic Kalman fold in C.
-The background for Kalman folding appears in /Kalman Folding, Part 1/,[fn:klf1]
-where we highlight the the unique advantages of a functional fold for deploying
-test-hardened code verbatim in harsh, mission-critical environments. In that and
-in other papers in this series, the emphasis is on mathematical clarity and
-conciseness. Here, the emphasis is on embedded systems by using the primary
-language for implementing such systems, C.
+In this literate program, we show one way to implement the basic Kalman fold in
+C. The background for Kalman folding appears in /Kalman Folding, Part
+1/,[fn:klf1] where we highlight the the unique advantages of functional folding
+for deploying test-hardened code verbatim in harsh, mission-critical
+environments. In that and in other papers in this series, the emphasis is on
+mathematical clarity and conciseness. Here, the emphasis is on embedded systems
+and on the primary language for implementing such systems, C.
 
 #+BEGIN_COMMENT
 Here, we prototype a couple of less friendly environments and demonstrate
@@ -159,15 +157,15 @@ accumulator function of a fold that implements the static Kalman filter:
 
 In physical or engineering applications, these quantities carry physical
 dimensions of units of measure in addition to their matrix dimensions as numbers
-of rows and columns. 
-If the physical and matrix dimensions of 
-$\mathbold{x}$ 
+of rows and columns.
+If the physical and matrix dimensions of
+$\mathbold{x}$
 are
 $\left[\left[\mathbold{x}\right]\right]
 \stackrel{\text{\tiny def}}{=}
 (\mathcal{X}, n\times{1})$
-and of 
-$\mathbold{z}$ 
+and of
+$\mathbold{z}$
 are
 $\left[\left[\mathbold{z}\right]\right]
 \stackrel{\text{\tiny def}}{=}
@@ -200,7 +198,7 @@ The function in equation \ref{eqn:kalman-cume-definition}
 /lambda-lifts/[fn:lmlf] $\mathbold{Z}$, meaning that it is necessary to call
 /kalmanStatic/ with a constant $\mathbold{Z}$ to get the actual accumulator
 function used in folds. This is desirable to reduce coupling between the
-accumulator function and its calling environment. 
+accumulator function and its calling environment.
 
 In Wolfram, this function is
 
@@ -220,10 +218,10 @@ We test it on a small case
 \begin{verbatim}
 Fold[kalmanStatic[IdentityMatrix[1]],
   {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
-  {{{{1,  0., 0.,  0.}}, { -2.28442}}, 
-   {{{1,  1., 1.,  1.}}, { -4.83168}}, 
-   {{{1, -1., 1., -1.}}, {-10.46010}}, 
-   {{{1, -2., 4., -8.}}, {  1.40488}}, 
+  {{{{1,  0., 0.,  0.}}, { -2.28442}},
+   {{{1,  1., 1.,  1.}}, { -4.83168}},
+   {{{1, -1., 1., -1.}}, {-10.46010}},
+   {{{1, -2., 4., -8.}}, {  1.40488}},
    {{{1,  2., 4.,  8.}}, {-40.8079}}}
   ] // Chop
 ~~>
@@ -269,7 +267,7 @@ data-delivery environments. This demonstrates the primary thesis of this series
 of papers: that writing filters as functional folds enables verbatim deployment
 of code in both friendly, synchronous environments with all data in memory, and
 unfriendly asynchronous environments using only constant memory. Verbatim means
-with no changes at all, not even recompilation. 
+with no changes at all, not even recompilation.
 
 We have tested these prototypes against bigger
 examples like the tracking example[fn:trak] and the accelerometer
@@ -277,22 +275,22 @@ example,[fn:klfl] and there are no surprises.
 
 * Literate Code
 
-A /literate program/[fn:litp] is a single text document that contains both 
-- \LaTeX{} typesetting instructions and 
+A /literate program/[fn:litp] is a single text document that contains both
+- \LaTeX{} typesetting instructions and
 - source code and scripts for an application.
-A literate program can
-be edited in any text editor and controlled with text-based versioning tools
-like git, but requires other tools to extract the typeset document and to
-extract the source code and lay it out on disk as required by compilers,
-linkers, and other build tools. My chosen tools are emacs and org-babel.[fn:babl]
-They allow interactive evaluation of code in the original org-mode[fn:orgm]
-document. If you  wish to follow along
-interactively, you will need emacs and the text source for this
-document. The text source for this document is found here */TODO/*. A distribution
-of emacs for the Mac with adequate org-babel support is maintained by Vincent
-Goulet at the University of Laval.[fn:lavl] Emacs for Linux and Windows is easy
-to find, but I do not discuss it further. /Spacemacs/[fn:spcm] offers /vim/
-emulation with the tools needed for literate programming.
+A literate program can be edited in any text editor and controlled with
+text-based versioning tools like git, but requires other tools to extract the
+typeset document and to extract the source code. My chosen tools are emacs and
+org-babel.[fn:babl] In addition to extraction, called /tangling/, these tools
+allow interactive evaluation of code in the original text document. A reader may
+reproduce the results here by interacting with the source document.[fn:rprs] If
+you wish to follow along interactively, you will need emacs and the text source
+for this document. The text source for this document is found here */TODO/*. A
+distribution of emacs for the Mac with adequate org-babel support is maintained
+by Vincent Goulet at the University of Laval.[fn:lavl] Emacs for Linux and
+Windows is easy to find, but I do not discuss it further. /Spacemacs/[fn:spcm]
+offers /vim/ emulation with the tools needed for literate programming for those
+who prefer /vim/.
 
 * COMMENT Polemical Justification
 
@@ -331,8 +329,8 @@ A much better idea is to put source code in the documentation. This is called
    so difficult that people don't actually do it. The advantages of text-based
    version control are so overwhelming that people end up maintaining /only/ the
    documentation that's in pure text, and that documentation is usually /only/
-   buried in the source code. 
-   
+   buried in the source code.
+
 3. Source-code comments are almost always in pure ascii, and there is no
    standard way that programmers will actually adopt to present typeset
    mathematics, diagrams, charts, and other vital visual aids. But org-mode
@@ -341,7 +339,7 @@ A much better idea is to put source code in the documentation. This is called
 
 4. We need documents in HTML, PDF, Word, Wiki, Markdown, and any number of other
    formats. We seek tooling that can generate all of these /plus/ the source
-   directory tree from a single source document. 
+   directory tree from a single source document.
 
 ** What about IDEs?
 
@@ -381,13 +379,13 @@ does work, you have a correctly installed C compiler.
 
 #+begin_src C++ :includes '(<stdio.h>) :tangle k-folding.c :exports both
   int a=7;
-  int b=7;
+  int b=6;
   printf("%d\n", a*b);
   // ~~> produces
 #+end_src
 
 #+RESULTS:
-: 49
+: 42
 
 ** Recurrence for the Mean
 *** Business Code
@@ -447,7 +445,7 @@ below.
 *** Primary Numerical Type
 
 We abstract out the primary numerical type into the traditional =T= to make it
-easier to change. 
+easier to change.
 
 #+CAPTION: Primary numerical type
 #+NAME: c-numerical-type
@@ -468,7 +466,7 @@ them entails more code, so we opt for keeping the code small at the cost of some
 copying that could be optimized away.
 
 Also, in the interest of saving space, specifically, staircases of closing curly
-braces on lines by themselves, we adopt the /Pico/[fn:pico] style for bracing. 
+braces on lines by themselves, we adopt the /Pico/[fn:pico] style for bracing.
 
 #+CAPTION: Accumulation type
 #+NAME: c-accumulation-type
@@ -502,7 +500,7 @@ dynamic memory allocation. In an embedded application, we would use arena memory
 (fixed-length circular buffer pools of fixed-length structs) or stack allocation
 (/calloc/). Here, for brevity and because this is a testing deployment, we use
 heap memory (stdlib's /malloc/ and /free/). These are unacceptable in embedded
-applications because of fragmentation and unbounded execution times. 
+applications because of fragmentation and unbounded execution times.
 
 When we get to lazy streams, we won't need these at all. They're only for arrays
 of observations all in memory at one time.
@@ -511,7 +509,7 @@ The primary helper type is a bounded array of /Observations/ type that includes
 the length and a handy iterator-like /current/ index. Most of the code for this
 type concerns explicit memory management for this helper type.
 
-We also include an /Observation/ type, for asbstraction hygiene. 
+We also include an /Observation/ type, for asbstraction hygiene.
 
 #+CAPTION: Observation types
 #+NAME: c-observation-types
@@ -595,7 +593,7 @@ streams, articulated below, just as with Wolfram.
 #+END_SRC
 
 Tangle this code out to a C file by executing `org-babel-tangle' while
-visiting this literate source code in emacs. 
+visiting this literate source code in emacs.
 
 Compile and run the code as follows:
 
@@ -627,7 +625,7 @@ on-demand, dynamic memory management for the output accumulations.
 ``On-demand,'' here, means growing the output array as new accumulations arrive.
 We use the common trick of doubling the capacity of the output array every time
 the capacity is exceeded. This trick is a reasonable compromise of space and
-time efficiency. 
+time efficiency.
 
 We emulate the /bounded-array/ interface created for observations, and add three
 more functions to the usual /create/, /free/, and /print/.
@@ -636,7 +634,7 @@ more functions to the usual /create/, /free/, and /print/.
 - appendAccumulations :: appends a new accumulation to a bounded array of
      accumulations, growing the capacity if needed
 - foldList :: takes an accumulator $f$, an initial accumulation $a_0$, a bounded
-     array of observations $zs$, and produces a bounded array of accumulations. 
+     array of observations $zs$, and produces a bounded array of accumulations.
 
 #+CAPTION: Bounded array for accumulations
 #+NAME: c-bounded-array-for-accumulations
@@ -658,7 +656,7 @@ more functions to the usual /create/, /free/, and /print/.
       {   /* Double the storage. */
           int new_max = 2 * result.max;
           /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
-          pAccumulation new = (pAccumulation) 
+          pAccumulation new = (pAccumulation)
             malloc (sizeof (Accumulation) * new_max);
           if (NULL == new)
           {   printf ("Failed to alloc %d Accumulations\n", new_max);
@@ -667,10 +665,10 @@ more functions to the usual /create/, /free/, and /print/.
           {   printf ("Internal bugcheck\n");
               exit (-3);   }
           memset ((void *)new, 0, new_max * sizeof (Accumulation));
-          memcpy ((void *)new, (void *)result.accumulations, 
+          memcpy ((void *)new, (void *)result.accumulations,
             (sizeof (Accumulation) * result.max));
           free ((void *) result.accumulations);
-          result.accumulations = new; 
+          result.accumulations = new;
           result.max = new_max;   }
       result.accumulations[result.count] = a;
       ++ result.count;
@@ -689,7 +687,7 @@ more functions to the usual /create/, /free/, and /print/.
 
   void freeAccumulations (Accumulations as)
   {   memset ((void *) as.accumulations, 0,
-        (sizeof (Accumulation) * as.count)); 
+        (sizeof (Accumulation) * as.count));
       free ((void *) as.accumulations);   }
 
   void printAccumulations (Accumulations as)
@@ -777,15 +775,171 @@ Fold[cume, {0, 0, 0}, zs]
 
 * Basic Kalman Folding
 
-We need matrix operations, and we choose the Gnu Scientific Library,
-GSL[fn:gslb], which includes support for CBLAS[fn:cbls].
+** Avoiding the Inverse
 
-** Get GSL to Work
+In the first paper in this series, we wrote one version of the static Kalman
+filter, when there are no system dynamics,[fn:klf2] as follows.
+
+#+BEGIN_LaTeX
+\begin{equation}
+\label{eqn:kalman-cume-definition}
+\text{cume}
+\left(
+\mathbold{Z}
+\right)
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) =
+\left\{
+\mathbold{x}+
+\mathbold{K}\,
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right),
+\mathbold{P}-
+\mathbold{K}\,
+\mathbold{A}\,
+\mathbold{P}
+\right\}
+\end{equation}
+#+END_LaTeX
+
+\noindent where
+
+#+BEGIN_LaTeX
+\begin{align}
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+#+END_LaTeX
+
+\noindent and all quantities are matrices, and
+
+- \(\mathbold{Z}\) =   \({b}\times{b}\) covariance of observation noise
+- \(\mathbold{x}\) =   \({n}\times{1}\) model states
+- \(\mathbold{P}\) =   \({n}\times{n}\) theoretical covariance of \(\mathbold{x}\)
+- \(\mathbold{A}\) =   \({b}\times{n}\) \emph{observation partials}
+- \(\mathbold{z}\) =   \({b}\times{1}\) multidimensional, decorrelated observations
+- \(\mathbold{K}\) =   \({n}\times{b}\) \emph{Kalman gain}
+- \(\mathbold{D}\) =   \({b}\times{b}\) the Kalman denominator
+
+Adding physical dimensions, if the physical and matrix dimensions of
+\(\mathbold{x}\)
+are
+\(\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})\)
+and of
+\(\mathbold{z}\)
+are
+\(\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})\), then
+
+#+BEGIN_LaTeX
+\begin{equation*}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
+\end{array}
+\end{equation*}
+#+END_LaTeX
+
+While an expression with an explicit inverse is mathematically acceptable,
+inverses are numerically risky, expensive in storage, slow to compute, and
+usually not necessary.[fn:ditm] LAPACK can solve linear systems very
+efficiently, much more efficiently than it can invert matrices.
+Therefore, we rewrite the basic filter to avoid computing
+$\mathbold{D}^{-1}$.
+
+If
+\(\textrm{DiRes}=\mathbold{D}^{-1}\,(\mathbold{z}-\mathbold{A}\,\mathbold{x})\)
+is the solution of the linear equation
+\(\mathbold{D}\times\textrm{\textrm{DiRes}}=(\mathbold{z}-\mathbold{A}\,\mathbold{x})\), and if
+$\mathbold{K}=\mathbold{P}\,\mathbold{A}^\intercal\,\mathbold{D}^{-1}$, then
+$\mathbold{K}\,(\mathbold{z}-\mathbold{A}\,\mathbold{x})=\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiRes}$
+and the Kalman state-update is $\mathbold{x}\leftarrow\mathbold{x}+\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiRes}$.
+Likewise, if $\textrm{DiAP}=\mathbold{D}^{-1}\,\mathbold{A}\,\mathbold{P}$ is
+the solution of the linear equation
+$\mathbold{D}\times\textrm{DiAP}=\mathbold{A}\,\mathbold{P}$, then
+$\mathbold{K}\,\mathbold{A}\,\mathbold{P}=\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiAP}$
+and the Kalman covariance update is $\mathbold{P}\leftarrow\mathbold{P}-\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiAP}$.
+
+In Wolfram, our original, foldable Kalman filter was
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+kalman[Z_][{x_, P_}, {A_, z_}] :=
+  Module[{D, K},
+   D = Z + A.P.Transpose[A];
+   K = P.Transpose[A].Inverse[D];
+   {x + K.(z - A.x), P - K.A.P}];
+\end{verbatim}
+#+END_LaTeX
+
+\noindent and our new minimal, foldable filter is
+
+#+BEGIN_LaTeX
+\begin{verbatim}
+noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+  Module[{PAT, D, KRes, KAP},
+   PAT = P.Transpose[A];
+   D = Z + A.PAT;
+   KRes = PAT.LinearSolve[D, z - A.x];
+   KAP = PAT.LinearSolve[D, A.P];
+   {x + KRes, P - KAP}];
+\end{verbatim}
+#+END_LaTeX
+
+This reads almost as easily as the original if one reads =LinearSolve= as
+/invert-first-argument-and-matrix-multiply/.
+
+Notice we do not compute the Kalman gain explicitly, but only use it in
+combination with other matrices. This produces results indistinguishable from
+the original, up to floating-point issues, when folded over any source of data.
+
+LAPACK offers a function, =dposv=,[fn:dpos][fn:ndoc] that solves this linear
+system when $\mathbold{D}$ is symmetric and positive definite. Because
+$\mathbold{D}$ is the sum of a diagonal matrix $\mathbold{Z}$ and a symmetric,
+positive-definite matrix $\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal$,
+it should also be symmetric and positive definite. Therefore, we transcribe the
+code above into C as follows
+
+** Fortran and C
+
+We need matrix operations, and we choose CBLAS[fn:cbls] and LAPACKE.[fn:lpke]
+
+** COMMENT Get GSL to Work
 
 Get gsl, build it (=./configure=, =make=),
 check it (=make check=), install it (=make install=). The following should work
 if you use all the default settings; you may need to install /gfortran/
-separately. 
+separately.
 
 You must link these against =libgsl=. Note the flags on the
 =begin-src= line if you are visiting the org-mode file in emacs.
@@ -819,7 +973,7 @@ You must link these against =libgsl=. Note the flags on the
    int i;
    gsl_vector * v = gsl_vector_alloc (3);
 
-   for (i = 0; i < 3; i++) 
+   for (i = 0; i < 3; i++)
    {   gsl_vector_set (v, i, 1.23 + i);   }
 
    for (i = 0; i < 3; i++)
@@ -883,7 +1037,7 @@ You must link these against =libgsl=. Note the flags on the
 | m(9 | 1) = 901.23 |
 | m(9 | 2) = 902.23 |
 
-** BLAS Through GSL
+** COMMENT BLAS Through GSL
 
 You must link this against =libgsl= and =libblas=. Note the flags on the
 =begin-src= line if you are visiting the org-mode file in emacs.
@@ -917,9 +1071,9 @@ You must link this against =libgsl= and =libblas=. Note the flags on the
                   1.0, &AT.matrix, &A.matrix,
                   0.0, &C.matrix);
 
-  printf ("%g, %g, %g, %g\n",   c[ 0], c[ 1], c[ 2], c[ 3]);
-  printf ("%g, %g, %g, %g\n",   c[ 4], c[ 5], c[ 6], c[ 7]);
-  printf ("%g, %g, %g, %g\n",   c[ 8], c[ 9], c[10], c[11]);
+  printf ("%g, %g, %g, %g\n", c[ 0], c[ 1], c[ 2], c[ 3]);
+  printf ("%g, %g, %g, %g\n", c[ 4], c[ 5], c[ 6], c[ 7]);
+  printf ("%g, %g, %g, %g\n", c[ 8], c[ 9], c[10], c[11]);
   printf ("%g, %g, %g, %g\n", c[12], c[13], c[14], c[15]);
   // ~~> produces
 #+end_src
@@ -930,9 +1084,75 @@ You must link this against =libgsl= and =libblas=. Note the flags on the
 | 10 |  0 | 34 |   0 |
 |  0 | 34 |  0 | 130 |
 
+** COMMENT BLAS and CBLAS
+
+The most direct way to access BLAS from C is through its supported CBLAS
+wrapper. Because the layer is very thin, we have visibility into all operations
+going to the metal.
+
+#+BEGIN_SRC C :includes '(<stdio.h> <stdlib.h> <string.h> <cblas.h>) :flags -lcblas :exports both
+  /* DGEMM computes C <-- alpha * A   . B + beta * C
+     or             C <-- alpha * A^T . B + beta * C
+
+     In the first case, A is m by k, B is k by n, and C is m by n.
+     In the second case A is k by m, B is k by n, and C is m by n.
+
+     We want to compute A^T . A.
+   */
+
+  int m      = 4;    /* Size of A  Column ( the number of rows )    */
+  int k      = 5;    /* Size of A  Row    ( the number of columns ) */
+  int n      = 4;    /* Size of AT Column */
+  int lda    = 5;    /* Leading dimension of 5 * 4 matrix is 5 */
+  int ldat   = 4;
+  int ld_ata = 4;
+
+  double alpha = 1;
+  double beta  = 0;
+
+  /* In our application, a plays the role of matrix B. We only have to look at one
+     bit of poison, here: we write the array in row-major order, but fortran
+     "sees" it in column-major order. That means that the leading dimension of the
+     array a is the number of rows, or the number of elements between successive
+     columns, or the stride. We could do the same calculation entirely in
+     row-major form, but why? */
+
+  /* k = 5 rows, n = 4 columns */
+  double a[] = { /* col 0 */  1.0,  1.0,  1.0,  1.0,  1.0,
+                 /* col 1 */  0.0,  1.0, -1.0, -2.0,  2.0,
+                 /* col 2 */  0.0,  1.0,  1.0,  4.0,  4.0,
+                 /* col 3 */  0.0,  1.0, -1.0, -8.0,  8.0 };
+
+  /* Clear the result's memory, for paranoia. Memset is fast. */
+  double ata[ 4 * 4 ];
+  memset (ata, 0, 4 * 4 * sizeof (double));
+
+  /* Compute C <-- alpha * A^T . A + beta * C */
+
+  cblas_dgemm (CblasColMajor,
+               CblasTrans, CblasNoTrans,
+               m, n, k,
+               alpha,
+               /* We can just refer to the original matrix here; it
+                  won't be perturbed. */
+               a, k, /* LD of at before DGENN's internal transpose. */
+               a, k,
+               beta,
+               ata, n);
+
+  for (int r = 0; r < n; ++r)
+  { printf ("%g, %g, %g, %g\n", ata[r], ata[n + r], ata[2*n + r], ata[3*n + r]); }
+#+END_SRC
+
+#+RESULTS:
+|  5 |  0 | 10 |   0 |
+|  0 | 10 |  0 |  34 |
+| 10 |  0 | 34 |   0 |
+|  0 | 34 |  0 | 130 |
+
 ** LAPACK and LAPACKE
 
-*** gfortran
+*** COMMENT gfortran
 
 Make sure you have =gfortran= installed:
 
@@ -950,7 +1170,7 @@ gfortran --version
 | For       | more    | information  | about  | these    | matters,    | see     | the    | file     | named     | COPYING |      |
 |           |         |              |        |          |             |         |        |          |           |         |      |
 
-*** LAPACK
+*** COMMENT LAPACK
 
 Get LAPACK.[fn:lpck]
 This builds BLAS as a side effect.
@@ -1000,7 +1220,7 @@ make install
 | --                       | Installing:                | /usr/local/lib/liblapack.a                                      |          |            |
 | --                       | Installing:                | /usr/local/lib/libtmglib.a                                      |          |            |
 
-*** LAPACKE
+*** COMMENT LAPACKE
 
 This is the C interface to LAPACK.  It does not come up as trivially as does
 GSL. I had to move some files around manually.
@@ -1160,13 +1380,13 @@ make
 |                       1.0 |                        2.0 |                       |                    |         |                         |
 |                           |                            |                       |                    |         |                         |
 
-*** Intermediate LAPACK Samples
+*** COMMENT Intermediate LAPACK Samples
 
 Here's an example where a singular matrix can't be inverted, and LAPACK tells us
 so by depositing a $3$  in =errorHandler=.  Change the matrix to a non-singular
 one and you should see a $0$ in =errorHandler=.
 
-#+begin_src C :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -llapack -llapacke :exports both :tangle SOexample.c
+#+BEGIN_SRC C :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -llapack -llapacke :exports both :tangle SOexample.c
   #include <stddef.h>
   #include <lapacke.h>
   int N = 3;
@@ -1196,7 +1416,7 @@ one and you should see a $0$ in =errorHandler=.
       if (N-1 != row)
       {   printf ("\n");   }   }
   // ~~> produces
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 | dgetrf eh |        3 | should be zero |
@@ -1205,17 +1425,24 @@ one and you should see a $0$ in =errorHandler=.
 |         6 |        2 |            0.5 |
 |         9 |        4 |              0 |
 
-Here is the example, again, this time calling the unerdlying fortran library directly:
+Here is an example of inverting a matrix, time calling the underlying fortran
+library directly:
 
-#+begin_src C :includes '(<stdio.h> <stddef.h>) :flags -llapack :exports both :tangle foo.c
+#+BEGIN_SRC C :includes '(<stdio.h> <stddef.h>) :flags -llapack :exports both :tangle foo.c
   int N = 3;
   int NN = 9;
+  /* The following input appears in row-major order. The underlying fortran code
+     'sees' the transpose of this matrix, i.e., the same data in column-major
+     order. We print the result again in row-major order, so, although the result
+     is actually the inverse of the transpose of this matrix, it looks right
+     because the inverse of the transpose is the transpose of the inverse. */
   double M[3][3] = { {1 , 2 ,  3},
                      {4 , 5 ,  6},
                      {7 , 8 , 19} };
   int pivotArray[3]; //since our matrix has three rows
   int errorHandler;
   double lapackWorkspace[9];
+
   /*
     SUBROUTINE DGETRF( M, N, A, LDA, IPIV, INFO )
     ,*
@@ -1270,7 +1497,7 @@ Here is the example, again, this time calling the unerdlying fortran library dir
        if (N-1 != row)
        {   printf ("\n");   }   }
   // ~~> produces
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 | dgetrf eh |         0 | should be zero |
@@ -1279,60 +1506,791 @@ Here is the example, again, this time calling the unerdlying fortran library dir
 |   1.13333 | 0.0666667 |           -0.2 |
 |       0.1 |      -0.2 |            0.1 |
 
-*** KF in Fortran
+*** COMMENT KF with LAPACK
 
-From Matthew Rocklin,[fn:mrck] here is a version in fortran, equivalent, up to
-sign of the residual, to our basic Kalman filter from paper 1.[fn:klf1] His =H=
-is our $\mathbold{A}$, his =Sigma= is our $\mathbold{P}$, his =mu= is our
-$\mathbold{x}$, his =R= is our $\mathbold{Z}$, his =data= is our $\mathbold{z}$.
+On balance, it's better to get things working in row-major mode because the C
+code reads much easier. Even though it would seem to be easy to keep
+column-major mode straight in one's mind --- just mentally transpose every
+matrix, or, maybe just some of them --- It slows down my
+debugging because it adds one more thing that can go wrong at every
+step. Adding one more thing to go wrong at every step doubles your
+debugging time.
 
-#+BEGIN_SRC fortran
-subroutine f(mu, Sigma, H, INFO, R, Sigmavar_2, data, muvar_2, k, n)
-implicit none
+After debugging row-major mode, if you need column-major mode for speed,
+optimize the calculations bit-by-bit.
 
-integer, intent(in) :: k
-integer, intent(in) :: n
-real*8, intent(in) :: Sigma(n, n)        !  Sigma
-real*8, intent(in) :: H(k, n)            !  H
-real*8, intent(in) :: mu(n)              !  mu
-real*8, intent(in) :: R(k, k)            !  R, H*Sigma*H' + R
-real*8, intent(in) :: data(k)            !  (H*Sigma*H' + R)^-1*((-1)*data + H*mu), data, (-1)*   data + H*mu
-integer, intent(out) :: INFO             !  INFO
-real*8, intent(out) :: muvar_2(n)        !  mu, Sigma*H'*(H*Sigma*H' + R)^-1*((-1)*data + H*  mu) + mu
-real*8, intent(out) :: Sigmavar_2(n, n)  !  Sigma, (-1)*Sigma*H'*(H*Sigma*H' + R)^-1*H* Sigma + Sigma
-real*8 :: var_17(n, k)                   !  Sigma*H', 0
-real*8 :: Hvar_2(k, n)                   !  (H*Sigma*H' + R)^-1*H, H
-real*8 :: var_11(n)                      !  0, H'*(H*Sigma*H' + R)^-1*((-1)*data + H*mu)
-real*8 :: var_19(n, n)                   !  0, H'*(H*Sigma*H' + R)^-1*H
-real*8 :: var_5(n, n)                    !  0
-real*8 :: var_20(n, n)                   !  H'*(H*Sigma*H' + R)^-1*H*Sigma, 0
+*** Full Least-Squares Without Fold
 
-call dcopy(n**2, var_5, 1, var_20, 1)
-call dsymm('L', 'U', n, k, 1, Sigma, n, H, k, 0, var_17, n)
-call dgemm('N', 'N', k, k, n, 1, H, k, var_17, n, 1, R, k)
-call dcopy(n**2, var_5, 1, var_19, 1)
-call dcopy(n, mu, 1, muvar_2, 1)
-call dcopy(n**2, Sigma, 1, Sigmavar_2, 1)
-call dcopy(k*n, H, 1, Hvar_2, 1)
-call dgemm('N', 'N', k, 1, n, 1, H, k, mu, n, -1, data, k)
-call dposv('U', k, n, R, k, Hvar_2, k, INFO)
-call dposv('U', k, 1, R, k, data, k, INFO)
-call dgemm('N', 'N', n, n, k, 1, H, k, Hvar_2, k, 0, var_19, n)
-call dgemm('N', 'N', n, 1, k, 1, H, k, data, k, 0, var_11, n)
-call dsymm('L', 'U', n, n, 1, var_19, n, Sigma, n, 0, var_20, n)
-call dsymm('L', 'U', n, 1, 1, Sigma, n, var_11, n, 1, muvar_2, n)
-call dsymm('L', 'U', n, n, -1, Sigmavar_2, n, var_20, n, 1, Sigmavar_2, n)
+#+BEGIN_SRC C :includes '(<stdio.h> <stdlib.h> <string.h> <cblas.h> <lapacke.h>) :flags -lcblas -llapacke -llapack :exports both
+  const int    m = 5;
+  const int    n = 4;
 
-RETURN
-END
+  double A[m * n] = { 1,  0.,  0.,  0.,
+                      1,  1.,  1.,  1.,
+                      1, -1.,  1., -1.,
+                      1, -2.,  4., -8.,
+                      1,  2.,  4.,  8. };
+
+  // Compute Transpose[A].A; A is not disturbed.
+
+  double AtA[n * n];
+  memset (AtA, 0, n * n * sizeof (double));
+
+  cblas_dgemm (CblasRowMajor, CblasTrans, CblasNoTrans,
+               n, n, m, 1,
+               A, n, // LDA is pre-transpose
+               A, n,
+               0,
+               AtA, n);
+
+  for (int r = 0; r < n; ++r)
+  {   for (int c = 0; c < n; ++c)
+      {   printf ("%g ", AtA[c + r * n]);   }
+      printf ("\n");   }
+  printf ("\n");
+
+  // Compute Transpose[A].z; neither A nor z is disturbed. Results are deposited
+  // into Atz.
+
+  double z[m] = {-2.28442, -4.83168, -10.4601, 1.40488, -40.8079};
+
+  double Atz[n];
+
+  cblas_dgemv (CblasRowMajor, CblasTrans,
+               m, n, 1,
+               A, n,
+               z, 1, 0,
+               Atz, 1);
+
+  for (int i = 0; i < n; ++i)
+  {   printf ("%g ", Atz[i]);   }
+  printf ("\n");
+
+  // Solve At.A.x = At.z = Atz. Unlike the CBLAS routines, the input storage
+  // locations are modified. The Cholesky decomposition of AtA is deposited into
+  // AtA, in-place, and the solution is deposited into Atz. To preserve these
+  // matrices, it's necessary to copy them first.
+
+  // The documentation for LAPACKE_dposv has an apparent error (see
+  // http://tinyurl.com/htvod3e). It states that the leading dimension of B must
+  // be >= max(1, N), but we suspect it should say >= max(1, NRHS). The results
+  // are definitely wrong if N is used as LDB.
+
+  // The results of this computation are identical to those from Mathematica. This
+  // is not surprising because Mathematica probably uses LAPACK internally.
+
+  lapack_int LAPACKE_dposv( int matrix_layout, char uplo, lapack_int n,
+                            lapack_int nrhs, double* a, lapack_int lda, double* b,
+                            lapack_int ldb );
+
+  lapack_int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U', n, 1, AtA, n, Atz, 1);
+
+  printf ("%d\n\n", result);
+
+  for (int i = 0; i < n; ++i)
+  {   printf ("%g ", Atz[i]);   }
+  printf ("\n");
+
 #+END_SRC
 
-To write this in C, we need =dcopy=, =dsymm=, =dgemm=, and =dposv=.
+#+RESULTS:
+|        5 |        0 |       10 |        0 |
+|        0 |       10 |        0 |       34 |
+|       10 |        0 |       34 |        0 |
+|        0 |       34 |        0 |      130 |
+|          |          |          |          |
+| -56.9792 | -78.7971 | -172.904 | -332.074 |
+|        0 |          |          |          |
+|          |          |          |          |
+| -2.97507 |  7.27001 | -4.21039 |  -4.4558 |
+
+*** Foldable Kalman Without Inverse
+
+#+BEGIN_SRC C :tangle qux.c
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <cblas.h>
+  #include <lapacke.h>
+
+  void printm (char * nym, double * m, int rows, int cols)
+  {   printf ("%s\n", nym);
+      for (int r = 0; r < rows; ++r)
+      {   for (int c = 0; c < cols; ++c)
+          {   printf ("%g ", m[c + r * cols]);   }
+          printf ("\n");   }
+      printf ("\n");   }
+
+  void kalman (int b,        /* # rows, cols, in Z; # rows in z */
+               int n,        /* # rows, cols, in P; # rows in x */
+               double * IdN, /* n x n identity matrix */
+               double * Z,   /* b x b observation covariance */
+               double * x,   /* n x 1, current state */
+               double * P,   /* n x n, current covariance */
+               double * A,   /* b x n, current observation partials */
+               double * z    /* b x 1, current observation vector */
+               ) {
+
+       /* Transcribe the following Wolfram code (the intermediate matrices are not
+       ,* necessary in Wolfram, but we need them in C).
+       ,*
+       ,* noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+       ,*   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
+       ,*    PAT = P.Transpose[A];               (* n x b *)
+       ,*    D = Z + A.PAT;                      (* b x b *)
+       ,*    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
+       ,*    KRes = PAT.DiRes;                   (* n x 1 *)
+       ,*    DiAP = LinearSolve[D, A.P];         (* b x n *)
+       ,*    KAP = PAT.DiAP;                     (* n x n *)
+       ,*    {x + KRes, P - KAP}];
+       ,*/
+
+
+       /* Use dgemm for P.A^T because dsymm doesn't offer a way to transpose the
+         right-hand multiplicand. */
+
+      /*
+       ,*      PAT                P           AT
+       ,*       b                 n           b
+       ,*    / * * \         / * * * * \   / * * \
+       ,*  n | * * |  <--  n | * * * * | n | * * |
+       ,*    | * * |         | * * * * |   | * * |
+       ,*    \ * * /         \ * * * * /   \ * * /
+       ,*
+       ,*/
+
+      double PAT[n * b];
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
+                   n,          /* m (n),    # rows of A (P) */
+                   b,          /* n (b),    # cols of B (AT) (post-transpose) */
+                   n,          /* k (n),    # cols of A (P) == rows of B (AT post-tranpose) */
+                   1, P, n,    /* alpha, A, # cols A (P,  pre-transpose)*/
+                   A, n,       /*        B, # cols B (AT, pre-transpose)*/
+                   0, PAT, b); /* beta,  C, # cols C */
+      printm ("P.AT", PAT, n, b);
+
+      /*
+       ,*       D                 A          PAT           Z
+       ,*       b                 n           b            b
+       ,*  b / * * \  <--  b / * * * * \ n / * * \  + b / * * \
+       ,*    \ * * /         \ * * * * /   | * * |      \ * * /
+       ,*                                  | * * |
+       ,*                                  \ * * /
+       ,*
+       ,*/
+
+      double D[b * b];
+      /* D <- A.PAT + Z (copy Z to D first) */
+      cblas_dcopy (b * b, Z, 1, D, 1);
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   b,          /* m (b),          # rows of A (A) */
+                   b,          /* n (b),          # cols of B (PAT) */
+                   n,          /* k (n),          # cols of A (A) == rows of B (PAT) */
+                   1, A, n,    /* alpha, A (A),   # cols A (A) */
+                   PAT, b,     /*        B (PAT), # cols B (PAT)*/
+                   1, D, b);   /* beta,  C (Z),   # cols C (D) */
+      printm ("D", D, b, b);
+
+      /*
+       ,*     Res                       A          x                 z
+       ,*      1                        n          1                 1
+       ,*  b / * \  <--  alpha * b / * * * * \ n / * \  + beta * b / * \
+       ,*    \ * /                 \ * * * * /   | * |             \ * /
+       ,*                                        | * |
+       ,*                                        \ * /
+       ,*
+       ,*/
+      double Res[b * 1];
+      /* Res <- (-A.x) + z (copy z to Res first)  */
+      cblas_dcopy (b * 1, z, 1, Res, 1);
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   b,          /* m (b),        # rows of A (A) */
+                   1,          /* n (1),        # cols of B (x) */
+                   n,          /* k (n),        # cols of A (A) == rows of B (x) */
+                   -1, A, n,   /* alpha, A (A), # cols A (A) */
+                   x, 1,       /*        B (x), # cols B (x) */
+                   1, Res, 1); /* beta,  C (z), # cols C (Res) */
+      printm ("Res", Res, b, 1);
+
+      /*
+       ,*    DiRes        Di = D^-1   Res
+       ,*      1              b        1
+       ,*  b / * \  <--  b / * * \ b / * \
+       ,*    \ * /         \ * * /   \ * /
+       ,*
+       ,*/
+
+      double DiRes[b * 1];
+      double DCholesky[b * b];
+      /* DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
+      /* copy Res to DiRes, first. */
+      /* copy D to DCholesky first. */
+      /* dposv: http://goo.gl/O7gUH8 */
+      cblas_dcopy (b * 1, Res, 1, DiRes,     1);
+      cblas_dcopy (b * b, D,   1, DCholesky, 1);
+      int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U',
+                                  b,         /* NEQS: # rows of D */
+                                  1,         /* NRHS: # columns of z - A.x == Res */
+                                  DCholesky, /* DCholesky starts as D */
+                                  b,         /* PDA D */
+                                  DiRes,     /* output buffer */
+                                  b);        /* PDA DiRes */
+      printf ("DPOSV DiRes result %d\n\n", result);
+      printm ("DiRes",     DiRes,     b, 1);
+      printm ("DCholesky", DCholesky, b, b);
+
+      /*
+       ,*     KRes           PAT     DiRes
+       ,*      1              b        1
+       ,*  n / * \       n / * * \ b / * \
+       ,*    | * |  <--    | * * |   \ * /
+       ,*    | * |         | * * |
+       ,*    \ * /         \ * * /
+       ,*
+       ,*/
+
+      double KRes[n * 1];
+      /* KRes <-- PAT.DiRes */
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   n,           /* m (n),            # rows of A (PAT) */
+                   1,           /* n (1),            # cols of B (DiRes) */
+                   b,           /* k (b),            # cols of A (PAT) == # rows of B (DiRes) */
+                   1, PAT, b,   /* alpha, A (PAT),   # cols A (PAT) */
+                   DiRes, 1,    /*        B (DiRes), # cols B (DiRes) */
+                   0, KRes, 1); /* beta,  C (KRes),  # cols C (KRes) */
+      printm ("KRes", KRes, n, 1);
+
+      /*
+       ,*         AP                  A             P
+       ,*         n                   n             n
+       ,*  b / * * * * \  <--  b / * * * * \ n / * * * * \
+       ,*    \ * * * * /         \ * * * * /   | * * * * |
+       ,*                                      | * * * * |
+       ,*                                      \ * * * * /
+       ,*
+       ,*/
+
+      double AP[b * n];
+      /* AP <-- A.P */
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   b,           /* m (b),          # rows of A (A) */
+                   n,           /* n (n),          # cols of B (P) */
+                   n,           /* k (n),          # cols of A (A) == # rows of B (P) */
+                   1, A, n,     /* alpha, A (A),   # cols A (PAT) */
+                   P, n,        /*        B (P),   # cols B (DiRes) */
+                   0, AP, n);   /* beta,  C (AP),  # cols C (KRes) */
+      printm ("AP", AP, b, n);
+
+      /*
+       ,*   Di = D^-1       A             P                  DiAP
+       ,*       b           n             n                   n
+       ,*  b / * * \ b / * * * * \ n / * * * * \  -->  b / * * * * \
+       ,*    \ * * /   \ * * * * /   | * * * * |         \ * * * * /
+       ,*                            | * * * * |
+       ,*                            \ * * * * /
+       ,*
+       ,*/
+
+      double DiAP[b * n];
+      /* DiAP = LinearSolve[D, AP];    (* b x n *) */
+      /* copy AP to DiAP, first. */
+      /* copy D to DCholesky first. */
+      /* dposv: http://goo.gl/O7gUH8 */
+      cblas_dcopy (b * n, AP, 1, DiAP,      1);
+      cblas_dcopy (b * b, D,  1, DCholesky, 1);
+      result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U',
+                              b,         /* NEQS: # rows of D */
+                              n,         /* NRHS: # columns of z - A.x == Res */
+                              DCholesky, /* DCholesky starts as D */
+                              b,         /* PDA D */
+                              DiAP,      /* output buffer */
+                              n);        /* PDA DiRes */
+      printf ("DPOSV DiAP result %d\n\n", result);
+      printm ("DiAP",      DiAP,      b, n);
+      printm ("DCholesky", DCholesky, b, b);
+
+      /*
+       ,*        KAP             PAT         DiAP
+       ,*         n               b           n
+       ,*  n / * * * * \  <--  / * * \ b / * * * * \
+       ,*    | * * * * |     n | * * |   \ * * * * /
+       ,*    | * * * * |       | * * |
+       ,*    \ * * * * /       \ * * /
+       ,*
+       ,*/
+
+      double KAP[n * n];
+      /* KAP <-- PAT.DiAP */
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   n,             /* m (n),           # rows of A (PAT) */
+                   n,             /* n (n),           # cols of B (DiAP) */
+                   b,             /* k (b),           # cols of A (PAT) == # rows of B (DiAP) */
+                   1, PAT, b,     /* alpha, A (PAT),  # cols A (PAT) */
+                   DiAP, n,       /*        B (Diap), # cols B (DiRes) */
+                   0, KAP, n);    /* beta,  C (KAP),  # cols C (KAP) */
+      printm ("KAP", KAP, n, n);
+
+      /*
+       ,*      x                       Id          x                 KRes
+       ,*      1                        n          1                  1
+       ,*  n / * \  <--  alpha * n / * * * * \ n / * \  +  beta * n / * \
+       ,*    | * |                 | * * * * |   | * |              | * |
+       ,*    | * |                 | * * * * |   | * |              | * |
+       ,*    \ * /                 \ * * * * /   \ * /              \ * /
+       ,*
+       ,*/
+
+      /* x <-- alpha * IdN[n] * KRes + beta * x */
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   n,           /* m (n),           # rows of A (Id) */
+                   1,           /* n (1),           # cols of B (x) */
+                   n,           /* k (n),           # cols of A (Id) == rows of B (x) */
+                   1, IdN, n,   /* alpha, A (Id),   # cols A */
+                   x, 1,        /*        B (x),    # cols B */
+                   1, KRes, 1); /* beta,  C (Kres), # cols C (new x) */
+      cblas_dcopy (n * 1, KRes, 1, x, 1);
+      printm ("x", x, n, 1);
+
+      /*
+       ,*         P                          Id            KAP                       P
+       ,*         n                           n             n                        n
+       ,*  n / * * * * \  <--  alpha * n / * * * * \ n / * * * * \  +  beta * n / * * * * \
+       ,*    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
+       ,*    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
+       ,*    \ * * * * /                 \ * * * * /   \ * * * * /              \ * * * * /
+       ,*
+       ,*/
+
+      /* P <-- P - KAP == - IdN[n] * KAP  + P */
+      /* dgemm: http://tinyurl.com/j24npm4 */
+      /* C <-- alpha * A * B + beta * C */
+      cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                   n,           /* m (n),         # rows of A (Id) */
+                   n,           /* n (n),         # cols of B (KAP) */
+                   n,           /* k (n),         # cols of A (Id) == rows of B (KAP) */
+                   -1, IdN, n,  /* alpha, A (Id), # cols A */
+                   KAP, n,      /*        B (x),  # cols B */
+                   1, P, n);    /* beta,  C (P),  # cols C (new P) */
+      printm ("P", P, n, n); }
+
+  int main (int argc, char ** argv)
+  {   const int    b = 1;
+      const int    n = 4;
+
+      double IdN[n * n] = { 1., 0., 0., 0.,
+                            0., 1., 0., 0.,
+                            0., 0., 1., 0.,
+                            0., 0., 0., 1. };
+
+
+      double Z[b * b] = {1.};
+
+      double x[n * 1] = {0., 0., 0., 0};
+      double P[n * n] = {1000.,    0.,    0.,    0.,
+                            0., 1000.,    0.,    0.,
+                            0.,    0., 1000.,    0.,
+                            0.,    0.,    0., 1000. };
+
+      double A[b * n] = {1., 0., 0., 0};
+      double z[b] = {-2.28442};
+
+      kalman (b, n, IdN, Z, x, P, A, z);
+
+      A[0] = 1;
+      A[1] = 1;
+      A[2] = 1;
+      A[3] = 1;
+
+      z[0] = -4.83168;
+
+      kalman (b, n, IdN, Z, x, P, A, z);
+
+      A[0] = 1;
+      A[1] = -1;
+      A[2] = 1;
+      A[3] = -1;
+
+      z[0] = -10.4601;
+
+      kalman (b, n, IdN, Z, x, P, A, z);
+
+      A[0] = 1;
+      A[1] = -2;
+      A[2] = 4;
+      A[3] = -8;
+
+      z[0] = 1.40488;
+
+      kalman (b, n, IdN, Z, x, P, A, z);
+
+      A[0] = 1;
+      A[1] = 2;
+      A[2] = 4;
+      A[3] = 8;
+
+      z[0] = -40.8079;
+
+      kalman (b, n, IdN, Z, x, P, A, z);
+
+      return 0;   }
+#+END_SRC
+
+#+BEGIN_SRC bash
+gcc qux.c -lcblas -llapacke -llapack
+./a.out
+#+END_SRC
+
+#+RESULTS:
+|        P.AT |       |        |      |
+|        1000 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|             |       |        |      |
+|           D |       |        |      |
+|        1001 |       |        |      |
+|             |       |        |      |
+|         Res |       |        |      |
+|    -2.28442 |       |        |      |
+|             |       |        |      |
+|       DPOSV | DiRes | result |    0 |
+|             |       |        |      |
+|       DiRes |       |        |      |
+| -0.00228214 |       |        |      |
+|             |       |        |      |
+|   DCholesky |       |        |      |
+|     31.6386 |       |        |      |
+|             |       |        |      |
+|        KRes |       |        |      |
+|    -2.28214 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|             |       |        |      |
+|          AP |       |        |      |
+|        1000 |     0 |      0 |    0 |
+|             |       |        |      |
+|       DPOSV |  DiAP | result |    0 |
+|             |       |        |      |
+|        DiAP |       |        |      |
+|    0.999001 |     0 |      0 |    0 |
+|             |       |        |      |
+|   DCholesky |       |        |      |
+|     31.6386 |       |        |      |
+|             |       |        |      |
+|         KAP |       |        |      |
+|     999.001 |     0 |      0 |    0 |
+|           0 |     0 |      0 |    0 |
+|           0 |     0 |      0 |    0 |
+|           0 |     0 |      0 |    0 |
+|             |       |        |      |
+|           x |       |        |      |
+|    -2.28214 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|           0 |       |        |      |
+|             |       |        |      |
+|           P |       |        |      |
+|    0.999001 |     0 |      0 |    0 |
+|           0 |  1000 |      0 |    0 |
+|           0 |     0 |   1000 |    0 |
+|           0 |     0 |      0 | 1000 |
+|             |       |        |      |
+
+#+BEGIN_SRC C :includes '(<stdio.h> <stdlib.h> <string.h> <cblas.h> <lapacke.h>) :flags -lcblas -llapacke -llapack :exports both
+  const int    b = 1;
+  const int    n = 4;
+  double x[n * 1] = {0., 0., 0., 0};
+  double Z[b * b] = {1.};
+  double P[n * n] = {1000.,    0.,    0.,    0.,
+                        0., 1000.,    0.,    0.,
+                        0.,    0., 1000.,    0.,
+                        0.,    0.,    0., 1000. };
+
+  double A[b * n] = {1., 0., 0., 0};
+  double z[b] = {-2.28442};
+
+  /* Transcribe the following Wolfram code (the intermediate matrices are not
+   * necessary in Wolfram, but we need them in C).
+   *
+   * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+   *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
+   *    PAT = P.Transpose[A];               (* n x b *)
+   *    D = Z + A.PAT;                      (* b x b *)
+   *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
+   *    KRes = PAT.DiRes;                   (* n x 1 *)
+   *    DiAP = LinearSolve[D, A.P];         (* b x n *)
+   *    KAP = PAT.DiAP;                     (* n x n *)
+   *    {x + KRes, P - KAP}];
+   */
+
+  /* Using dgemm for P.A^T because dsymm doesn't offer a way to transpose the
+     right-hand multiplicand. */
+
+  /*
+   *         A          x             z          Res
+   *         n          1             1           1
+   *  b / * * * * \   / * \  -->  b / * \ ,   b / * \
+   *    \ * * * * / n | * |         \ * /       \ * /
+   *                  | * |
+   *                  \ * /
+   *
+   *         P           AT             PAT
+   *         n           b               b
+   *    / * * * * \   / * * \  -->    / * * \
+   *  n | * * * * | n | * * |       n | * * |
+   *    | * * * * |   | * * |         | * * |
+   *    \ * * * * /   \ * * /         \ * * /
+   *
+   *       Z
+   *       b
+   *  b / * * \
+   *    \ * * /
+   *
+   *         A             P           AT           APAT
+   *         n             n           b              b
+   *  b / * * * * \   / * * * * \   / * * \  --> b / * * \
+   *    \ * * * * / n | * * * * | n | * * |        \ * * /
+   *                  | * * * * |   | * * |
+   *                  \ * * * * /   \ * * /
+   *
+   *       D         Di = D^-1   Res          DiRes
+   *       b             b        1             1
+   *  b / * * \ ,   b / * * \ b / * \  -->  b / * \
+   *    \ * * /       \ * * /   \ * /         \ * /
+   *
+   *      PAT     DiRes          KRes
+   *       b        1             1
+   *    / * * \ b / * \  -->    / * \
+   *  n | * * |   \ * /       n | * |
+   *    | * * |                 | * |
+   *    \ * * /                 \ * /
+   *
+   *         A
+   *         n
+   *  b / * * * * \
+   *    \ * * * * /
+   */
+
+  double PAT[n * b];
+  /* dgemm: http://tinyurl.com/j24npm4 */
+  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
+               n, b, n,    /* m, n, k       */
+               1, P, n,    /* alpha, A, pda */
+               A, n,       /*        B, pdb */
+               0, PAT, n); /* beta,  C, pdc */
+
+  printf ("P.AT\n");
+  for (int r = 0; r < n; ++r)
+  {   for (int c = 0; c < b; ++c)
+      {   printf ("%g ", PAT[c + r * b /* ncols */]);   }   }
+  printf ("\n\n");
+
+  double D[b * b];
+  /* D <- A.PAT + Z (copy Z to D first) */
+  cblas_dcopy (b * b, Z, 1, D, 1);
+  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+               b, b, n,    /* m, n, k       */
+               1, A, n,    /* alpha, A, pda */
+               PAT, b,     /*        B, pdb */
+               1, D, b);   /* beta,  C, pdc */
+
+  printf ("D\n");
+  for (int r = 0; r < b; ++r)
+  {   for (int c = 0; c < b; ++c)
+      {   printf ("%g ", D[c + r * b]);   }   }
+  printf ("\n\n");
+
+  double Res[b * 1];
+  /* Res <- (-A.x) + z (copy z to Res first)  */
+  cblas_dcopy (b * 1, z, 1, Res, 1);
+  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+               b, 1, n,    /* m, n, k       */
+               -1, A, n,   /* alpha, A, pda */
+               x, 1,       /*        B, pdb */
+               1, Res, 1); /* beta,  C, pdc */
+
+  printf ("Res\n");
+  for (int r = 0; r < b; ++r)
+  {   for (int c = 0; c < 1; ++c)
+      {   printf ("%g ", Res[c + r * 1]);   }   }
+  printf ("\n\n");
+
+  double DiRes[b * 1];
+  double DCholesky[b * b];
+  /*    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
+  /*    copy Res to DiRes, first. */
+  /*    copy D to DCholesky first. */
+  /* dposv: http://goo.gl/O7gUH8 */
+  cblas_dcopy (b * 1, Res, 1, DiRes,     1);
+  cblas_dcopy (b * b, D,   1, DCholesky, 1);
+  int result = LAPACKE_dposv (
+  , 'U',
+  b, /* n rows of D */
+  1, /* n columns of Res */
+  D,
+  b,
+  DiRes,
+  b);
+
+  printf ("DPOSV result %d\n\n", result);
+
+  printf ("DiRes\n");
+  for (int r = 0; r < b; ++r)
+  {   for (int c = 0; c < 1; ++c)
+      {   printf ("%g ", DiRes[c + r * 1]);   }   }
+  printf ("\n\n");
+
+  printf ("DCholesky\n");
+  for (int r = 0; r < b; ++r)
+  {   for (int c = 0; c < b; ++c)
+      {   printf ("%g ", DCholesky[c + r * b]);   }   }
+  printf ("\n\n");
+
+  double KRes[n * 1];
+  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+               n, 1, b,     /* m, n, k       */
+               1, PAT, 1,   /* alpha, A, pda */
+               DiRes, 1,    /*        B, pdb */
+               0, KRes, 1); /* beta,  C, pdc */
+
+  printf ("KRes\n");
+  for (int r = 0; r < n; ++r)
+  {   for (int c = 0; c < 1; ++c)
+      {   printf ("%g ", KRes[c + r * 1]);   }   }
+  printf ("\n\n");
+
+  /*  AP              = (b x n).(n x n)  -->  (b x n)
+   *  DiAP            = (b x b).(b x n)  -->  (b x n)
+   *  KAP  = PAT.DiAP = (n x b).(b x n)  -->  (n x n)
+   */
+
+  double AP[b * n];
+  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+               b, n, n,     /* m, n, k       */
+               1, A, n,     /* alpha, A, pda */
+               P, n,        /*        B, pdb */
+               0, AP, n);   /* beta,  C, pdc */
+
+  printf ("AP\n");
+  for (int r = 0; r < b; ++r)
+  {   for (int c = 0; c < n; ++c)
+      {   printf ("%g ", AP[c + r * n]);   }   }
+  printf ("\n\n");
+
+  double DiAP[b * n];
+  /* DiAP = LinearSolve[D, AP];    (* b x n *) */
+  /* copy AP to DiAP, first. */
+  /* copy D to DCholesky first. */
+  /* dposv: http://goo.gl/O7gUH8 */
+  cblas_dcopy (b * n, AP, 1, DiAP,      1);
+  cblas_dcopy (b * b, D,  1, DCholesky, 1);
+  int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U', b, b, D, b, DiRes, b);
+
+  double KAP[n * n];
+
+#+END_SRC
+
+#+RESULTS:
+| P.AT        |        |   |   |
+| 1000        |      0 | 0 | 0 |
+|             |        |   |   |
+| D           |        |   |   |
+| 1001        |        |   |   |
+|             |        |   |   |
+| Res         |        |   |   |
+| -2.28442    |        |   |   |
+|             |        |   |   |
+| DPOSV       | result | 0 |   |
+|             |        |   |   |
+| DiRes       |        |   |   |
+| -0.00228214 |        |   |   |
+|             |        |   |   |
+| DCholesky   |        |   |   |
+| 1001        |        |   |   |
+|             |        |   |   |
+| KRes        |        |   |   |
+| -2.28214    |      0 | 0 | 0 |
+|             |        |   |   |
+| AP          |        |   |   |
+| 1000        |      0 | 0 | 0 |
+
+*** COMMENT Another Example
+
+From http://tinyurl.com/hun752f.
+
+#+BEGIN_SRC C :includes '(<stdio.h> <stdlib.h> <string.h> <cblas.h>) :flags -lcblas :exports both
+  /* 3x3 A matrix (symmetric) */
+  double a[] = {1,2,6,
+                2,3,1,
+                6,1,4};
+  /* 3x2 B Matrix */
+  double b[] = {2,3,
+                4,5,
+                6,7};
+  /* 3x2 C Matrix */
+  double c[] = {0,0,
+                0,0,
+                0,0};
+
+  /* Let's define the SYMM paramaters in terms
+   ,* of row count and coloumn count of C */
+  int m = 3;
+  int n = 2;
+
+  double alpha = 1.0;
+  double beta  = 0.0;
+
+  enum CBLAS_ORDER ord  = CblasRowMajor;
+  enum CBLAS_SIDE  side = CblasLeft;
+  enum CBLAS_UPLO  uplo = CblasUpper;
+
+  /* The leading dimension for A, B and C are set considering
+   ,* row-major format.
+   ,*
+   ,* For this particular example:
+   ,* lda = # of columns A (or rows since A is symmetric)
+   ,* ldb = # of columns B, i.e., # entries in a row
+   ,* ldc = # of columns C, i.e., # entries in a row */
+
+  void cblas_dsymm(const enum CBLAS_ORDER Order, const enum CBLAS_SIDE Side,
+                   const enum CBLAS_UPLO Uplo, const int M, const int N,
+                   const double alpha, const double *A, const int lda,
+                   const double *B, const int ldb, const double beta,
+                   double *C, const int ldc);
+
+  cblas_dsymm( ord, side, uplo,
+               m, n,
+               alpha, a, m,
+               b, n, beta,
+               c, n );
+
+  /* This should print 46 55 22 28 40 51 */
+  for(int z=0;z<6;z++)
+      printf ("%g ", c[z]);
+#+END_SRC
+
+#+RESULTS:
+: 46 55 22 28 40 51
 
 #+BEGIN_SRC C :tangle bar.c
   #include <stdio.h>
 
-  void print_matrix (double * M, int n_rows, int n_cols) {
+  void print_RMO_matrix (double * M, int n_rows, int n_cols) {
       for (int row = 0; row < n_rows; ++row)
       {   for (int col = 0; col < n_cols; ++col)
           {   printf ("%g", M[col + n_cols * row]);
@@ -1340,18 +2298,44 @@ To write this in C, we need =dcopy=, =dsymm=, =dgemm=, and =dposv=.
               {   printf (", ");   }   }
           if (n_rows-1 != row)
           {   printf ("\n");   }   }
-          printf ("\n\n");   }
+      printf ("\n\n");   }
+
+  void print_CMO_matrix (double * M, int n_rows, int n_cols) {
+      for (int row = 0; row < n_rows; ++row)
+      {   for (int col = 0; col < n_cols; ++col)
+          {   printf ("%g", M[row + n_rows * col]);
+              if (n_cols-1 != col)
+              {   printf (", ");   }   }
+          if (n_rows-1 != row)
+          {   printf ("\n");   }   }
+      printf ("\n\n");   }
 
   int main (int argc, char ** argv) {
       int N = 3;
       int M = 3;
       int MN = 3 * 3;
+      /* The following input appears in row-major order. The underlying fortran
+         code 'sees' the transpose of this matrix, i.e., the same data in
+         column-major order. Although this is the matrix A for fortran from our
+         example, it looks, in C, like AT.
+
+         BLAS does not include a high-performance matrix transpose routine. */
+
+      double A[4][5] = { { 1.,  1.,  1.,  1.,  1.},
+                         { 0.,  1., -1., -2.,  2.},
+                         { 0.,  1.,  1.,  4.,  4.},
+                         { 0.,  1., -1., -8.,  8.}};
+
       double DX[3][3] = { {1 , 2 ,  3},
                           {4 , 5 ,  6},
                           {7 , 8 , 19} };
       double DY[3][3] = { {0 , 0 ,  0},
                           {0 , 0 ,  0},
                           {0 , 0 ,  0} };
+
+      print_RMO_matrix ((double *)A, 4, 5);
+      print_CMO_matrix ((double *)A, 5, 4);
+
       int INCX = 1;
       int INCY = 1;
       /* from http://www.netlib.org/lapack/explore-html/da/d6c/dcopy_8f_source.html
@@ -1372,14 +2356,17 @@ To write this in C, we need =dcopy=, =dsymm=, =dgemm=, and =dposv=.
 
       extern void dcopy_ (int * N, double * DX, int * INCX, double * DY, int * INCY);
 
-      print_matrix ((double *)DX, N, N);
-      print_matrix ((double *)DY, N, N);
+      print_RMO_matrix ((double *)DX, N, N);
+      print_RMO_matrix ((double *)DY, N, N);
 
       dcopy_ (&MN, DX[0], &INCX, DY[0], &INCY);
 
-      print_matrix ((double *)DX, N, N);
-      print_matrix ((double *)DY, N, N);   }
+      print_RMO_matrix ((double *)DX, N, N);
+      print_RMO_matrix ((double *)DY, N, N);   }
 #+END_SRC
+
+#+RESULTS:
+
 
 Tangle it to =bar.c=, then compile and run as follows:
 
@@ -1388,21 +2375,32 @@ gcc bar.c -lblas && ./a.out
 #+END_SRC
 
 #+RESULTS:
-| 1 | 2 |  3 |
-| 4 | 5 |  6 |
-| 7 | 8 | 19 |
-|   |   |    |
-| 0 | 0 |  0 |
-| 0 | 0 |  0 |
-| 0 | 0 |  0 |
-|   |   |    |
-| 1 | 2 |  3 |
-| 4 | 5 |  6 |
-| 7 | 8 | 19 |
-|   |   |    |
-| 1 | 2 |  3 |
-| 4 | 5 |  6 |
-| 7 | 8 | 19 |
+| 1 |  1 |  1 |  1 | 1 |
+| 0 |  1 | -1 | -2 | 2 |
+| 0 |  1 |  1 |  4 | 4 |
+| 0 |  1 | -1 | -8 | 8 |
+|   |    |    |    |   |
+| 1 |  0 |  0 |  0 |   |
+| 1 |  1 |  1 |  1 |   |
+| 1 | -1 |  1 | -1 |   |
+| 1 | -2 |  4 | -8 |   |
+| 1 |  2 |  4 |  8 |   |
+|   |    |    |    |   |
+| 1 |  2 |  3 |    |   |
+| 4 |  5 |  6 |    |   |
+| 7 |  8 | 19 |    |   |
+|   |    |    |    |   |
+| 0 |  0 |  0 |    |   |
+| 0 |  0 |  0 |    |   |
+| 0 |  0 |  0 |    |   |
+|   |    |    |    |   |
+| 1 |  2 |  3 |    |   |
+| 4 |  5 |  6 |    |   |
+| 7 |  8 | 19 |    |   |
+|   |    |    |    |   |
+| 1 |  2 |  3 |    |   |
+| 4 |  5 |  6 |    |   |
+| 7 |  8 | 19 |    |   |
 
 #+BEGIN_SRC fortran
 subroutine f(mu, Sigma, H, INFO, R, Sigmavar_2, data, muvar_2, k, n)
@@ -1445,38 +2443,6 @@ RETURN
 END
 #+END_SRC
 
-#+begin_src C :includes '(<stdio.h> <gsl/gsl_blas.h>) :flags -llapack -llapacke :exports both
-  #include <lapacke.h>
-
-  size_t N = 2;
-
-  double A [4] = {
-      1,2,
-      3,4
-  };
-
-  int *IPIV = malloc (N * sizeof (int));
-  int LWORK = N*N;
-  double *WORK = malloc (LWORK * sizeof (double));
-  int INFO;
-
-  dgetrf_(&N,&N,A,&N,IPIV,&INFO);
-  dgetri_(&N,A,&N,IPIV,WORK,&LWORK,&INFO);
-
-  free (IPIV);
-  free (WORK);
-
-  // inverse(A, 2);
-
-  printf("%f %f\n", A[0], A[1]);
-  printf("%f %f\n", A[2], A[3]);
-#+end_src
-
-#+RESULTS:
-| -2.0 |  1.0 |
-|  1.5 | -0.5 |
-
-
 * Footnotes
 
 
@@ -1496,15 +2462,18 @@ END
 [fn:cova] We use the terms /covariance/ for matrices and /variance/ for scalars.
 [fn:csoc] https://en.wikipedia.org/wiki/Separation_of_concerns
 [fn:ctsc] https://en.wikipedia.org/wiki/Catastrophic_cancellation
-[fn:dtaa] http://tinyurl.com/cwcdwq8
+[fn:ditm] Cook, John D. /Don't invert that matrix/ http://tinyurl.com/ya4q2kv
+[fn:dpos] http://www.nag.com/numeric/FL/manual/pdf/F07/f07faf.pdf
 [fn:doxy] http://www.stack.nl/~dimitri/doxygen/
 [fn:dstr] http://tinyurl.com/ze6qfb3
+[fn:dtaa] http://tinyurl.com/cwcdwq8
 [fn:eclx] https://gitlab.com/embeddable-common-lisp/ecl/wikis/home
 [fn:elib] Brookner, Eli. Tracking and Kalman Filtering Made Easy, New York: Wiley, 1998. http://tinyurl.com/h8see8k
 [fn:fldl] http://tinyurl.com/jmxsevr
 [fn:fncc] http://blog.madhukaraphatak.com/functional-programming-in-c++/
 [fn:fwik] https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29
 [fn:gama] https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem
+[fn:gibb] Bruce P. Gibbs, /Advanced Kalman Filtering, Least-Squares and Modeling/, New York: Wiley, 2011.
 [fn:gslb] http://www.gnu.org/software/gsl/
 [fn:gtst] https://code.google.com/p/googletest/
 [fn:intr] http://introtorx.com/
@@ -1539,6 +2508,7 @@ END
 [fn:mrck] https://gist.github.com/mrocklin/5144149
 [fn:musc] http://www1.cs.dartmouth.edu/~doug/music.ps.gz
 [fn:ndim] https://en.wikipedia.org/wiki/Nondimensionalization
+[fn:ndoc] http://www.nag.com/numeric/CL/CLdocumentation.asp
 [fn:obc1] Make sure the first example from http://tinyurl.com/kz2lz7m works
 [fn:orgm] https://en.wikipedia.org/wiki/Org-mode
 [fn:patt] http://tinyurl.com/j5jzy69
@@ -1548,6 +2518,7 @@ END
 [fn:rasp] http://www.wolfram.com/raspberry-pi/
 [fn:rcrn] https://en.wikipedia.org/wiki/Recurrence_relation
 [fn:root] https://root.cern.ch/root-user-guides-and-manuals
+[fn:rprs] https://www.coursera.org/learn/reproducible-research
 [fn:rsfr] http://rosettacode.org/wiki/Loops/Foreach
 [fn:rxbk] http://www.introtorx.com/content/v1.0.10621.0/07_Aggregation.html
 [fn:sage] http://www.sagemath.org/

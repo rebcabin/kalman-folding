@@ -67,7 +67,7 @@
       {   /* Double the storage. */
           int new_max = 2 * result.max;
           /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
-          pAccumulation new = (pAccumulation) 
+          pAccumulation new = (pAccumulation)
             malloc (sizeof (Accumulation) * new_max);
           if (NULL == new)
           {   printf ("Failed to alloc %d Accumulations\n", new_max);
@@ -76,10 +76,10 @@
           {   printf ("Internal bugcheck\n");
               exit (-3);   }
           memset ((void *)new, 0, new_max * sizeof (Accumulation));
-          memcpy ((void *)new, (void *)result.accumulations, 
+          memcpy ((void *)new, (void *)result.accumulations,
             (sizeof (Accumulation) * result.max));
           free ((void *) result.accumulations);
-          result.accumulations = new; 
+          result.accumulations = new;
           result.max = new_max;   }
       result.accumulations[result.count] = a;
       ++ result.count;
@@ -98,7 +98,7 @@
   
   void freeAccumulations (Accumulations as)
   {   memset ((void *) as.accumulations, 0,
-        (sizeof (Accumulation) * as.count)); 
+        (sizeof (Accumulation) * as.count));
       free ((void *) as.accumulations);   }
   
   void printAccumulations (Accumulations as)

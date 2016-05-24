@@ -1,4 +1,4 @@
-% Created 2016-05-19 Thu 17:29
+% Created 2016-05-24 Tue 10:45
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -46,38 +46,38 @@
 \section{Abstract}
 \label{sec:orgheadline1}
 
-In this literate program, we show one way to implement the basic Kalman fold in C.
-The background for Kalman folding appears in \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.}
-where we highlight the the unique advantages of a functional fold for deploying
-test-hardened code verbatim in harsh, mission-critical environments. In that and
-in other papers in this series, the emphasis is on mathematical clarity and
-conciseness. Here, the emphasis is on embedded systems by using the primary
-language for implementing such systems, C.
+In this literate program, we show one way to implement the basic Kalman fold in
+C. The background for Kalman folding appears in \emph{Kalman Folding, Part
+1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} where we highlight the the unique advantages of functional folding
+for deploying test-hardened code verbatim in harsh, mission-critical
+environments. In that and in other papers in this series, the emphasis is on
+mathematical clarity and conciseness. Here, the emphasis is on embedded systems
+and on the primary language for implementing such systems, C.
 
 \section{Literate Code}
 \label{sec:orgheadline2}
 
-A \emph{literate program}\footnote{\url{https://en.wikipedia.org/wiki/Literate_programming}} is a single text document that contains both 
+A \emph{literate program}\footnote{\url{https://en.wikipedia.org/wiki/Literate_programming}} is a single text document that contains both
 \begin{itemize}
 \item \LaTeX{} typesetting instructions and
 \item source code and scripts for an application.
 \end{itemize}
-A literate program can
-be edited in any text editor and controlled with text-based versioning tools
-like git, but requires other tools to extract the typeset document and to
-extract the source code and lay it out on disk as required by compilers,
-linkers, and other build tools. My chosen tool is emacs and org-mode.\footnote{\url{https://en.wikipedia.org/wiki/Org-mode}}
-It allows interactive evaluation of code and you may wish to follow along
-interactively. To do that, you will need emacs and the text source for this
-document. The text source for this document is found here TODO. A distribution
-of emacs for the Mac with adequate org-babel support is maintained by Vincent
-Goulet at the University of Laval.\footnote{\url{http://vgoulet.act.ulaval.ca/en/emacs/}} Emacs for Linux and Windows is easy
-to find, but I do not discuss it further. \emph{Spacemacs}\footnote{\url{http://www.spacemacs.org}} offers vim
-emulation with the tools needed for literate programming.
+A literate program can be edited in any text editor and controlled with
+text-based versioning tools like git, but requires other tools to extract the
+typeset document and to extract the source code. My chosen tools are emacs and
+org-babel.\footnote{\url{http://orgmode.org/worg/org-contrib/babel/}} In addition to extraction, called \emph{tangling}, these tools
+allow interactive evaluation of code in the original text document. A reader may
+reproduce the results here by interacting with the source document.\footnote{\url{https://www.coursera.org/learn/reproducible-research}} If
+you wish to follow along interactively, you will need emacs and the text source
+for this document. The text source for this document is found here \textbf{\emph{TODO}}. A
+distribution of emacs for the Mac with adequate org-babel support is maintained
+by Vincent Goulet at the University of Laval.\footnote{\url{http://vgoulet.act.ulaval.ca/en/emacs/}} Emacs for Linux and
+Windows is easy to find, but I do not discuss it further. \emph{Spacemacs}\footnote{\url{http://www.spacemacs.org}}
+offers \emph{vim} emulation with the tools needed for literate programming for those
+who prefer \emph{vim}.
 
 \section{This Document is Literate}
 \label{sec:orgheadline15}
-
 \subsection{Get C to Work}
 \label{sec:orgheadline3}
 
@@ -86,13 +86,13 @@ does work, you have a correctly installed C compiler.
 
 \begin{verbatim}
 int a=7;
-int b=7;
+int b=6;
 printf("%d\n", a*b);
 // ~~> produces
 \end{verbatim}
 
 \begin{verbatim}
-49
+42
 \end{verbatim}
 
 \subsection{Recurrence for the Mean}
@@ -156,7 +156,7 @@ Business logic in C}
 \label{sec:orgheadline5}
 
 We abstract out the primary numerical type into the traditional \texttt{T} to make it
-easier to change. 
+easier to change.
 
 \begin{verbatim}
 typedef double T;
@@ -178,7 +178,7 @@ them entails more code, so we opt for keeping the code small at the cost of some
 copying that could be optimized away.
 
 Also, in the interest of saving space, specifically, staircases of closing curly
-braces on lines by themselves, we adopt the \emph{Pico}\footnote{\url{http://tinyurl.com/gku2k74}} style for bracing. 
+braces on lines by themselves, we adopt the \emph{Pico}\footnote{\url{http://tinyurl.com/gku2k74}} style for bracing.
 
 \begin{verbatim}
 const size_t Accumulation_size = 3;
@@ -213,7 +213,7 @@ dynamic memory allocation. In an embedded application, we would use arena memory
 (fixed-length circular buffer pools of fixed-length structs) or stack allocation
 (\emph{calloc}). Here, for brevity and because this is a testing deployment, we use
 heap memory (stdlib's \emph{malloc} and \emph{free}). These are unacceptable in embedded
-applications because of fragmentation and unbounded execution times. 
+applications because of fragmentation and unbounded execution times.
 
 When we get to lazy streams, we won't need these at all. They're only for arrays
 of observations all in memory at one time.
@@ -222,7 +222,7 @@ The primary helper type is a bounded array of \emph{Observations} type that incl
 the length and a handy iterator-like \emph{current} index. Most of the code for this
 type concerns explicit memory management for this helper type.
 
-We also include an \emph{Observation} type, for asbstraction hygiene. 
+We also include an \emph{Observation} type, for asbstraction hygiene.
 
 \begin{verbatim}
 typedef T Observation, * pObservation;
@@ -309,7 +309,7 @@ int main (int argc, char ** argv)
 \captionof{figure}{Recurrence for the mean: entire program}
 
 Tangle this code out to a C file by executing `org-babel-tangle' while
-visiting this literate source code in emacs. 
+visiting this literate source code in emacs.
 
 Compile and run the code as follows:
 
@@ -347,7 +347,7 @@ on-demand, dynamic memory management for the output accumulations.
 ``On-demand,'' here, means growing the output array as new accumulations arrive.
 We use the common trick of doubling the capacity of the output array every time
 the capacity is exceeded. This trick is a reasonable compromise of space and
-time efficiency. 
+time efficiency.
 
 We emulate the \emph{bounded-array} interface created for observations, and add three
 more functions to the usual \emph{create}, \emph{free}, and \emph{print}.
@@ -378,7 +378,7 @@ Accumulations appendAccumulations (Accumulations as, Accumulation a)
     {   /* Double the storage. */
         int new_max = 2 * result.max;
         /* Don't use malloc & free in embdded apps. Use arena or stack memory. */
-        pAccumulation new = (pAccumulation) 
+        pAccumulation new = (pAccumulation)
           malloc (sizeof (Accumulation) * new_max);
         if (NULL == new)
         {   printf ("Failed to alloc %d Accumulations\n", new_max);
@@ -387,10 +387,10 @@ Accumulations appendAccumulations (Accumulations as, Accumulation a)
         {   printf ("Internal bugcheck\n");
             exit (-3);   }
         memset ((void *)new, 0, new_max * sizeof (Accumulation));
-        memcpy ((void *)new, (void *)result.accumulations, 
+        memcpy ((void *)new, (void *)result.accumulations,
           (sizeof (Accumulation) * result.max));
         free ((void *) result.accumulations);
-        result.accumulations = new; 
+        result.accumulations = new;
         result.max = new_max;   }
     result.accumulations[result.count] = a;
     ++ result.count;
@@ -409,7 +409,7 @@ Accumulations createAccumulations (void)
 
 void freeAccumulations (Accumulations as)
 {   memset ((void *) as.accumulations, 0,
-      (sizeof (Accumulation) * as.count)); 
+      (sizeof (Accumulation) * as.count));
     free ((void *) as.accumulations);   }
 
 void printAccumulations (Accumulations as)
@@ -503,216 +503,794 @@ Fold[cume, {0, 0, 0}, zs]
 \captionof{figure}{Wolfram code for recurrence for the variance}
 
 \section{Basic Kalman Folding}
-\label{sec:orgheadline20}
+\label{sec:orgheadline21}
 
-We need matrix operations, now, and we'll use the Gnu Scientific Library,
-GSL\footnote{\url{http://www.gnu.org/software/gsl/}}, which includes support for CBLAS\footnote{\url{http://www.netlib.org/blas/}} and LAPACKE.\footnote{\url{http://www.netlib.org/lapack/lapacke.html}}
-
-\subsection{Get GSL to Work}
+\subsection{Avoiding the Inverse}
 \label{sec:orgheadline16}
 
-Get gsl, build it (\texttt{./configure}, \texttt{make}),
-check it (\texttt{make check}), install it (\texttt{make install}). The following should work
-if you use all the default settings; you may need to install \emph{gfortran}
-separately. 
+In the first paper in this series, we wrote one version of the static Kalman
+filter, when there are no system dynamics,\footnote{B. Beckman, \emph{Kalman Folding 2: Tracking and System Dynamics}, to appear.} as follows.
 
-You must link these against \texttt{libgsl}. Note the flags on the
-\texttt{begin-src} line if you are visiting the org-mode file in emacs.
+\begin{equation}
+\label{eqn:kalman-cume-definition}
+\text{cume}
+\left(
+\mathbold{Z}
+\right)
+\left(
+\left\{
+\mathbold{x},
+\mathbold{P}
+\right\},
+\left\{
+\mathbold{A},
+\mathbold{z}
+\right\}
+\right) =
+\left\{
+\mathbold{x}+
+\mathbold{K}\,
+\left(
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right),
+\mathbold{P}-
+\mathbold{K}\,
+\mathbold{A}\,
+\mathbold{P}
+\right\}
+\end{equation}
 
+\noindent where
+
+\begin{align}
+\label{eqn:kalman-gain-definition}
+\mathbold{K}
+&=
+\mathbold{P}\,
+\mathbold{A}^\intercal\,
+\mathbold{D}^{-1} \\
+\label{eqn:kalman-denominator-definition}
+\mathbold{D}
+&= \mathbold{Z} +
+\mathbold{A}\,
+\mathbold{P}\,
+\mathbold{A}^\intercal
+\end{align}
+
+\noindent and all quantities are matrices, and
+
+\begin{itemize}
+\item \(\mathbold{Z}\) =   \({b}\times{b}\) covariance of observation noise
+\item \(\mathbold{x}\) =   \({n}\times{1}\) model states
+\item \(\mathbold{P}\) =   \({n}\times{n}\) theoretical covariance of \(\mathbold{x}\)
+\item \(\mathbold{A}\) =   \({b}\times{n}\) \emph{observation partials}
+\item \(\mathbold{z}\) =   \({b}\times{1}\) multidimensional, decorrelated observations
+\item \(\mathbold{K}\) =   \({n}\times{b}\) \emph{Kalman gain}
+\item \(\mathbold{D}\) =   \({b}\times{b}\) the Kalman denominator
+\end{itemize}
+
+Adding physical dimensions, if the physical and matrix dimensions of
+\(\mathbold{x}\)
+are
+\(\left[\left[\mathbold{x}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{X}, n\times{1})\)
+and of
+\(\mathbold{z}\)
+are
+\(\left[\left[\mathbold{z}\right]\right]
+\stackrel{\text{\tiny def}}{=}
+(\mathcal{Z}, b\times{1})\), then
+
+\begin{equation*}
+\label{eqn:dimensional-breakdown}
+\begin{array}{lccccr}
+\left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
+\left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
+\end{array}
+\end{equation*}
+
+While an expression with an explicit inverse is mathematically acceptable,
+inverses are numerically risky, expensive in storage, slow to compute, and
+usually not necessary.\footnote{Cook, John D. \emph{Don't invert that matrix} \url{http://tinyurl.com/ya4q2kv}} LAPACK can solve linear systems very
+efficiently, much more efficiently than it can invert matrices.
+Therefore, we rewrite the basic filter to avoid computing
+\(\mathbold{D}^{-1}\).
+
+If
+\(\textrm{DiRes}=\mathbold{D}^{-1}\,(\mathbold{z}-\mathbold{A}\,\mathbold{x})\)
+is the solution of the linear equation
+\(\mathbold{D}\times\textrm{\textrm{DiRes}}=(\mathbold{z}-\mathbold{A}\,\mathbold{x})\), and if
+\(\mathbold{K}=\mathbold{P}\,\mathbold{A}^\intercal\,\mathbold{D}^{-1}\), then
+\(\mathbold{K}\,(\mathbold{z}-\mathbold{A}\,\mathbold{x})=\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiRes}\)
+and the Kalman state-update is \(\mathbold{x}\leftarrow\mathbold{x}+\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiRes}\).
+Likewise, if \(\textrm{DiAP}=\mathbold{D}^{-1}\,\mathbold{A}\,\mathbold{P}\) is
+the solution of the linear equation
+\(\mathbold{D}\times\textrm{DiAP}=\mathbold{A}\,\mathbold{P}\), then
+\(\mathbold{K}\,\mathbold{A}\,\mathbold{P}=\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiAP}\)
+and the Kalman covariance update is \(\mathbold{P}\leftarrow\mathbold{P}-\mathbold{P}\,\mathbold{A}^\intercal\,\textrm{DiAP}\).
+
+In Wolfram, our original, foldable Kalman filter was
 
 \begin{verbatim}
-double x = 5.0;
-double y = gsl_sf_bessel_J0 (x);
-printf ("J0(%g) = %.18e\n", x, y);
-// ~~> produces
+kalman[Z_][{x_, P_}, {A_, z_}] :=
+  Module[{D, K},
+   D = Z + A.P.Transpose[A];
+   K = P.Transpose[A].Inverse[D];
+   {x + K.(z - A.x), P - K.A.P}];
 \end{verbatim}
+
+\noindent and our new minimal, foldable filter is
 
 \begin{verbatim}
-J0(5) = -1.775967713143382642e-01
+noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+  Module[{PAT, D, KRes, KAP},
+   PAT = P.Transpose[A];
+   D = Z + A.PAT;
+   KRes = PAT.LinearSolve[D, z - A.x];
+   KAP = PAT.LinearSolve[D, A.P];
+   {x + KRes, P - KAP}];
 \end{verbatim}
 
-\begin{verbatim}
-gsl_block * b = gsl_block_alloc (100);
+This reads almost as easily as the original if one reads \texttt{LinearSolve} as
+\emph{invert-first-argument-and-matrix-multiply}.
 
-printf ("length of block = %zu\n", b->size);
-printf ("block data address = %p\n", b->data);
+Notice we do not compute the Kalman gain explicitly, but only use it in
+combination with other matrices. This produces results indistinguishable from
+the original, up to floating-point issues, when folded over any source of data.
 
-gsl_block_free (b);
-// ~~> produces
-\end{verbatim}
+LAPACK offers a function, \texttt{dposv},\footnote{\url{http://www.nag.com/numeric/FL/manual/pdf/F07/f07faf.pdf}}\textsuperscript{,}\,\footnote{\url{http://www.nag.com/numeric/CL/CLdocumentation.asp}} that solves this linear
+system when \(\mathbold{D}\) is symmetric and positive definite. Because
+\(\mathbold{D}\) is the sum of a diagonal matrix \(\mathbold{Z}\) and a symmetric,
+positive-definite matrix \(\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\),
+it should also be symmetric and positive definite. Therefore, we transcribe the
+code above into C as follows
 
-\begin{center}
-\begin{tabular}{llllr}
-length & of & block & = & 100\\
-block & data & address & = & 0x7fe6d1403580\\
-\end{tabular}
-\end{center}
-
-\begin{verbatim}
- int i;
- gsl_vector * v = gsl_vector_alloc (3);
-
- for (i = 0; i < 3; i++) 
- {   gsl_vector_set (v, i, 1.23 + i);   }
-
- for (i = 0; i < 3; i++)
- {   printf ("v_%d = %g\n", i, gsl_vector_get (v, i));   }
-
- gsl_vector_free (v);
-// ~~> produces
-\end{verbatim}
-
-\begin{center}
-\begin{tabular}{llr}
-v\(_{\text{0}}\) & = & 1.23\\
-v\(_{\text{1}}\) & = & 2.23\\
-v\(_{\text{2}}\) & = & 3.23\\
-\end{tabular}
-\end{center}
-
-\begin{verbatim}
- int i, j;
- gsl_matrix * m = gsl_matrix_alloc (10, 3);
-
- for (i = 0; i < 10; i++)
-   for (j = 0; j < 3; j++)
-     gsl_matrix_set (m, i, j, 0.23 + 100*i + j);
-
- for (i = 0; i < 10; i++)
-   for (j = 0; j < 3; j++)
-     printf ("m(%d,%d) = %g\n", i, j,
-             gsl_matrix_get (m, i, j));
-
- gsl_matrix_free (m);
-// ~~> produces
-\end{verbatim}
-
-\begin{center}
-\begin{tabular}{ll}
-m(0 & 0) = 0.23\\
-m(0 & 1) = 1.23\\
-m(0 & 2) = 2.23\\
-m(1 & 0) = 100.23\\
-m(1 & 1) = 101.23\\
-m(1 & 2) = 102.23\\
-m(2 & 0) = 200.23\\
-m(2 & 1) = 201.23\\
-m(2 & 2) = 202.23\\
-m(3 & 0) = 300.23\\
-m(3 & 1) = 301.23\\
-m(3 & 2) = 302.23\\
-m(4 & 0) = 400.23\\
-m(4 & 1) = 401.23\\
-m(4 & 2) = 402.23\\
-m(5 & 0) = 500.23\\
-m(5 & 1) = 501.23\\
-m(5 & 2) = 502.23\\
-m(6 & 0) = 600.23\\
-m(6 & 1) = 601.23\\
-m(6 & 2) = 602.23\\
-m(7 & 0) = 700.23\\
-m(7 & 1) = 701.23\\
-m(7 & 2) = 702.23\\
-m(8 & 0) = 800.23\\
-m(8 & 1) = 801.23\\
-m(8 & 2) = 802.23\\
-m(9 & 0) = 900.23\\
-m(9 & 1) = 901.23\\
-m(9 & 2) = 902.23\\
-\end{tabular}
-\end{center}
-
-\subsection{BLAS Through GSL}
+\subsection{Fortran and C}
 \label{sec:orgheadline17}
 
-You must link this against \texttt{libgsl} and \texttt{libblas}. Note the flags on the
-\texttt{begin-src} line if you are visiting the org-mode file in emacs.
+We need matrix operations, and we choose CBLAS\footnote{\url{http://www.netlib.org/blas/}} and LAPACKE.\footnote{\url{http://www.netlib.org/lapack/lapacke.html}}
+
+\subsection{LAPACK and LAPACKE}
+\label{sec:orgheadline20}
+
+\subsubsection{Full Least-Squares Without Fold}
+\label{sec:orgheadline18}
 
 \begin{verbatim}
-double a[] = { 0.11, 0.12, 0.13,
-               0.21, 0.22, 0.23 };
+const int    m = 5;
+const int    n = 4;
 
-double b[] = { 1011, 1012,
-               1021, 1022,
-               1031, 1032 };
+double A[m * n] = { 1,  0.,  0.,  0.,
+                    1,  1.,  1.,  1.,
+                    1, -1.,  1., -1.,
+                    1, -2.,  4., -8.,
+                    1,  2.,  4.,  8. };
 
-double c[] = { 0.00, 0.00,
-               0.00, 0.00 };
+// Compute Transpose[A].A; A is not disturbed.
 
-gsl_matrix_view A = gsl_matrix_view_array(a, 2, 3);
-gsl_matrix_view B = gsl_matrix_view_array(b, 3, 2);
-gsl_matrix_view C = gsl_matrix_view_array(c, 2, 2);
+double AtA[n * n];
+memset (AtA, 0, n * n * sizeof (double));
 
-/* Compute C = A B */
+cblas_dgemm (CblasRowMajor, CblasTrans, CblasNoTrans,
+             n, n, m, 1,
+             A, n, // LDA is pre-transpose
+             A, n,
+             0,
+             AtA, n);
 
-gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,
-                1.0, &A.matrix, &B.matrix,
-                0.0, &C.matrix);
+for (int r = 0; r < n; ++r)
+{   for (int c = 0; c < n; ++c)
+    {   printf ("%g ", AtA[c + r * n]);   }
+    printf ("\n");   }
+printf ("\n");
 
-printf ("[ %g, %g\n", c[0], c[1]);
-printf ("  %g, %g ]\n", c[2], c[3]);
-// ~~> produces
+// Compute Transpose[A].z; neither A nor z is disturbed. Results are deposited
+// into Atz.
+
+double z[m] = {-2.28442, -4.83168, -10.4601, 1.40488, -40.8079};
+
+double Atz[n];
+
+cblas_dgemv (CblasRowMajor, CblasTrans,
+             m, n, 1,
+             A, n,
+             z, 1, 0,
+             Atz, 1);
+
+for (int i = 0; i < n; ++i)
+{   printf ("%g ", Atz[i]);   }
+printf ("\n");
+
+// Solve At.A.x = At.z = Atz. Unlike the CBLAS routines, the input storage
+// locations are modified. The Cholesky decomposition of AtA is deposited into
+// AtA, in-place, and the solution is deposited into Atz. To preserve these
+// matrices, it's necessary to copy them first.
+
+// The documentation for LAPACKE_dposv has an apparent error (see
+// http://tinyurl.com/htvod3e). It states that the leading dimension of B must
+// be >= max(1, N), but we suspect it should say >= max(1, NRHS). The results
+// are definitely wrong if N is used as LDB.
+
+// The results of this computation are identical to those from Mathematica. This
+// is not surprising because Mathematica probably uses LAPACK internally.
+
+lapack_int LAPACKE_dposv( int matrix_layout, char uplo, lapack_int n,
+                          lapack_int nrhs, double* a, lapack_int lda, double* b,
+                          lapack_int ldb );
+
+lapack_int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U', n, 1, AtA, n, Atz, 1);
+
+printf ("%d\n\n", result);
+
+for (int i = 0; i < n; ++i)
+{   printf ("%g ", Atz[i]);   }
+printf ("\n");
 \end{verbatim}
 
 \begin{center}
-\begin{tabular}{rr}
-[ 367.76 & 368.12\\
-674.06 & 674.72 ]\\
+\begin{tabular}{rrrr}
+5 & 0 & 10 & 0\\
+0 & 10 & 0 & 34\\
+10 & 0 & 34 & 0\\
+0 & 34 & 0 & 130\\
+ &  &  & \\
+-56.9792 & -78.7971 & -172.904 & -332.074\\
+0 &  &  & \\
+ &  &  & \\
+-2.97507 & 7.27001 & -4.21039 & -4.4558\\
 \end{tabular}
 \end{center}
 
-
-\subsection{Step 2: Getting LAPACK to work}
+\subsubsection{Foldable Kalman Without Inverse}
 \label{sec:orgheadline19}
 
-Make sure you have \texttt{gfortran} installed:
-
 \begin{verbatim}
-gfortran --version
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cblas.h>
+#include <lapacke.h>
+
+void printm (char * nym, double * m, int rows, int cols)
+{   printf ("%s\n", nym);
+    for (int r = 0; r < rows; ++r)
+    {   for (int c = 0; c < cols; ++c)
+        {   printf ("%g ", m[c + r * cols]);   }
+        printf ("\n");   }
+    printf ("\n");   }
+
+void kalman (int b,        /* # rows, cols, in Z; # rows in z */
+             int n,        /* # rows, cols, in P; # rows in x */
+             double * IdN, /* n x n identity matrix */
+             double * Z,   /* b x b observation covariance */
+             double * x,   /* n x 1, current state */
+             double * P,   /* n x n, current covariance */
+             double * A,   /* b x n, current observation partials */
+             double * z    /* b x 1, current observation vector */
+             ) {
+
+     /* Transcribe the following Wolfram code (the intermediate matrices are not
+     * necessary in Wolfram, but we need them in C).
+     *
+     * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+     *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
+     *    PAT = P.Transpose[A];               (* n x b *)
+     *    D = Z + A.PAT;                      (* b x b *)
+     *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
+     *    KRes = PAT.DiRes;                   (* n x 1 *)
+     *    DiAP = LinearSolve[D, A.P];         (* b x n *)
+     *    KAP = PAT.DiAP;                     (* n x n *)
+     *    {x + KRes, P - KAP}];
+     */
+
+
+     /* Use dgemm for P.A^T because dsymm doesn't offer a way to transpose the
+       right-hand multiplicand. */
+
+    /*
+     *      PAT                P           AT
+     *       b                 n           b
+     *    / * * \         / * * * * \   / * * \
+     *  n | * * |  <--  n | * * * * | n | * * |
+     *    | * * |         | * * * * |   | * * |
+     *    \ * * /         \ * * * * /   \ * * /
+     *
+     */
+
+    double PAT[n * b];
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
+                 n,          /* m (n),    # rows of A (P) */
+                 b,          /* n (b),    # cols of B (AT) (post-transpose) */
+                 n,          /* k (n),    # cols of A (P) == rows of B (AT post-tranpose) */
+                 1, P, n,    /* alpha, A, # cols A (P,  pre-transpose)*/
+                 A, n,       /*        B, # cols B (AT, pre-transpose)*/
+                 0, PAT, b); /* beta,  C, # cols C */
+    printm ("P.AT", PAT, n, b);
+
+    /*
+     *       D                 A          PAT           Z
+     *       b                 n           b            b
+     *  b / * * \  <--  b / * * * * \ n / * * \  + b / * * \
+     *    \ * * /         \ * * * * /   | * * |      \ * * /
+     *                                  | * * |
+     *                                  \ * * /
+     *
+     */
+
+    double D[b * b];
+    /* D <- A.PAT + Z (copy Z to D first) */
+    cblas_dcopy (b * b, Z, 1, D, 1);
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 b,          /* m (b),          # rows of A (A) */
+                 b,          /* n (b),          # cols of B (PAT) */
+                 n,          /* k (n),          # cols of A (A) == rows of B (PAT) */
+                 1, A, n,    /* alpha, A (A),   # cols A (A) */
+                 PAT, b,     /*        B (PAT), # cols B (PAT)*/
+                 1, D, b);   /* beta,  C (Z),   # cols C (D) */
+    printm ("D", D, b, b);
+
+    /*
+     *     Res                       A          x                 z
+     *      1                        n          1                 1
+     *  b / * \  <--  alpha * b / * * * * \ n / * \  + beta * b / * \
+     *    \ * /                 \ * * * * /   | * |             \ * /
+     *                                        | * |
+     *                                        \ * /
+     *
+     */
+    double Res[b * 1];
+    /* Res <- (-A.x) + z (copy z to Res first)  */
+    cblas_dcopy (b * 1, z, 1, Res, 1);
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 b,          /* m (b),        # rows of A (A) */
+                 1,          /* n (1),        # cols of B (x) */
+                 n,          /* k (n),        # cols of A (A) == rows of B (x) */
+                 -1, A, n,   /* alpha, A (A), # cols A (A) */
+                 x, 1,       /*        B (x), # cols B (x) */
+                 1, Res, 1); /* beta,  C (z), # cols C (Res) */
+    printm ("Res", Res, b, 1);
+
+    /*
+     *    DiRes        Di = D^-1   Res
+     *      1              b        1
+     *  b / * \  <--  b / * * \ b / * \
+     *    \ * /         \ * * /   \ * /
+     *
+     */
+
+    double DiRes[b * 1];
+    double DCholesky[b * b];
+    /* DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
+    /* copy Res to DiRes, first. */
+    /* copy D to DCholesky first. */
+    /* dposv: http://goo.gl/O7gUH8 */
+    cblas_dcopy (b * 1, Res, 1, DiRes,     1);
+    cblas_dcopy (b * b, D,   1, DCholesky, 1);
+    int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U',
+                                b,         /* NEQS: # rows of D */
+                                1,         /* NRHS: # columns of z - A.x == Res */
+                                DCholesky, /* DCholesky starts as D */
+                                b,         /* PDA D */
+                                DiRes,     /* output buffer */
+                                b);        /* PDA DiRes */
+    printf ("DPOSV DiRes result %d\n\n", result);
+    printm ("DiRes",     DiRes,     b, 1);
+    printm ("DCholesky", DCholesky, b, b);
+
+    /*
+     *     KRes           PAT     DiRes
+     *      1              b        1
+     *  n / * \       n / * * \ b / * \
+     *    | * |  <--    | * * |   \ * /
+     *    | * |         | * * |
+     *    \ * /         \ * * /
+     *
+     */
+
+    double KRes[n * 1];
+    /* KRes <-- PAT.DiRes */
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 n,           /* m (n),            # rows of A (PAT) */
+                 1,           /* n (1),            # cols of B (DiRes) */
+                 b,           /* k (b),            # cols of A (PAT) == # rows of B (DiRes) */
+                 1, PAT, b,   /* alpha, A (PAT),   # cols A (PAT) */
+                 DiRes, 1,    /*        B (DiRes), # cols B (DiRes) */
+                 0, KRes, 1); /* beta,  C (KRes),  # cols C (KRes) */
+    printm ("KRes", KRes, n, 1);
+
+    /*
+     *         AP                  A             P
+     *         n                   n             n
+     *  b / * * * * \  <--  b / * * * * \ n / * * * * \
+     *    \ * * * * /         \ * * * * /   | * * * * |
+     *                                      | * * * * |
+     *                                      \ * * * * /
+     *
+     */
+
+    double AP[b * n];
+    /* AP <-- A.P */
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 b,           /* m (b),          # rows of A (A) */
+                 n,           /* n (n),          # cols of B (P) */
+                 n,           /* k (n),          # cols of A (A) == # rows of B (P) */
+                 1, A, n,     /* alpha, A (A),   # cols A (PAT) */
+                 P, n,        /*        B (P),   # cols B (DiRes) */
+                 0, AP, n);   /* beta,  C (AP),  # cols C (KRes) */
+    printm ("AP", AP, b, n);
+
+    /*
+     *   Di = D^-1       A             P                  DiAP
+     *       b           n             n                   n
+     *  b / * * \ b / * * * * \ n / * * * * \  -->  b / * * * * \
+     *    \ * * /   \ * * * * /   | * * * * |         \ * * * * /
+     *                            | * * * * |
+     *                            \ * * * * /
+     *
+     */
+
+    double DiAP[b * n];
+    /* DiAP = LinearSolve[D, AP];    (* b x n *) */
+    /* copy AP to DiAP, first. */
+    /* copy D to DCholesky first. */
+    /* dposv: http://goo.gl/O7gUH8 */
+    cblas_dcopy (b * n, AP, 1, DiAP,      1);
+    cblas_dcopy (b * b, D,  1, DCholesky, 1);
+    result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U',
+                            b,         /* NEQS: # rows of D */
+                            n,         /* NRHS: # columns of z - A.x == Res */
+                            DCholesky, /* DCholesky starts as D */
+                            b,         /* PDA D */
+                            DiAP,      /* output buffer */
+                            n);        /* PDA DiRes */
+    printf ("DPOSV DiAP result %d\n\n", result);
+    printm ("DiAP",      DiAP,      b, n);
+    printm ("DCholesky", DCholesky, b, b);
+
+    /*
+     *        KAP             PAT         DiAP
+     *         n               b           n
+     *  n / * * * * \  <--  / * * \ b / * * * * \
+     *    | * * * * |     n | * * |   \ * * * * /
+     *    | * * * * |       | * * |
+     *    \ * * * * /       \ * * /
+     *
+     */
+
+    double KAP[n * n];
+    /* KAP <-- PAT.DiAP */
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 n,             /* m (n),           # rows of A (PAT) */
+                 n,             /* n (n),           # cols of B (DiAP) */
+                 b,             /* k (b),           # cols of A (PAT) == # rows of B (DiAP) */
+                 1, PAT, b,     /* alpha, A (PAT),  # cols A (PAT) */
+                 DiAP, n,       /*        B (Diap), # cols B (DiRes) */
+                 0, KAP, n);    /* beta,  C (KAP),  # cols C (KAP) */
+    printm ("KAP", KAP, n, n);
+
+    /*
+     *      x                       Id          x                 KRes
+     *      1                        n          1                  1
+     *  n / * \  <--  alpha * n / * * * * \ n / * \  +  beta * n / * \
+     *    | * |                 | * * * * |   | * |              | * |
+     *    | * |                 | * * * * |   | * |              | * |
+     *    \ * /                 \ * * * * /   \ * /              \ * /
+     *
+     */
+
+    /* x <-- alpha * IdN[n] * KRes + beta * x */
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 n,           /* m (n),           # rows of A (Id) */
+                 1,           /* n (1),           # cols of B (x) */
+                 n,           /* k (n),           # cols of A (Id) == rows of B (x) */
+                 1, IdN, n,   /* alpha, A (Id),   # cols A */
+                 x, 1,        /*        B (x),    # cols B */
+                 1, KRes, 1); /* beta,  C (Kres), # cols C (new x) */
+    cblas_dcopy (n * 1, KRes, 1, x, 1);
+    printm ("x", x, n, 1);
+
+    /*
+     *         P                          Id            KAP                       P
+     *         n                           n             n                        n
+     *  n / * * * * \  <--  alpha * n / * * * * \ n / * * * * \  +  beta * n / * * * * \
+     *    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
+     *    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
+     *    \ * * * * /                 \ * * * * /   \ * * * * /              \ * * * * /
+     *
+     */
+
+    /* P <-- P - KAP == - IdN[n] * KAP  + P */
+    /* dgemm: http://tinyurl.com/j24npm4 */
+    /* C <-- alpha * A * B + beta * C */
+    cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                 n,           /* m (n),         # rows of A (Id) */
+                 n,           /* n (n),         # cols of B (KAP) */
+                 n,           /* k (n),         # cols of A (Id) == rows of B (KAP) */
+                 -1, IdN, n,  /* alpha, A (Id), # cols A */
+                 KAP, n,      /*        B (x),  # cols B */
+                 1, P, n);    /* beta,  C (P),  # cols C (new P) */
+    printm ("P", P, n, n); }
+
+int main (int argc, char ** argv)
+{   const int    b = 1;
+    const int    n = 4;
+
+    double IdN[n * n] = { 1., 0., 0., 0.,
+                          0., 1., 0., 0.,
+                          0., 0., 1., 0.,
+                          0., 0., 0., 1. };
+
+
+    double Z[b * b] = {1.};
+
+    double x[n * 1] = {0., 0., 0., 0};
+    double P[n * n] = {1000.,    0.,    0.,    0.,
+                          0., 1000.,    0.,    0.,
+                          0.,    0., 1000.,    0.,
+                          0.,    0.,    0., 1000. };
+
+    double A[b * n] = {1., 0., 0., 0};
+    double z[b] = {-2.28442};
+
+    kalman (b, n, IdN, Z, x, P, A, z);
+
+    A[0] = 1;
+    A[1] = 1;
+    A[2] = 1;
+    A[3] = 1;
+
+    z[0] = -4.83168;
+
+    kalman (b, n, IdN, Z, x, P, A, z);
+
+    A[0] = 1;
+    A[1] = -1;
+    A[2] = 1;
+    A[3] = -1;
+
+    z[0] = -10.4601;
+
+    kalman (b, n, IdN, Z, x, P, A, z);
+
+    A[0] = 1;
+    A[1] = -2;
+    A[2] = 4;
+    A[3] = -8;
+
+    z[0] = 1.40488;
+
+    kalman (b, n, IdN, Z, x, P, A, z);
+
+    A[0] = 1;
+    A[1] = 2;
+    A[2] = 4;
+    A[3] = 8;
+
+    z[0] = -40.8079;
+
+    kalman (b, n, IdN, Z, x, P, A, z);
+
+    return 0;   }
 \end{verbatim}
 
-Get LAPACK.\footnote{\url{http://www.netlib.org/lapack/}}
-This builds BLAS as a side effect.
-
 \begin{verbatim}
-pushd ~/Documents/lapack-3.6.0
-cmake .
-make
-make test
+gcc qux.c -lcblas -llapacke -llapack
+./a.out
 \end{verbatim}
 
 \begin{verbatim}
-pushd ~/Documents/lapack-3.6.0
-make install
-\end{verbatim}
+const int    b = 1;
+const int    n = 4;
+double x[n * 1] = {0., 0., 0., 0};
+double Z[b * b] = {1.};
+double P[n * n] = {1000.,    0.,    0.,    0.,
+                      0., 1000.,    0.,    0.,
+                      0.,    0., 1000.,    0.,
+                      0.,    0.,    0., 1000. };
 
-\subsubsection{Make LAPACKE}
-\label{sec:orgheadline18}
+double A[b * n] = {1., 0., 0., 0};
+double z[b] = {-2.28442};
 
-This is the C interface to LAPACK.  The following mercilessly hacks around a couple of
-problems in the build of \texttt{examples}, but it's enough to get the example working.
+/* Transcribe the following Wolfram code (the intermediate matrices are not
+ * necessary in Wolfram, but we need them in C).
+ *
+ * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+ *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
+ *    PAT = P.Transpose[A];               (* n x b *)
+ *    D = Z + A.PAT;                      (* b x b *)
+ *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
+ *    KRes = PAT.DiRes;                   (* n x 1 *)
+ *    DiAP = LinearSolve[D, A.P];         (* b x n *)
+ *    KAP = PAT.DiAP;                     (* n x n *)
+ *    {x + KRes, P - KAP}];
+ */
 
-\begin{verbatim}
-pushd ~/Documents/lapack-3.6.0
-cp make.inc.example make.inc
-cd LAPACKE
-make lapacke
-\end{verbatim}
+/* Using dgemm for P.A^T because dsymm doesn't offer a way to transpose the
+   right-hand multiplicand. */
 
-\begin{verbatim}
-pushd ~/Documents/lapack-3.6.0
-find . -name "*.a"
-\end{verbatim}
+/*
+ *         A          x             z          Res
+ *         n          1             1           1
+ *  b / * * * * \   / * \  -->  b / * \ ,   b / * \
+ *    \ * * * * / n | * |         \ * /       \ * /
+ *                  | * |
+ *                  \ * /
+ *
+ *         P           AT             PAT
+ *         n           b               b
+ *    / * * * * \   / * * \  -->    / * * \
+ *  n | * * * * | n | * * |       n | * * |
+ *    | * * * * |   | * * |         | * * |
+ *    \ * * * * /   \ * * /         \ * * /
+ *
+ *       Z
+ *       b
+ *  b / * * \
+ *    \ * * /
+ *
+ *         A             P           AT           APAT
+ *         n             n           b              b
+ *  b / * * * * \   / * * * * \   / * * \  --> b / * * \
+ *    \ * * * * / n | * * * * | n | * * |        \ * * /
+ *                  | * * * * |   | * * |
+ *                  \ * * * * /   \ * * /
+ *
+ *       D         Di = D^-1   Res          DiRes
+ *       b             b        1             1
+ *  b / * * \ ,   b / * * \ b / * \  -->  b / * \
+ *    \ * * /       \ * * /   \ * /         \ * /
+ *
+ *      PAT     DiRes          KRes
+ *       b        1             1
+ *    / * * \ b / * \  -->    / * \
+ *  n | * * |   \ * /       n | * |
+ *    | * * |                 | * |
+ *    \ * * /                 \ * /
+ *
+ *         A
+ *         n
+ *  b / * * * * \
+ *    \ * * * * /
+ */
 
-\begin{verbatim}
-pushd ~/Documents/lapack-3.6.0
-cd LAPACKE
-cp ./include/lapacke*.h /usr/local/include
-cd example
-cp ../../liblapacke.a /usr/local/lib
-cp ../../lib/*.a ../..
-cp ../../libblas.a ../../librefblas.a
-make
+double PAT[n * b];
+/* dgemm: http://tinyurl.com/j24npm4 */
+cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
+             n, b, n,    /* m, n, k       */
+             1, P, n,    /* alpha, A, pda */
+             A, n,       /*        B, pdb */
+             0, PAT, n); /* beta,  C, pdc */
+
+printf ("P.AT\n");
+for (int r = 0; r < n; ++r)
+{   for (int c = 0; c < b; ++c)
+    {   printf ("%g ", PAT[c + r * b /* ncols */]);   }   }
+printf ("\n\n");
+
+double D[b * b];
+/* D <- A.PAT + Z (copy Z to D first) */
+cblas_dcopy (b * b, Z, 1, D, 1);
+cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+             b, b, n,    /* m, n, k       */
+             1, A, n,    /* alpha, A, pda */
+             PAT, b,     /*        B, pdb */
+             1, D, b);   /* beta,  C, pdc */
+
+printf ("D\n");
+for (int r = 0; r < b; ++r)
+{   for (int c = 0; c < b; ++c)
+    {   printf ("%g ", D[c + r * b]);   }   }
+printf ("\n\n");
+
+double Res[b * 1];
+/* Res <- (-A.x) + z (copy z to Res first)  */
+cblas_dcopy (b * 1, z, 1, Res, 1);
+cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+             b, 1, n,    /* m, n, k       */
+             -1, A, n,   /* alpha, A, pda */
+             x, 1,       /*        B, pdb */
+             1, Res, 1); /* beta,  C, pdc */
+
+printf ("Res\n");
+for (int r = 0; r < b; ++r)
+{   for (int c = 0; c < 1; ++c)
+    {   printf ("%g ", Res[c + r * 1]);   }   }
+printf ("\n\n");
+
+double DiRes[b * 1];
+double DCholesky[b * b];
+/*    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
+/*    copy Res to DiRes, first. */
+/*    copy D to DCholesky first. */
+/* dposv: http://goo.gl/O7gUH8 */
+cblas_dcopy (b * 1, Res, 1, DiRes,     1);
+cblas_dcopy (b * b, D,   1, DCholesky, 1);
+int result = LAPACKE_dposv (
+, 'U',
+b, /* n rows of D */
+1, /* n columns of Res */
+D,
+b,
+DiRes,
+b);
+
+printf ("DPOSV result %d\n\n", result);
+
+printf ("DiRes\n");
+for (int r = 0; r < b; ++r)
+{   for (int c = 0; c < 1; ++c)
+    {   printf ("%g ", DiRes[c + r * 1]);   }   }
+printf ("\n\n");
+
+printf ("DCholesky\n");
+for (int r = 0; r < b; ++r)
+{   for (int c = 0; c < b; ++c)
+    {   printf ("%g ", DCholesky[c + r * b]);   }   }
+printf ("\n\n");
+
+double KRes[n * 1];
+cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+             n, 1, b,     /* m, n, k       */
+             1, PAT, 1,   /* alpha, A, pda */
+             DiRes, 1,    /*        B, pdb */
+             0, KRes, 1); /* beta,  C, pdc */
+
+printf ("KRes\n");
+for (int r = 0; r < n; ++r)
+{   for (int c = 0; c < 1; ++c)
+    {   printf ("%g ", KRes[c + r * 1]);   }   }
+printf ("\n\n");
+
+/*  AP              = (b x n).(n x n)  -->  (b x n)
+ *  DiAP            = (b x b).(b x n)  -->  (b x n)
+ *  KAP  = PAT.DiAP = (n x b).(b x n)  -->  (n x n)
+ */
+
+double AP[b * n];
+cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
+             b, n, n,     /* m, n, k       */
+             1, A, n,     /* alpha, A, pda */
+             P, n,        /*        B, pdb */
+             0, AP, n);   /* beta,  C, pdc */
+
+printf ("AP\n");
+for (int r = 0; r < b; ++r)
+{   for (int c = 0; c < n; ++c)
+    {   printf ("%g ", AP[c + r * n]);   }   }
+printf ("\n\n");
+
+double DiAP[b * n];
+/* DiAP = LinearSolve[D, AP];    (* b x n *) */
+/* copy AP to DiAP, first. */
+/* copy D to DCholesky first. */
+/* dposv: http://goo.gl/O7gUH8 */
+cblas_dcopy (b * n, AP, 1, DiAP,      1);
+cblas_dcopy (b * b, D,  1, DCholesky, 1);
+int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U', b, b, D, b, DiRes, b);
+
+double KAP[n * n];
 \end{verbatim}
 Emacs 24.5.1 (Org mode 8.3.4)
 \end{document}

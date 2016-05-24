@@ -8,12 +8,18 @@
 int main() {
 int N = 3;
 int NN = 9;
+/* The following input appears in row-major order. The underlying fortran code
+   'sees' the transpose of this matrix, i.e., the same data in column-major
+   order. We print the result again in row-major order, so, although the result
+   is actually the transpose of the inverse of this matrix, it looks right
+   because the inverse of the transpose is the transpose of the inverse. */
 double M[3][3] = { {1 , 2 ,  3},
                    {4 , 5 ,  6},
                    {7 , 8 , 19} };
 int pivotArray[3]; //since our matrix has three rows
 int errorHandler;
 double lapackWorkspace[9];
+
 /*
   SUBROUTINE DGETRF( M, N, A, LDA, IPIV, INFO )
   *
