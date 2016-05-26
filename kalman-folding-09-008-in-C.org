@@ -1607,6 +1607,23 @@ optimize the calculations bit-by-bit.
 *** Foldable Kalman Without Inverse
 
 #+BEGIN_SRC C :tangle qux.c
+  /*
+    Copyright 2016 Brian C. Beckman
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+  ,*/
+  /* This is an educational example only, not suitable for real applications.
+   ,*/
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
@@ -1631,7 +1648,7 @@ optimize the calculations bit-by-bit.
                double * z    /* b x 1, current observation vector */
                ) {
 
-       /* Transcribe the following Wolfram code (the intermediate matrices are not
+      /* Transcribe the following Wolfram code (the intermediate matrices are not
        ,* necessary in Wolfram, but we need them in C).
        ,*
        ,* noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
@@ -1646,16 +1663,16 @@ optimize the calculations bit-by-bit.
        ,*/
 
 
-       /* Use dgemm for P.A^T because dsymm doesn't offer a way to transpose the
+      /* Use dgemm for P.A^T because dsymm doesn't offer a way to transpose the
          right-hand multiplicand. */
 
       /*
-       ,*      PAT                P           AT
-       ,*       b                 n           b
-       ,*    / * * \         / * * * * \   / * * \
-       ,*  n | * * |  <--  n | * * * * | n | * * |
-       ,*    | * * |         | * * * * |   | * * |
-       ,*    \ * * /         \ * * * * /   \ * * /
+       ,*      PAT              P           AT
+       ,*       b               n           b
+       ,*  n / * * \     n / * * * * \ n / * * \
+       ,*    | * * |  <--  | * * * * |   | * * |
+       ,*    | * * |       | * * * * |   | * * |
+       ,*    \ * * /       \ * * * * /   \ * * /
        ,*
        ,*/
 
@@ -1672,12 +1689,12 @@ optimize the calculations bit-by-bit.
       printm ("P.AT", PAT, n, b);
 
       /*
-       ,*       D                 A          PAT           Z
-       ,*       b                 n           b            b
-       ,*  b / * * \  <--  b / * * * * \ n / * * \  + b / * * \
-       ,*    \ * * /         \ * * * * /   | * * |      \ * * /
-       ,*                                  | * * |
-       ,*                                  \ * * /
+       ,*       D      =         A     .    PAT    +     Z
+       ,*       b                n           b           b
+       ,*  b / * * \      b / * * * * \ n / * * \ + b / * * \
+       ,*    \ * * /  <--   \ * * * * /   | * * |     \ * * /
+       ,*                                 | * * |
+       ,*                                 \ * * /
        ,*
        ,*/
 
@@ -1696,12 +1713,12 @@ optimize the calculations bit-by-bit.
       printm ("D", D, b, b);
 
       /*
-       ,*     Res                       A          x                 z
-       ,*      1                        n          1                 1
-       ,*  b / * \  <--  alpha * b / * * * * \ n / * \  + beta * b / * \
-       ,*    \ * /                 \ * * * * /   | * |             \ * /
-       ,*                                        | * |
-       ,*                                        \ * /
+       ,*     Res  =  alpha * A    .     x + beta * z
+       ,*      1              n          1          1
+       ,*  b / * \     b / * * * * \ n / * \ +  b / * \
+       ,*    \ * /  <--  \ * * * * /   | * |      \ * /
+       ,*                              | * |
+       ,*                              \ * /
        ,*
        ,*/
       double Res[b * 1];
@@ -1719,10 +1736,10 @@ optimize the calculations bit-by-bit.
       printm ("Res", Res, b, 1);
 
       /*
-       ,*    DiRes        Di = D^-1   Res
-       ,*      1              b        1
-       ,*  b / * \  <--  b / * * \ b / * \
-       ,*    \ * /         \ * * /   \ * /
+       ,*    DiRes  = (Di = D^-1) . Res
+       ,*      1            b        1
+       ,*  b / * \     b / * * \ b / * \
+       ,*    \ * /  <--  \ * * /   \ * /
        ,*
        ,*/
 
@@ -1746,12 +1763,12 @@ optimize the calculations bit-by-bit.
       printm ("DCholesky", DCholesky, b, b);
 
       /*
-       ,*     KRes           PAT     DiRes
-       ,*      1              b        1
-       ,*  n / * \       n / * * \ b / * \
-       ,*    | * |  <--    | * * |   \ * /
-       ,*    | * |         | * * |
-       ,*    \ * /         \ * * /
+       ,*     KRes  =      PAT  .  DiRes
+       ,*      1            b        1
+       ,*  n / * \     n / * * \ b / * \
+       ,*    | * |  <--  | * * |   \ * /
+       ,*    | * |       | * * |
+       ,*    \ * /       \ * * /
        ,*
        ,*/
 
@@ -1769,12 +1786,12 @@ optimize the calculations bit-by-bit.
       printm ("KRes", KRes, n, 1);
 
       /*
-       ,*         AP                  A             P
-       ,*         n                   n             n
-       ,*  b / * * * * \  <--  b / * * * * \ n / * * * * \
-       ,*    \ * * * * /         \ * * * * /   | * * * * |
-       ,*                                      | * * * * |
-       ,*                                      \ * * * * /
+       ,*         AP      =         A      .      P
+       ,*         n                 n             n
+       ,*  b / * * * * \     b / * * * * \ n / * * * * \
+       ,*    \ * * * * /  <--  \ * * * * /   | * * * * |
+       ,*                                    | * * * * |
+       ,*                                    \ * * * * /
        ,*
        ,*/
 
@@ -1792,12 +1809,12 @@ optimize the calculations bit-by-bit.
       printm ("AP", AP, b, n);
 
       /*
-       ,*   Di = D^-1       A             P                  DiAP
-       ,*       b           n             n                   n
-       ,*  b / * * \ b / * * * * \ n / * * * * \  -->  b / * * * * \
-       ,*    \ * * /   \ * * * * /   | * * * * |         \ * * * * /
-       ,*                            | * * * * |
-       ,*                            \ * * * * /
+       ,*        DiAP    =    (Di = D^-1)  .  A      .      P
+       ,*         n               b           n             n
+       ,*  b / * * * * \     b / * * \ b / * * * * \ n / * * * * \
+       ,*    \ * * * * /  <--  \ * * /   \ * * * * /   | * * * * |
+       ,*                                              | * * * * |
+       ,*                                              \ * * * * /
        ,*
        ,*/
 
@@ -1820,10 +1837,10 @@ optimize the calculations bit-by-bit.
       printm ("DCholesky", DCholesky, b, b);
 
       /*
-       ,*        KAP             PAT         DiAP
+       ,*        KAP      =      PAT    .    DiAP
        ,*         n               b           n
-       ,*  n / * * * * \  <--  / * * \ b / * * * * \
-       ,*    | * * * * |     n | * * |   \ * * * * /
+       ,*  n / * * * * \     n / * * \ b / * * * * \
+       ,*    | * * * * |  <--  | * * |   \ * * * * /
        ,*    | * * * * |       | * * |
        ,*    \ * * * * /       \ * * /
        ,*
@@ -1843,12 +1860,12 @@ optimize the calculations bit-by-bit.
       printm ("KAP", KAP, n, n);
 
       /*
-       ,*      x                       Id          x                 KRes
-       ,*      1                        n          1                  1
-       ,*  n / * \  <--  alpha * n / * * * * \ n / * \  +  beta * n / * \
-       ,*    | * |                 | * * * * |   | * |              | * |
-       ,*    | * |                 | * * * * |   | * |              | * |
-       ,*    \ * /                 \ * * * * /   \ * /              \ * /
+       ,*      x  =  alpha * Id     .    x   +    KRes
+       ,*      1              n          1         1
+       ,*  n / * \     n / * * * * \ n / * \ + n / * \
+       ,*    | * |  <--  | * * * * |   | * |     | * |
+       ,*    | * |       | * * * * |   | * |     | * |
+       ,*    \ * /       \ * * * * /   \ * /     \ * /
        ,*
        ,*/
 
@@ -1866,12 +1883,12 @@ optimize the calculations bit-by-bit.
       printm ("x", x, n, 1);
 
       /*
-       ,*         P                          Id            KAP                       P
-       ,*         n                           n             n                        n
-       ,*  n / * * * * \  <--  alpha * n / * * * * \ n / * * * * \  +  beta * n / * * * * \
-       ,*    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
-       ,*    | * * * * |                 | * * * * |   | * * * * |              | * * * * |
-       ,*    \ * * * * /                 \ * * * * /   \ * * * * /              \ * * * * /
+       ,*         P    =   alpha * Id      .     KAP    +  beta * P
+       ,*         n                 n             n               n
+       ,*  n / * * * * \     n / * * * * \ n / * * * * \ + n / * * * * \
+       ,*    | * * * * |  <--  | * * * * |   | * * * * |     | * * * * |
+       ,*    | * * * * |       | * * * * |   | * * * * |     | * * * * |
+       ,*    \ * * * * /       \ * * * * /   \ * * * * /     \ * * * * /
        ,*
        ,*/
 
@@ -1901,9 +1918,9 @@ optimize the calculations bit-by-bit.
 
       double x[n * 1] = {0., 0., 0., 0};
       double P[n * n] = {1000.,    0.,    0.,    0.,
-                            0., 1000.,    0.,    0.,
-                            0.,    0., 1000.,    0.,
-                            0.,    0.,    0., 1000. };
+                         0., 1000.,    0.,    0.,
+                         0.,    0., 1000.,    0.,
+                         0.,    0.,    0., 1000. };
 
       double A[b * n] = {1., 0., 0., 0};
       double z[b] = {-2.28442};
@@ -1955,279 +1972,281 @@ gcc qux.c -lcblas -llapacke -llapack
 #+END_SRC
 
 #+RESULTS:
-|        P.AT |       |        |      |
-|        1000 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|             |       |        |      |
-|           D |       |        |      |
-|        1001 |       |        |      |
-|             |       |        |      |
-|         Res |       |        |      |
-|    -2.28442 |       |        |      |
-|             |       |        |      |
-|       DPOSV | DiRes | result |    0 |
-|             |       |        |      |
-|       DiRes |       |        |      |
-| -0.00228214 |       |        |      |
-|             |       |        |      |
-|   DCholesky |       |        |      |
-|     31.6386 |       |        |      |
-|             |       |        |      |
-|        KRes |       |        |      |
-|    -2.28214 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|             |       |        |      |
-|          AP |       |        |      |
-|        1000 |     0 |      0 |    0 |
-|             |       |        |      |
-|       DPOSV |  DiAP | result |    0 |
-|             |       |        |      |
-|        DiAP |       |        |      |
-|    0.999001 |     0 |      0 |    0 |
-|             |       |        |      |
-|   DCholesky |       |        |      |
-|     31.6386 |       |        |      |
-|             |       |        |      |
-|         KAP |       |        |      |
-|     999.001 |     0 |      0 |    0 |
-|           0 |     0 |      0 |    0 |
-|           0 |     0 |      0 |    0 |
-|           0 |     0 |      0 |    0 |
-|             |       |        |      |
-|           x |       |        |      |
-|    -2.28214 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|           0 |       |        |      |
-|             |       |        |      |
-|           P |       |        |      |
-|    0.999001 |     0 |      0 |    0 |
-|           0 |  1000 |      0 |    0 |
-|           0 |     0 |   1000 |    0 |
-|           0 |     0 |      0 | 1000 |
-|             |       |        |      |
-
-#+BEGIN_SRC C :includes '(<stdio.h> <stdlib.h> <string.h> <cblas.h> <lapacke.h>) :flags -lcblas -llapacke -llapack :exports both
-  const int    b = 1;
-  const int    n = 4;
-  double x[n * 1] = {0., 0., 0., 0};
-  double Z[b * b] = {1.};
-  double P[n * n] = {1000.,    0.,    0.,    0.,
-                        0., 1000.,    0.,    0.,
-                        0.,    0., 1000.,    0.,
-                        0.,    0.,    0., 1000. };
-
-  double A[b * n] = {1., 0., 0., 0};
-  double z[b] = {-2.28442};
-
-  /* Transcribe the following Wolfram code (the intermediate matrices are not
-   * necessary in Wolfram, but we need them in C).
-   *
-   * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
-   *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
-   *    PAT = P.Transpose[A];               (* n x b *)
-   *    D = Z + A.PAT;                      (* b x b *)
-   *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
-   *    KRes = PAT.DiRes;                   (* n x 1 *)
-   *    DiAP = LinearSolve[D, A.P];         (* b x n *)
-   *    KAP = PAT.DiAP;                     (* n x n *)
-   *    {x + KRes, P - KAP}];
-   */
-
-  /* Using dgemm for P.A^T because dsymm doesn't offer a way to transpose the
-     right-hand multiplicand. */
-
-  /*
-   *         A          x             z          Res
-   *         n          1             1           1
-   *  b / * * * * \   / * \  -->  b / * \ ,   b / * \
-   *    \ * * * * / n | * |         \ * /       \ * /
-   *                  | * |
-   *                  \ * /
-   *
-   *         P           AT             PAT
-   *         n           b               b
-   *    / * * * * \   / * * \  -->    / * * \
-   *  n | * * * * | n | * * |       n | * * |
-   *    | * * * * |   | * * |         | * * |
-   *    \ * * * * /   \ * * /         \ * * /
-   *
-   *       Z
-   *       b
-   *  b / * * \
-   *    \ * * /
-   *
-   *         A             P           AT           APAT
-   *         n             n           b              b
-   *  b / * * * * \   / * * * * \   / * * \  --> b / * * \
-   *    \ * * * * / n | * * * * | n | * * |        \ * * /
-   *                  | * * * * |   | * * |
-   *                  \ * * * * /   \ * * /
-   *
-   *       D         Di = D^-1   Res          DiRes
-   *       b             b        1             1
-   *  b / * * \ ,   b / * * \ b / * \  -->  b / * \
-   *    \ * * /       \ * * /   \ * /         \ * /
-   *
-   *      PAT     DiRes          KRes
-   *       b        1             1
-   *    / * * \ b / * \  -->    / * \
-   *  n | * * |   \ * /       n | * |
-   *    | * * |                 | * |
-   *    \ * * /                 \ * /
-   *
-   *         A
-   *         n
-   *  b / * * * * \
-   *    \ * * * * /
-   */
-
-  double PAT[n * b];
-  /* dgemm: http://tinyurl.com/j24npm4 */
-  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
-               n, b, n,    /* m, n, k       */
-               1, P, n,    /* alpha, A, pda */
-               A, n,       /*        B, pdb */
-               0, PAT, n); /* beta,  C, pdc */
-
-  printf ("P.AT\n");
-  for (int r = 0; r < n; ++r)
-  {   for (int c = 0; c < b; ++c)
-      {   printf ("%g ", PAT[c + r * b /* ncols */]);   }   }
-  printf ("\n\n");
-
-  double D[b * b];
-  /* D <- A.PAT + Z (copy Z to D first) */
-  cblas_dcopy (b * b, Z, 1, D, 1);
-  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
-               b, b, n,    /* m, n, k       */
-               1, A, n,    /* alpha, A, pda */
-               PAT, b,     /*        B, pdb */
-               1, D, b);   /* beta,  C, pdc */
-
-  printf ("D\n");
-  for (int r = 0; r < b; ++r)
-  {   for (int c = 0; c < b; ++c)
-      {   printf ("%g ", D[c + r * b]);   }   }
-  printf ("\n\n");
-
-  double Res[b * 1];
-  /* Res <- (-A.x) + z (copy z to Res first)  */
-  cblas_dcopy (b * 1, z, 1, Res, 1);
-  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
-               b, 1, n,    /* m, n, k       */
-               -1, A, n,   /* alpha, A, pda */
-               x, 1,       /*        B, pdb */
-               1, Res, 1); /* beta,  C, pdc */
-
-  printf ("Res\n");
-  for (int r = 0; r < b; ++r)
-  {   for (int c = 0; c < 1; ++c)
-      {   printf ("%g ", Res[c + r * 1]);   }   }
-  printf ("\n\n");
-
-  double DiRes[b * 1];
-  double DCholesky[b * b];
-  /*    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
-  /*    copy Res to DiRes, first. */
-  /*    copy D to DCholesky first. */
-  /* dposv: http://goo.gl/O7gUH8 */
-  cblas_dcopy (b * 1, Res, 1, DiRes,     1);
-  cblas_dcopy (b * b, D,   1, DCholesky, 1);
-  int result = LAPACKE_dposv (
-  , 'U',
-  b, /* n rows of D */
-  1, /* n columns of Res */
-  D,
-  b,
-  DiRes,
-  b);
-
-  printf ("DPOSV result %d\n\n", result);
-
-  printf ("DiRes\n");
-  for (int r = 0; r < b; ++r)
-  {   for (int c = 0; c < 1; ++c)
-      {   printf ("%g ", DiRes[c + r * 1]);   }   }
-  printf ("\n\n");
-
-  printf ("DCholesky\n");
-  for (int r = 0; r < b; ++r)
-  {   for (int c = 0; c < b; ++c)
-      {   printf ("%g ", DCholesky[c + r * b]);   }   }
-  printf ("\n\n");
-
-  double KRes[n * 1];
-  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
-               n, 1, b,     /* m, n, k       */
-               1, PAT, 1,   /* alpha, A, pda */
-               DiRes, 1,    /*        B, pdb */
-               0, KRes, 1); /* beta,  C, pdc */
-
-  printf ("KRes\n");
-  for (int r = 0; r < n; ++r)
-  {   for (int c = 0; c < 1; ++c)
-      {   printf ("%g ", KRes[c + r * 1]);   }   }
-  printf ("\n\n");
-
-  /*  AP              = (b x n).(n x n)  -->  (b x n)
-   *  DiAP            = (b x b).(b x n)  -->  (b x n)
-   *  KAP  = PAT.DiAP = (n x b).(b x n)  -->  (n x n)
-   */
-
-  double AP[b * n];
-  cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasNoTrans,
-               b, n, n,     /* m, n, k       */
-               1, A, n,     /* alpha, A, pda */
-               P, n,        /*        B, pdb */
-               0, AP, n);   /* beta,  C, pdc */
-
-  printf ("AP\n");
-  for (int r = 0; r < b; ++r)
-  {   for (int c = 0; c < n; ++c)
-      {   printf ("%g ", AP[c + r * n]);   }   }
-  printf ("\n\n");
-
-  double DiAP[b * n];
-  /* DiAP = LinearSolve[D, AP];    (* b x n *) */
-  /* copy AP to DiAP, first. */
-  /* copy D to DCholesky first. */
-  /* dposv: http://goo.gl/O7gUH8 */
-  cblas_dcopy (b * n, AP, 1, DiAP,      1);
-  cblas_dcopy (b * b, D,  1, DCholesky, 1);
-  int result = LAPACKE_dposv (LAPACK_ROW_MAJOR, 'U', b, b, D, b, DiRes, b);
-
-  double KAP[n * n];
-
-#+END_SRC
-
-#+RESULTS:
-| P.AT        |        |   |   |
-| 1000        |      0 | 0 | 0 |
-|             |        |   |   |
-| D           |        |   |   |
-| 1001        |        |   |   |
-|             |        |   |   |
-| Res         |        |   |   |
-| -2.28442    |        |   |   |
-|             |        |   |   |
-| DPOSV       | result | 0 |   |
-|             |        |   |   |
-| DiRes       |        |   |   |
-| -0.00228214 |        |   |   |
-|             |        |   |   |
-| DCholesky   |        |   |   |
-| 1001        |        |   |   |
-|             |        |   |   |
-| KRes        |        |   |   |
-| -2.28214    |      0 | 0 | 0 |
-|             |        |   |   |
-| AP          |        |   |   |
-| 1000        |      0 | 0 | 0 |
+|         P.AT |              |              |              |
+|         1000 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|              |              |              |              |
+|            D |              |              |              |
+|         1001 |              |              |              |
+|              |              |              |              |
+|          Res |              |              |              |
+|     -2.28442 |              |              |              |
+|              |              |              |              |
+|        DPOSV |        DiRes |       result |            0 |
+|              |              |              |              |
+|        DiRes |              |              |              |
+|  -0.00228214 |              |              |              |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      31.6386 |              |              |              |
+|              |              |              |              |
+|         KRes |              |              |              |
+|     -2.28214 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|              |              |              |              |
+|           AP |              |              |              |
+|         1000 |            0 |            0 |            0 |
+|              |              |              |              |
+|        DPOSV |         DiAP |       result |            0 |
+|              |              |              |              |
+|         DiAP |              |              |              |
+|     0.999001 |            0 |            0 |            0 |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      31.6386 |              |              |              |
+|              |              |              |              |
+|          KAP |              |              |              |
+|      999.001 |            0 |            0 |            0 |
+|            0 |            0 |            0 |            0 |
+|            0 |            0 |            0 |            0 |
+|            0 |            0 |            0 |            0 |
+|              |              |              |              |
+|            x |              |              |              |
+|     -2.28214 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|            0 |              |              |              |
+|              |              |              |              |
+|            P |              |              |              |
+|     0.999001 |            0 |            0 |            0 |
+|            0 |         1000 |            0 |            0 |
+|            0 |            0 |         1000 |            0 |
+|            0 |            0 |            0 |         1000 |
+|              |              |              |              |
+|         P.AT |              |              |              |
+|     0.999001 |              |              |              |
+|         1000 |              |              |              |
+|         1000 |              |              |              |
+|         1000 |              |              |              |
+|              |              |              |              |
+|            D |              |              |              |
+|         3002 |              |              |              |
+|              |              |              |              |
+|          Res |              |              |              |
+|     -2.54954 |              |              |              |
+|              |              |              |              |
+|        DPOSV |        DiRes |       result |            0 |
+|              |              |              |              |
+|        DiRes |              |              |              |
+| -0.000849281 |              |              |              |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      54.7905 |              |              |              |
+|              |              |              |              |
+|         KRes |              |              |              |
+| -0.000848433 |              |              |              |
+|    -0.849281 |              |              |              |
+|    -0.849281 |              |              |              |
+|    -0.849281 |              |              |              |
+|              |              |              |              |
+|           AP |              |              |              |
+|     0.999001 |         1000 |         1000 |         1000 |
+|              |              |              |              |
+|        DPOSV |         DiAP |       result |            0 |
+|              |              |              |              |
+|         DiAP |              |              |              |
+|  0.000332779 |     0.333111 |     0.333111 |     0.333111 |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      54.7905 |              |              |              |
+|              |              |              |              |
+|          KAP |              |              |              |
+|  0.000332446 |     0.332779 |     0.332779 |     0.332779 |
+|     0.332779 |      333.111 |      333.111 |      333.111 |
+|     0.332779 |      333.111 |      333.111 |      333.111 |
+|     0.332779 |      333.111 |      333.111 |      333.111 |
+|              |              |              |              |
+|            x |              |              |              |
+|     -2.28299 |              |              |              |
+|    -0.849281 |              |              |              |
+|    -0.849281 |              |              |              |
+|    -0.849281 |              |              |              |
+|              |              |              |              |
+|            P |              |              |              |
+|     0.998669 |    -0.332779 |    -0.332779 |    -0.332779 |
+|    -0.332779 |      666.889 |     -333.111 |     -333.111 |
+|    -0.332779 |     -333.111 |      666.889 |     -333.111 |
+|    -0.332779 |     -333.111 |     -333.111 |      666.889 |
+|              |              |              |              |
+|         P.AT |              |              |              |
+|      1.33145 |              |              |              |
+|     -667.221 |              |              |              |
+|      1332.78 |              |              |              |
+|     -667.221 |              |              |              |
+|              |              |              |              |
+|            D |              |              |              |
+|      2669.55 |              |              |              |
+|              |              |              |              |
+|          Res |              |              |              |
+|      -9.0264 |              |              |              |
+|              |              |              |              |
+|        DPOSV |        DiRes |       result |            0 |
+|              |              |              |              |
+|        DiRes |              |              |              |
+|  -0.00338124 |              |              |              |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      51.6677 |              |              |              |
+|              |              |              |              |
+|         KRes |              |              |              |
+|  -0.00450194 |              |              |              |
+|      2.25603 |              |              |              |
+|     -4.50644 |              |              |              |
+|      2.25603 |              |              |              |
+|              |              |              |              |
+|           AP |              |              |              |
+|      1.33145 |     -667.221 |      1332.78 |     -667.221 |
+|              |              |              |              |
+|        DPOSV |         DiAP |       result |            0 |
+|              |              |              |              |
+|         DiAP |              |              |              |
+|  0.000498753 |    -0.249938 |     0.499252 |    -0.249938 |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      51.6677 |              |              |              |
+|              |              |              |              |
+|          KAP |              |              |              |
+|  0.000664063 |    -0.332779 |     0.664727 |    -0.332779 |
+|    -0.332779 |      166.764 |     -333.111 |      166.764 |
+|     0.664727 |     -333.111 |      665.392 |     -333.111 |
+|    -0.332779 |      166.764 |     -333.111 |      166.764 |
+|              |              |              |              |
+|            x |              |              |              |
+|     -2.28749 |              |              |              |
+|      1.40675 |              |              |              |
+|     -5.35572 |              |              |              |
+|      1.40675 |              |              |              |
+|              |              |              |              |
+|            P |              |              |              |
+|     0.998004 | -1.11022e-16 |    -0.997506 | -1.11022e-16 |
+| -1.11022e-16 |      500.125 | -1.13687e-13 |     -499.875 |
+|    -0.997506 | -5.68434e-14 |      1.49676 | -5.68434e-14 |
+| -1.11022e-16 |     -499.875 | -1.13687e-13 |      500.125 |
+|              |              |              |              |
+|         P.AT |              |              |              |
+|     -2.99202 |              |              |              |
+|      2998.75 |              |              |              |
+|      4.98952 |              |              |              |
+|     -3001.25 |              |              |              |
+|              |              |              |              |
+|            D |              |              |              |
+|      18030.5 |              |              |              |
+|              |              |              |              |
+|          Res |              |              |              |
+|      39.1828 |              |              |              |
+|              |              |              |              |
+|        DPOSV |        DiRes |       result |            0 |
+|              |              |              |              |
+|        DiRes |              |              |              |
+|   0.00217314 |              |              |              |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      134.278 |              |              |              |
+|              |              |              |              |
+|         KRes |              |              |              |
+|  -0.00650209 |              |              |              |
+|      6.51672 |              |              |              |
+|     0.010843 |              |              |              |
+|     -6.52215 |              |              |              |
+|              |              |              |              |
+|           AP |              |              |              |
+|     -2.99202 |      2998.75 |      4.98952 |     -3001.25 |
+|              |              |              |              |
+|        DPOSV |         DiAP |       result |            0 |
+|              |              |              |              |
+|         DiAP |              |              |              |
+| -0.000165942 |     0.166316 |  0.000276727 |    -0.166454 |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      134.278 |              |              |              |
+|              |              |              |              |
+|          KAP |              |              |              |
+|  0.000496503 |     -0.49762 | -0.000827974 |     0.498035 |
+|     -0.49762 |      498.739 |     0.829836 |     -499.155 |
+| -0.000827974 |     0.829836 |   0.00138074 |    -0.830528 |
+|     0.498035 |     -499.155 |    -0.830528 |      499.571 |
+|              |              |              |              |
+|            x |              |              |              |
+|     -2.29399 |              |              |              |
+|      7.92347 |              |              |              |
+|     -5.34488 |              |              |              |
+|      -5.1154 |              |              |              |
+|              |              |              |              |
+|            P |              |              |              |
+|     0.997508 |      0.49762 |    -0.996678 |    -0.498035 |
+|      0.49762 |       1.3855 |    -0.829836 |    -0.719881 |
+|    -0.996678 |    -0.829836 |      1.49538 |     0.830528 |
+|    -0.498035 |    -0.719881 |     0.830528 |     0.553787 |
+|              |              |              |              |
+|         P.AT |              |              |              |
+|     -5.97824 |              |              |              |
+|     -5.80977 |              |              |              |
+|      9.96938 |              |              |              |
+|      5.81461 |              |              |              |
+|              |              |              |              |
+|            D |              |              |              |
+|      69.7966 |              |              |              |
+|              |              |              |              |
+|          Res |              |              |              |
+|      7.94184 |              |              |              |
+|              |              |              |              |
+|        DPOSV |        DiRes |       result |            0 |
+|              |              |              |              |
+|        DiRes |              |              |              |
+|     0.113785 |              |              |              |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      8.35444 |              |              |              |
+|              |              |              |              |
+|         KRes |              |              |              |
+|    -0.680236 |              |              |              |
+|    -0.661067 |              |              |              |
+|      1.13437 |              |              |              |
+|     0.661618 |              |              |              |
+|              |              |              |              |
+|           AP |              |              |              |
+|     -5.97824 |     -5.80977 |      9.96938 |      5.81461 |
+|              |              |              |              |
+|        DPOSV |         DiAP |       result |            0 |
+|              |              |              |              |
+|         DiAP |              |              |              |
+|   -0.0856523 |   -0.0832385 |     0.142835 |    0.0833079 |
+|              |              |              |              |
+|    DCholesky |              |              |              |
+|      8.35444 |              |              |              |
+|              |              |              |              |
+|          KAP |              |              |              |
+|      0.51205 |      0.49762 |      -0.8539 |    -0.498035 |
+|      0.49762 |     0.483596 |    -0.829836 |       -0.484 |
+|      -0.8539 |    -0.829836 |      1.42397 |     0.830528 |
+|    -0.498035 |       -0.484 |     0.830528 |     0.484403 |
+|              |              |              |              |
+|            x |              |              |              |
+|     -2.97423 |              |              |              |
+|       7.2624 |              |              |              |
+|     -4.21051 |              |              |              |
+|     -4.45378 |              |              |              |
+|              |              |              |              |
+|            P |              |              |              |
+|     0.485458 | -1.07747e-13 |    -0.142778 |  5.32907e-14 |
+| -2.76612e-13 |     0.901908 |  1.57763e-13 |    -0.235882 |
+|    -0.142778 |  2.77556e-14 |    0.0714031 | -5.08482e-14 |
+|  9.55347e-14 |    -0.235882 | -8.32667e-14 |    0.0693839 |
+|              |              |              |              |
 
 *** COMMENT Another Example
 
@@ -2365,9 +2384,6 @@ From http://tinyurl.com/hun752f.
       print_RMO_matrix ((double *)DY, N, N);   }
 #+END_SRC
 
-#+RESULTS:
-
-
 Tangle it to =bar.c=, then compile and run as follows:
 
 #+BEGIN_SRC bash
@@ -2401,47 +2417,6 @@ gcc bar.c -lblas && ./a.out
 | 1 |  2 |  3 |    |   |
 | 4 |  5 |  6 |    |   |
 | 7 |  8 | 19 |    |   |
-
-#+BEGIN_SRC fortran
-subroutine f(mu, Sigma, H, INFO, R, Sigmavar_2, data, muvar_2, k, n)
-implicit none
-
-integer, intent(in) :: k
-integer, intent(in) :: n
-real*8, intent(in) :: Sigma(n, n)        !  Sigma
-real*8, intent(in) :: H(k, n)            !  H
-real*8, intent(in) :: mu(n)              !  mu
-real*8, intent(in) :: R(k, k)            !  R, H*Sigma*H' + R
-real*8, intent(in) :: data(k)            !  (H*Sigma*H' + R)^-1*((-1)*data + H*mu), data, (-1)*   data + H*mu
-integer, intent(out) :: INFO             !  INFO
-real*8, intent(out) :: muvar_2(n)        !  mu, Sigma*H'*(H*Sigma*H' + R)^-1*((-1)*data + H*  mu) + mu
-real*8, intent(out) :: Sigmavar_2(n, n)  !  Sigma, (-1)*Sigma*H'*(H*Sigma*H' + R)^-1*H* Sigma + Sigma
-real*8 :: var_17(n, k)                   !  Sigma*H', 0
-real*8 :: Hvar_2(k, n)                   !  (H*Sigma*H' + R)^-1*H, H
-real*8 :: var_11(n)                      !  0, H'*(H*Sigma*H' + R)^-1*((-1)*data + H*mu)
-real*8 :: var_19(n, n)                   !  0, H'*(H*Sigma*H' + R)^-1*H
-real*8 :: var_5(n, n)                    !  0
-real*8 :: var_20(n, n)                   !  H'*(H*Sigma*H' + R)^-1*H*Sigma, 0
-
-call dcopy(n**2, var_5, 1, var_20, 1)
-call dsymm('L', 'U', n, k, 1, Sigma, n, H, k, 0, var_17, n)
-call dgemm('N', 'N', k, k, n, 1, H, k, var_17, n, 1, R, k)
-call dcopy(n**2, var_5, 1, var_19, 1)
-call dcopy(n, mu, 1, muvar_2, 1)
-call dcopy(n**2, Sigma, 1, Sigmavar_2, 1)
-call dcopy(k*n, H, 1, Hvar_2, 1)
-call dgemm('N', 'N', k, 1, n, 1, H, k, mu, n, -1, data, k)
-call dposv('U', k, n, R, k, Hvar_2, k, INFO)
-call dposv('U', k, 1, R, k, data, k, INFO)
-call dgemm('N', 'N', n, n, k, 1, H, k, Hvar_2, k, 0, var_19, n)
-call dgemm('N', 'N', n, 1, k, 1, H, k, data, k, 0, var_11, n)
-call dsymm('L', 'U', n, n, 1, var_19, n, Sigma, n, 0, var_20, n)
-call dsymm('L', 'U', n, 1, 1, Sigma, n, var_11, n, 1, muvar_2, n)
-call dsymm('L', 'U', n, n, -1, Sigmavar_2, n, var_20, n, 1, Sigmavar_2, n)
-
-RETURN
-END
-#+END_SRC
 
 * Footnotes
 

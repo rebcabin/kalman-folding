@@ -1,3 +1,20 @@
+/*
+  Copyright 2016 Brian C. Beckman
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+*/
+/* This is an educational example only, not suitable for real applications.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +38,21 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
              double * A,   /* b x n, current observation partials */
              double * z    /* b x 1, current observation vector */
              ) {
+
+    /* Transcribe the following Wolfram code (the intermediate matrices are not
+     * necessary in Wolfram, but we need them in C).
+     *
+     * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
+     *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
+     *    PAT = P.Transpose[A];               (* n x b *)
+     *    D = Z + A.PAT;                      (* b x b *)
+     *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
+     *    KRes = PAT.DiRes;                   (* n x 1 *)
+     *    DiAP = LinearSolve[D, A.P];         (* b x n *)
+     *    KAP = PAT.DiAP;                     (* n x n *)
+     *    {x + KRes, P - KAP}];
+     */
+
 
     /* Use dgemm for P.A^T because dsymm doesn't offer a way to transpose the
        right-hand multiplicand. */
@@ -168,12 +200,12 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
     printm ("AP", AP, b, n);
 
     /*
-     *   Di = D^-1       A             P                  DiAP
-     *       b           n             n                   n
-     *  b / * * \ b / * * * * \ n / * * * * \  -->  b / * * * * \
-     *    \ * * /   \ * * * * /   | * * * * |         \ * * * * /
-     *                            | * * * * |
-     *                            \ * * * * /
+     *        DiAP           Di = D^-1       A             P
+     *         n                 b           n             n
+     *  b / * * * * \  <--  b / * * \ b / * * * * \ n / * * * * \
+     *    \ * * * * /         \ * * /   \ * * * * /   | * * * * |
+     *                                                | * * * * |
+     *                                                \ * * * * /
      *
      */
 
@@ -264,21 +296,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
     printm ("P", P, n, n); }
 
 int main (int argc, char ** argv)
-{   /* Transcribe the following Wolfram code (the intermediate matrices are not
-     * necessary in Wolfram, but we need them in C).
-     *
-     * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
-     *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
-     *    PAT = P.Transpose[A];               (* n x b *)
-     *    D = Z + A.PAT;                      (* b x b *)
-     *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
-     *    KRes = PAT.DiRes;                   (* n x 1 *)
-     *    DiAP = LinearSolve[D, A.P];         (* b x n *)
-     *    KAP = PAT.DiAP;                     (* n x n *)
-     *    {x + KRes, P - KAP}];
-     */
-
-    const int    b = 1;
+{   const int    b = 1;
     const int    n = 4;
 
     double IdN[n * n] = { 1., 0., 0., 0.,
@@ -291,9 +309,9 @@ int main (int argc, char ** argv)
 
     double x[n * 1] = {0., 0., 0., 0};
     double P[n * n] = {1000.,    0.,    0.,    0.,
-                          0., 1000.,    0.,    0.,
-                          0.,    0., 1000.,    0.,
-                          0.,    0.,    0., 1000. };
+                       0., 1000.,    0.,    0.,
+                       0.,    0., 1000.,    0.,
+                       0.,    0.,    0., 1000. };
 
     double A[b * n] = {1., 0., 0., 0};
     double z[b] = {-2.28442};
