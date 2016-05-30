@@ -1,15 +1,16 @@
-|  paper | Title                                  | Description                     | status           |
-| number |                                        |                                 |                  |
-|--------+----------------------------------------+---------------------------------+------------------|
-|     1. | Kalman Folding Part 1                  | main thesis of the series       | Reviewer's Draft |
-|     2. | Tracking and State dynamics            | time-evolving states            | Working Draft    |
-|     3. | Derivations                            | time-constant states            | Working Draft    |
-|     4. | Streams and Observables                | folds work everywhere           | Working Draft    |
-|     5. | Non-Linear Models and the EKF          | Extended Kalman Filter & tuning | Reviewer's Draft |
-|     6. | Dimensional Analysis                   | physical units of measure       | not started      |
-|     7. | Small Streams Library                  | Details of #5                   | Working Draft    |
-|     8. | Process Noise                          | Filter Bandwidth                | not started      |
-|     9. | Folding in C                           | How to Implement all this in C  | not started      |
-|    10. | Catastrophic Cancellation and the SRIF | Square-Root Information Filter  | not started      |
-|    11. | Unscented and Sigma-Point Filters      |                                 | not started      |
-|    12. | Particle Filters                       |                                 | not started      |
+|  paper | Title                                  | Description                        | status           |
+| number |                                        |                                    |                  |
+|--------+----------------------------------------+------------------------------------+------------------|
+|     1. | Kalman Folding Part 1                  | main thesis of the series          | Reviewer's Draft |
+|     2. | Tracking and State dynamics            | time-evolving states               | Working Draft    |
+|     3. | Derivations                            | time-constant states               | Working Draft    |
+|     4. | Streams and Observables                | folds work everywhere              | Working Draft    |
+|     5. | Non-Linear Models and the EKF          | Extended Kalman Filter & tuning    | Reviewer's Draft |
+|     6. | Dimensional Analysis                   | physical units of measure          | not started      |
+|     7. | Small Streams Library                  | Details of #5                      | Working Draft    |
+|     8. | Process Noise                          | Filter Bandwidth                   | not started      |
+|     9. | Folding in C                           | How to Implement all this in C     | Working Draft    |
+|    10. | Catastrophic Cancellation and the SRIF | Square-Root Information Filter     | not started      |
+|    11. | Unscented and Sigma-Point Filters      |                                    | not started      |
+|    12. | Particle Filters                       |                                    | not started      |
+|    13. | Statistics Background                  | explain variance, covariance, etc. | not started      |
