@@ -14,3 +14,5 @@
 |    11. | Unscented and Sigma-Point Filters      |                                    | not started      |
 |    12. | Particle Filters                       |                                    | not started      |
 |    13. | Statistics Background                  | explain variance, covariance, etc. | not started      |
+|    14. | Functional Programming Background      |                                    | not started      |
+|        |                                        |                                    |                  |
