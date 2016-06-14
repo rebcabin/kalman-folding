@@ -46,8 +46,9 @@ typeset PDF and HTML.
 * Abstract
 
 In this literate program, we show one way to implement the basic Kalman fold in
-C. The background for Kalman folding appears in /Kalman Folding, Part
-1/,[fn:klf1] where we highlight the the unique advantages of functional folding
+C. The background for Kalman folding appears in 
+/Kalman Folding, Part 1/,[fn:klf1] 
+where we highlight the the unique advantages of functional folding
 for deploying test-hardened code verbatim in harsh, mission-critical
 environments. In that and in other papers in this series, the emphasis is on
 mathematical clarity and conciseness. Here, the emphasis is on embedded systems
@@ -78,15 +79,19 @@ in all environments.
 
 * COMMENT Kalman Folding in the Wolfram Language
 
-In this series of papers, we use the Wolfram language[fn:wolf] because it excels
-at concise expression of mathematical code. All examples in these papers can be
-directly transcribed to any modern mainstream language that supports closures.
-For example, it is easy to write them in C++11 and beyond, Python, any modern
-Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many can be written
-without full closures; function pointers will suffice, so they are easy to write
-in C. It's also not difficult to add extra arguments to simulate just enough
-closure-like support in C to write the rest of the examples in that language.
-
+In this series of papers, we favor the Wolfram language[fn:wolf] because it
+excels at concise expression of mathematical code. All examples in these papers
+can be directly transcribed to any modern mainstream language that supports
+closures. For example, it is easy to write them in C++11 and beyond, Python, any
+modern Lisp, not to mention Haskell, Scala, Erlang, and OCaml. Many examples can
+be written without closures; function pointers will suffice, so they are easy to
+write in C. It's also not difficult to add extra arguments to simulate just
+enough closure-like support for the particular functions that need it in C. In
+this paper, we cheat a bit and use an extension to the C language called
+/Blocks/,[fn:blck] which implements full closures. This extension is widely
+available with clang and llvm on Apple computers and Linux, and it's too
+convenient to pass up. With compilers for bare-metal processors in embedded
+systems, we might not have it and have to do more work by hand.
 
 In /Kalman Folding/,[fn:klfl] we found the following elegant formulation for the
 accumulator function of a fold that implements the static Kalman filter:
@@ -212,7 +217,7 @@ kalmanStatic[Zeta_][{x_, P_}, {A_, z_}] :=
 \end{verbatim}
 #+END_LaTeX
 
-We test it on a small case
+\noindent We test it on a small case:
 
 #+BEGIN_LaTeX
 \begin{verbatim}
@@ -251,10 +256,10 @@ Fold[kalmanStatic[IdentityMatrix[1]],
 #+END_LaTeX
 
 \noindent expecting results within one or two standard deviations of the ground
-truth $\aleph=\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal$, where the
-standard deviations can be found as square roots of the diagonal
-elements of $\mathbold{P}$. For details about this test case, see the first
-paper in the series, /Kalman Folding, Part 1/.[fn:klfl]
+truth $\aleph=\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal$. The standard
+deviations can be found as square roots of the diagonal elements of
+$\mathbold{P}$. For details about this test case, see the first paper in the
+series, /Kalman Folding, Part 1/.[fn:klfl]
 
 Below, we reproduce these values exactly, to the bit level, by running
 /kalmanStatic/ over lazy streams and asynchronous observables.
@@ -272,25 +277,6 @@ with no changes at all, not even recompilation.
 We have tested these prototypes against bigger
 examples like the tracking example[fn:trak] and the accelerometer
 example,[fn:klfl] and there are no surprises.
-
-* Literate Code
-
-A /literate program/[fn:litp] is a single text document that contains both
-- \LaTeX{} typesetting instructions and
-- source code and scripts for an application.
-A literate program can be edited in any text editor and controlled with
-text-based versioning tools like git, but requires other tools to extract the
-typeset document and to extract the source code. My chosen tools are emacs and
-org-babel.[fn:babl] In addition to extraction, called /tangling/, these tools
-allow interactive evaluation of code in the original text document. A reader may
-reproduce the results here by interacting with the source document.[fn:rprs] If
-you wish to follow along interactively, you will need emacs and the text source
-for this document. The text source for this document is found here */TODO/*. A
-distribution of emacs for the Mac with adequate org-babel support is maintained
-by Vincent Goulet at the University of Laval.[fn:lavl] Emacs for Linux and
-Windows is easy to find, but I do not discuss it further. /Spacemacs/[fn:spcm]
-offers /vim/ emulation with the tools needed for literate programming for those
-who prefer /vim/.
 
 * COMMENT Polemical Justification
 
@@ -371,13 +357,32 @@ everything in emacs and then /try/ to paste it into terrible online editors,
 often resulting in eternally spinning doughnuts. When the wiki tools become as
 good as emacs and org-mode, I may change.
 
-* This Document is Literate
+* This Document is a Literate Program
+** Literate Code
+
+A /literate program/[fn:litp] is a single text document that contains both
+- \LaTeX{} typesetting instructions and
+- source code and scripts for an application.
+A literate program can be edited in any text editor and controlled with
+text-based versioning tools like git, but requires other tools to extract the
+typeset document and to extract the source code. My chosen tools are emacs and
+org-babel.[fn:babl] In addition to extraction, called /tangling/, these tools
+allow interactive evaluation of code in the original text document. A reader may
+reproduce the results here by interacting with the source document.[fn:rprs] To
+follow along interactively, you will need emacs and the text source for this
+document. The text source for this document is found here */TODO/*. A
+distribution of emacs for the Mac with adequate org-babel support is maintained
+by Vincent Goulet at the University of Laval.[fn:lavl] Emacs for Linux and
+Windows is easy to find, but I do not discuss it further. /Spacemacs/[fn:spcm]
+offers high-fidelity /vim/ emulation with the tools needed for literate
+programming. 
+
 ** Get C to Work
 
 First, make sure the following works[fn:obc1] in org-babel and org-babel tangle. If it
 does work, you have a correctly installed C compiler.
 
-#+begin_src C++ :includes '(<stdio.h>) :tangle k-folding.c :exports both
+#+begin_src C++ :includes '(<stdio.h>) :exports both
   int a=7;
   int b=6;
   printf("%d\n", a*b);
@@ -391,8 +396,8 @@ does work, you have a correctly installed C compiler.
 *** Business Code
 
 C code is usually much longer than the corresponding Wolfram code (or Lisp, or
-Haskell, or OCaml, etc.). The extra length, overall, is due mostly to the need
-for manual memory management in C. However, we also don't have pattern matching
+Haskell, or OCaml, etc.). The extra length, overall, is due mostly to
+manual memory management. We also don't have pattern matching
 for unpacking inputs and we don't have literal list / array notation for
 expressing some inputs and for packing outputs.
 
@@ -544,15 +549,10 @@ We also include an /Observation/ type, for asbstraction hygiene.
 
 *** Accumulator Type
 
-Our last type definition is for the /Accumulator/ function. Here we cheat a bit
-and use an extension to the C language called /Blocks/,[fn:blck] which
-implements full closures. We could explicitly implement enough of closures for
-our purposes, but this extension is widely available with clang and llvm on
-Apple computers and Linux, and it's too convenient to pass up. With compilers
-for bare-metal processors in embedded systems, we might not have it and have to
-do more work by hand. With this extension, the /Accumulator/ type, defined with
-the hat syntax =^=, behaves just like a function pointer, which would be defined
-with the ordinary pointer syntax, =*=.
+Our last type definition is for the /Accumulator/ function. With the /blocks/
+extension, the /Accumulator/ type, defined with the hat syntax =^=,
+behaves just like a function pointer, which would be defined with the ordinary
+pointer syntax, =*= without /blocks/.
 
 #+CAPTION: Accumulator type
 #+NAME: c-accumulator-type
