@@ -18,39 +18,81 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+
+#include <Block.h>
+
 #include <cblas.h>
 #include <lapacke.h>
 
-void printm (char * nym, double * m, int rows, int cols)
-{   printf ("%s\n", nym);
+/*     _      _                _                   */
+/*  __| |__ _| |_ _  _ _ __   | |_ _  _ _ __  ___  */
+/* / _` / _` |  _| || | '  \  |  _| || | '_ \/ -_) */
+/* \__,_\__,_|\__|\_,_|_|_|_|  \__|\_, | .__/\___| */
+/*                                 |__/|_| */
+
+/* I daydream and fantasize that we can abstract on numerical types. The reality
+   is that a lot of this code will have secret knowledge that the underlying
+   type is a floating-point scalar. Abstracting on numerical types is difficult
+   even in very high-level programming languages. */
+
+typedef double Datum;
+
+/*           _     _                _       _      */
+/*  _ __ _ _(_)_ _| |_   _ __  __ _| |_ _ _(_)_ __ */
+/* | '_ \ '_| | ' \  _| | '  \/ _` |  _| '_| \ \ / */
+/* | .__/_| |_|_||_\__|_|_|_|_\__,_|\__|_| |_/_\_\ */
+/* |_|               |___|                         */
+
+/* set this in options to main */
+int g_verbose = 0;
+
+void print_matrix (char * nym, const Datum * m, int rows, int cols)
+{   if (! g_verbose) {
+        return;   }
+    printf ("%s: [\n", nym);
     for (int r = 0; r < rows; ++r)
     {   for (int c = 0; c < cols; ++c)
-        {   printf ("%g ", m[c + r * cols]);   }
+        {   printf ("%g, ", m[c + r * cols]);   }
         printf ("\n");   }
-    printf ("\n");   }
+    printf ("],\n");   }
 
-void kalman (int b,        /* # rows, cols, in Z; # rows in z */
-             int n,        /* # rows, cols, in P; # rows in x */
-             double * IdN, /* n x n identity matrix */
-             double * Z,   /* b x b observation covariance */
-             double * x,   /* n x 1, current state */
-             double * P,   /* n x n, current covariance */
-             double * A,   /* b x n, current observation partials */
-             double * z    /* b x 1, current observation vector */
+/*                    __     _    _      _    _       _        _                  */
+/*  _ _  ___ _ _ ___ / _|___| |__| |__ _| |__| |___  | |____ _| |_ __  __ _ _ _   */
+/* | ' \/ _ \ ' \___|  _/ _ \ / _` / _` | '_ \ / -_) | / / _` | | '  \/ _` | ' \  */
+/* |_||_\___/_||_|  |_| \___/_\__,_\__,_|_.__/_\___| |_\_\__,_|_|_|_|_\__,_|_||_| */
+
+/* This modifies x and P in-place. Our foldable kalman is a thin skin over this.
+ * It also (conditionally) prints out all intermediate matrices for pedagogical
+ * purposes. */
+
+void kalman (int b,             /* # rows, cols, in Z; # rows in z */
+             int n,             /* # rows, cols, in P; # rows in x */
+             const Datum * IdN, /* n x n identity matrix */
+             const Datum * Z,   /* b x b observation covariance */
+             Datum * x,         /* n x 1, current state */
+             Datum * P,         /* n x n, current covariance */
+             const Datum * A,   /* b x n, current observation partials */
+             const Datum * z    /* b x 1, current observation vector */
              ) {
 
-    /* Transcribe the following Wolfram code (the intermediate matrices are not
-     * necessary in Wolfram, but we need them in C).
+    /* Transcribe the following sketch of Wolfram code (the intermediate
+     * matrices are not necessary in Wolfram, but we need them in C).
      *
      * noInverseKalman[Z_][{x_, P_}, {A_, z_}] :=
-     *   Module[{PAT, D, DiRes, DiAP, KRes, KAP},
-     *    PAT = P.Transpose[A];               (* n x b *)
-     *    D = Z + A.PAT;                      (* b x b *)
-     *    DiRes = LinearSolve[D, z - A.x];    (* b x 1 *)
-     *    KRes = PAT.DiRes;                   (* n x 1 *)
-     *    DiAP = LinearSolve[D, A.P];         (* b x n *)
-     *    KAP = PAT.DiAP;                     (* n x n *)
-     *    {x + KRes, P - KAP}];
+     *
+     *   Module[{PAT, D, Res, DiRes, KRes, AP, DiAP, KAP},
+     *
+     *    1. PAT    = P.Transpose[A]         (* n x b *)
+     *    2. D      = Z + A.PAT              (* b x b *)
+     *    3. Res    = z - A.x                (* b x 1 *)
+     *    4. DiRes  = LinearSolve[D, Res]    (* b x 1 *)
+     *    5. KRes   = PAT.DiRes              (* n x 1 *)
+     *    6. AP     = A.P                    (* n x 1 *)
+     *    7. DiAP   = LinearSolve[D, AP]     (* b x n *)
+     *    8. KAP    = PAT.DiAP               (* n x n *)
+     *    9. x     <- x + KRes
+     *   10. P     <- P - KAP
      */
 
 
@@ -67,7 +109,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double PAT[n * b];
+    Datum PAT[n * b];
     /* dgemm: http://tinyurl.com/j24npm4 */
     /* C <-- alpha * A * B + beta * C */
     cblas_dgemm (CblasRowMajor, CblasNoTrans, CblasTrans,
@@ -77,7 +119,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  1, P, n,    /* alpha, A, # cols A (P,  pre-transpose)*/
                  A, n,       /*        B, # cols B (AT, pre-transpose)*/
                  0, PAT, b); /* beta,  C, # cols C */
-    printm ("P.AT", PAT, n, b);
+    print_matrix ("P.AT", PAT, n, b);
 
     /*
      *       D                 A          PAT           Z
@@ -89,7 +131,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double D[b * b];
+    Datum D[b * b];
     /* D <- A.PAT + Z (copy Z to D first) */
     cblas_dcopy (b * b, Z, 1, D, 1);
     /* dgemm: http://tinyurl.com/j24npm4 */
@@ -101,7 +143,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  1, A, n,    /* alpha, A (A),   # cols A (A) */
                  PAT, b,     /*        B (PAT), # cols B (PAT)*/
                  1, D, b);   /* beta,  C (Z),   # cols C (D) */
-    printm ("D", D, b, b);
+    print_matrix ("D", D, b, b);
 
     /*
      *     Res                       A          x                 z
@@ -112,7 +154,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *                                        \ * /
      *
      */
-    double Res[b * 1];
+    Datum Res[b * 1];
     /* Res <- (-A.x) + z (copy z to Res first)  */
     cblas_dcopy (b * 1, z, 1, Res, 1);
     /* dgemm: http://tinyurl.com/j24npm4 */
@@ -124,7 +166,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  -1, A, n,   /* alpha, A (A), # cols A (A) */
                  x, 1,       /*        B (x), # cols B (x) */
                  1, Res, 1); /* beta,  C (z), # cols C (Res) */
-    printm ("Res", Res, b, 1);
+    print_matrix ("Res", Res, b, 1);
 
     /*
      *    DiRes        Di = D^-1   Res
@@ -134,8 +176,8 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double DiRes[b * 1];
-    double DCholesky[b * b];
+    Datum DiRes[b * 1];
+    Datum DCholesky[b * b];
     /* DiRes = LinearSolve[D, z - A.x];    (* b x 1 *) */
     /* copy Res to DiRes, first. */
     /* copy D to DCholesky first. */
@@ -149,9 +191,10 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                                 b,         /* PDA D */
                                 DiRes,     /* output buffer */
                                 b);        /* PDA DiRes */
-    printf ("DPOSV DiRes result %d\n\n", result);
-    printm ("DiRes",     DiRes,     b, 1);
-    printm ("DCholesky", DCholesky, b, b);
+    if (g_verbose) {
+        printf ("DPOSV DiRes result %d\n\n", result);   }
+    print_matrix ("DiRes",     DiRes,     b, 1);
+    print_matrix ("DCholesky", DCholesky, b, b);
 
     /*
      *     KRes           PAT     DiRes
@@ -163,7 +206,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double KRes[n * 1];
+    Datum KRes[n * 1];
     /* KRes <-- PAT.DiRes */
     /* dgemm: http://tinyurl.com/j24npm4 */
     /* C <-- alpha * A * B + beta * C */
@@ -174,7 +217,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  1, PAT, b,   /* alpha, A (PAT),   # cols A (PAT) */
                  DiRes, 1,    /*        B (DiRes), # cols B (DiRes) */
                  0, KRes, 1); /* beta,  C (KRes),  # cols C (KRes) */
-    printm ("KRes", KRes, n, 1);
+    print_matrix ("KRes", KRes, n, 1);
 
     /*
      *         AP                  A             P
@@ -186,7 +229,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double AP[b * n];
+    Datum AP[b * n];
     /* AP <-- A.P */
     /* dgemm: http://tinyurl.com/j24npm4 */
     /* C <-- alpha * A * B + beta * C */
@@ -197,7 +240,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  1, A, n,     /* alpha, A (A),   # cols A (PAT) */
                  P, n,        /*        B (P),   # cols B (DiRes) */
                  0, AP, n);   /* beta,  C (AP),  # cols C (KRes) */
-    printm ("AP", AP, b, n);
+    print_matrix ("AP", AP, b, n);
 
     /*
      *        DiAP           Di = D^-1       A             P
@@ -209,7 +252,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double DiAP[b * n];
+    Datum DiAP[b * n];
     /* DiAP = LinearSolve[D, AP];    (* b x n *) */
     /* copy AP to DiAP, first. */
     /* copy D to DCholesky first. */
@@ -223,9 +266,10 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                             b,         /* PDA D */
                             DiAP,      /* output buffer */
                             n);        /* PDA DiRes */
-    printf ("DPOSV DiAP result %d\n\n", result);
-    printm ("DiAP",      DiAP,      b, n);
-    printm ("DCholesky", DCholesky, b, b);
+    if (g_verbose) {
+        printf ("DPOSV DiAP result %d\n\n", result);   }
+    print_matrix ("DiAP",      DiAP,      b, n);
+    print_matrix ("DCholesky", DCholesky, b, b);
 
     /*
      *        KAP             PAT         DiAP
@@ -237,7 +281,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
      *
      */
 
-    double KAP[n * n];
+    Datum KAP[n * n];
     /* KAP <-- PAT.DiAP */
     /* dgemm: http://tinyurl.com/j24npm4 */
     /* C <-- alpha * A * B + beta * C */
@@ -248,7 +292,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  1, PAT, b,     /* alpha, A (PAT),  # cols A (PAT) */
                  DiAP, n,       /*        B (Diap), # cols B (DiRes) */
                  0, KAP, n);    /* beta,  C (KAP),  # cols C (KAP) */
-    printm ("KAP", KAP, n, n);
+    print_matrix ("KAP", KAP, n, n);
 
     /*
      *      x                       Id          x                 KRes
@@ -271,7 +315,7 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  x, 1,        /*        B (x),    # cols B */
                  1, KRes, 1); /* beta,  C (Kres), # cols C (new x) */
     cblas_dcopy (n * 1, KRes, 1, x, 1);
-    printm ("x", x, n, 1);
+    print_matrix ("x", x, n, 1);
 
     /*
      *         P                          Id            KAP                       P
@@ -293,65 +337,216 @@ void kalman (int b,        /* # rows, cols, in Z; # rows in z */
                  -1, IdN, n,  /* alpha, A (Id), # cols A */
                  KAP, n,      /*        B (x),  # cols B */
                  1, P, n);    /* beta,  C (P),  # cols C (new P) */
-    printm ("P", P, n, n); }
+    print_matrix ("P", P, n, n); }
+
+/*  ___  _                   _              */
+/* |   \(_)_ __  ___ _ _  __(_)___ _ _  ___ */
+/* | |) | | '  \/ -_) ' \(_-< / _ \ ' \(_-< */
+/* |___/|_|_|_|_\___|_||_/__/_\___/_||_/__/ */
+
+/* We give the dimensions here as constants because we define array dimensions
+ * at compile time. This is an appropriate compromise between the flexibility
+ * and generality of variable array dimensions and the desire to avoid heap
+ * allocation as much as reasonable. If inclined to favor flexibility and
+ * generality over the desire to avoid heap allocation, we would define array
+ * dimensions as variables and allocate arrays themselves on the heap. If
+ * inclined the other way, we would never bother storing an array dimension in a
+ * variable. We split the difference: our data structures contain the array
+ * dimensions as variables for easy access and for confluence with the
+ * mathematical descriptions above, but we don't use the variables for
+ * allocation. Instead, we must refer to the following constants when allocating
+ * storage for arrays.
+ *
+ * We use heap allocation only at the top level and only when under warning
+ * comments. It is intended to be easily replaceable by arena or stack
+ * allocation.
+ */
+
+const int batch_count = 1;
+const int state_count = 4;
+
+/*    _                        _      _   _ */
+/*   /_\  __ __ _  _ _ __ _  _| |__ _| |_(_)___ _ _ */
+/*  / _ \/ _/ _| || | '  \ || | / _` |  _| / _ \ ' \ */
+/* /_/ \_\__\__|\_,_|_|_|_\_,_|_\__,_|\__|_\___/_||_| */
+
+typedef struct
+{   int   b;
+    int   n;
+    Datum x[state_count];
+    Datum P[state_count * state_count];   }
+Accumulation, * pAccumulation;
+
+Accumulation zeroAccumulation (void)
+{   Accumulation r;
+    memset ((void *)&r, 0, sizeof (Accumulation));
+    return r;   }
+
+Accumulation createAccumulation (int b_, int n_, Datum * x_, Datum * P_) {
+    Accumulation r = zeroAccumulation ();
+    r.b = b_;
+    r.n = n_;
+    assert (n_ == state_count);
+    memcpy ((void *) &(r.x), (void *)x_, n_ * sizeof (Datum));
+    memcpy ((void *) &(r.P), (void *)P_, n_ * n_ * sizeof (Datum));
+    return r;   }
+
+Accumulation copyAccumulation (pAccumulation pa) {
+    Accumulation r;
+    memcpy ((void *)&r, (void *)pa, sizeof (Accumulation));
+    return r;   }
+
+void printAccumulation (Accumulation a)
+{   printf ("{b: %d, n: %d\n", a.b, a.n);
+    if (! g_verbose) {
+        g_verbose = 1;   }
+    print_matrix ("x", a.x, a.n, 1);
+    print_matrix ("P", a.P, a.n, a.n);
+}
+
+/*   ___  _                         _   _ */
+/*  / _ \| |__ ___ ___ _ ___ ____ _| |_(_)___ _ _  ___ */
+/* | (_) | '_ (_-</ -_) '_\ V / _` |  _| / _ \ ' \(_-< */
+/*  \___/|_.__/__/\___|_|  \_/\__,_|\__|_\___/_||_/__/ */
+
+typedef struct
+{   int   n;
+    Datum partials [1 * state_count];
+    Datum z [batch_count * batch_count];   }
+ObservationAndPartials, * pObservationAndPartials;
+
+typedef struct
+{   int count;
+    int current;
+    pObservationAndPartials observations_and_partials;   }
+Observations;
+
+/* private */
+pObservationAndPartials allocObservationAndPartialsArray (int count_)
+{   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+    pObservationAndPartials po =
+        (pObservationAndPartials)
+        malloc (count_ * sizeof (ObservationAndPartials));
+    if (NULL == po)
+    {   printf ("Failed to alloc %d observations_and_partials\n", count_);
+        exit (-1);   }
+    return po;   }
+
+Observations createObservations (int count_, Datum * partials_, Datum * zs_)
+{   pObservationAndPartials po = allocObservationAndPartialsArray (count_);
+    for (int i = 0; i < count_; ++i) {
+        po[i].n = state_count;
+        memcpy ((void *) & (po[i].partials),
+                & (partials_[i * state_count]),
+                state_count * sizeof (Datum));
+        memcpy ((void *) & (po[i].z),
+                & (zs_[i]),
+                sizeof (Datum));
+    }
+    Observations result;
+    result.count   = count_;
+    result.current = 0;
+    result.observations_and_partials = po;
+    return result;   }
+
+void freeObservations (Observations o)
+{   /* Don't use malloc & free in embedded apps. Use arena or stack memory. */
+    free ((void *)o.observations_and_partials);   }
+
+/*                       _                        */
+/*  _ __ ___ ___ _  _ __| |___   ___              */
+/* | '_ (_-</ -_) || / _` / _ \ |___|             */
+/* | .__/__/\___|\_,_\__,_\___/                   */
+/* |_|                                            */
+/*              _                            _    */
+/*  ___ _ ___ _(_)_ _ ___ _ _  _ __  ___ _ _| |_  */
+/* / -_) ' \ V / | '_/ _ \ ' \| '  \/ -_) ' \  _| */
+/* \___|_||_\_/|_|_| \___/_||_|_|_|_\___|_||_\__| */
+
+/* In the land of real closures, free variables in the bodies of functions would
+ * be "closed over," that is, copied into an environment structure, a pointer to
+ * which is secretly passed as the first argument to the function (Sound
+ * familiar? It's the same concept as in object-oriented programming, where a
+ * pointer to the object is secretly passed to every method. In the case of
+ * closures, the "object" is an environment structure created automatically by
+ * the compiler by enumerating the free variables in a function body. The free
+ * variables are any variables that are /not/ parameters to the function.) In
+ * our case, the foldable kalman refers to two constant matrices. We'll just
+ * make them static constants outside the function because their scope includes
+ * the function body.
+ */
+
+static const Datum IdN[state_count * state_count] =
+    {   1., 0., 0., 0.,
+        0., 1., 0., 0.,
+        0., 0., 1., 0.,
+        0., 0., 0., 1.  };
+
+static const Datum Z [batch_count * batch_count] = {1.};
+
+/*    _                        _      _ */
+/*   /_\  __ __ _  _ _ __ _  _| |__ _| |_ ___ _ _ */
+/*  / _ \/ _/ _| || | '  \ || | / _` |  _/ _ \ '_| */
+/* /_/ \_\__\__|\_,_|_|_|_\_,_|_\__,_|\__\___/_| */
+
+typedef Accumulation (^Accumulator) (Accumulation a, ObservationAndPartials b);
+
+Accumulator foldableKalman = ^(Accumulation a, ObservationAndPartials z) {
+    /* modify a.x and a.P in-place */
+    kalman (a.b, a.n, IdN, Z, a.x, a.P, z.partials, z.z);
+    return a;
+};
+
+/*   __     _    _ */
+/*  / _|___| |__| | */
+/* |  _/ _ \ / _` | */
+/* |_| \___/_\__,_| */
+
+Accumulation fold (Accumulator f, Accumulation x0, Observations zs)
+{   for (zs.current = 0; zs.current < zs.count; ++zs.current)
+    {   x0 = f (x0, zs.observations_and_partials[zs.current]);   }
+    return x0;   }
+
+/*             _ */
+/*  _ __  __ _(_)_ _ */
+/* | '  \/ _` | | ' \ */
+/* |_|_|_\__,_|_|_||_| */
+
 
 int main (int argc, char ** argv)
-{   const int    b = 1;
-    const int    n = 4;
+{   Datum x[state_count * 1] =
+        {0., 0., 0., 0};
+    Datum P[state_count * state_count] =
+        {   1000.,    0.,    0.,    0.,
+               0., 1000.,    0.,    0.,
+               0.,    0., 1000.,    0.,
+               0.,    0.,    0., 1000.   };
 
-    double IdN[n * n] = { 1., 0., 0., 0.,
-                          0., 1., 0., 0.,
-                          0., 0., 1., 0.,
-                          0., 0., 0., 1. };
+    const int observations_count = 5;
 
+    Datum partials [observations_count * state_count] =
+        {    1.,  0.,  0.,  0.,
+             1.,  1.,  1.,  1.,
+             1., -1.,  1., -1.,
+             1., -2.,  4., -8.,
+             1.,  2.,  4.,  8.,   } ;
+    Datum zs [observations_count * batch_count] =
+        {    -2.28442,
+             -4.83168,
+            -10.4601,
+              1.40488,
+            -40.8079   };
 
-    double Z[b * b] = {1.};
+    Accumulation initial_accumulation = createAccumulation
+        (batch_count, state_count, x, P);
 
-    double x[n * 1] = {0., 0., 0., 0};
-    double P[n * n] = {1000.,    0.,    0.,    0.,
-                       0., 1000.,    0.,    0.,
-                       0.,    0., 1000.,    0.,
-                       0.,    0.,    0., 1000. };
+    Observations fu = createObservations
+        (observations_count, partials, zs);
 
-    double A[b * n] = {1., 0., 0., 0};
-    double z[b] = {-2.28442};
+    Accumulation result = fold (foldableKalman, initial_accumulation, fu);
 
-    kalman (b, n, IdN, Z, x, P, A, z);
+    printAccumulation (result);
 
-    A[0] = 1;
-    A[1] = 1;
-    A[2] = 1;
-    A[3] = 1;
-
-    z[0] = -4.83168;
-
-    kalman (b, n, IdN, Z, x, P, A, z);
-
-    A[0] = 1;
-    A[1] = -1;
-    A[2] = 1;
-    A[3] = -1;
-
-    z[0] = -10.4601;
-
-    kalman (b, n, IdN, Z, x, P, A, z);
-
-    A[0] = 1;
-    A[1] = -2;
-    A[2] = 4;
-    A[3] = -8;
-
-    z[0] = 1.40488;
-
-    kalman (b, n, IdN, Z, x, P, A, z);
-
-    A[0] = 1;
-    A[1] = 2;
-    A[2] = 4;
-    A[3] = 8;
-
-    z[0] = -40.8079;
-
-    kalman (b, n, IdN, Z, x, P, A, z);
+    freeObservations (fu);
 
     return 0;   }
