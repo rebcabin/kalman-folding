@@ -1,4 +1,4 @@
-% Created 2016-05-14 Sat 10:19
+% Created 2016-07-02 Sat 08:29
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -27,11 +27,11 @@
 \usepackage[euler-digits,euler-hat-accent]{eulervm}
 \author{Brian Beckman}
 \date{\textit{<2016-05-03 Tue>}}
-\title{Kalman Folding 2: Tracking and System Dynamics (WORKING DRAFT)\\\medskip
+\title{Kalman Folding 2: Tracking and System Dynamics (Review Draft)\\\medskip
 \large Extracting Models from Data, One Observation at a Time}
 \hypersetup{
  pdfauthor={Brian Beckman},
- pdftitle={Kalman Folding 2: Tracking and System Dynamics (WORKING DRAFT)},
+ pdftitle={Kalman Folding 2: Tracking and System Dynamics (Review Draft)},
  pdfkeywords={},
  pdfsubject={},
  pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
@@ -46,7 +46,7 @@
 \section{Abstract}
 \label{sec:orgheadline1}
 
-In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding Part 1}, to appear.} we present basic, static Kalman filtering
+In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding Part 1}, \url{http://vixra.org/abs/1606.0328}.} we present basic, static Kalman filtering
 as a functional fold, highlighting the unique advantages of this form for
 deploying test-hardened code verbatim in harsh, mission-critical environments.
 The examples in that paper are all static, meaning that the states of the model
@@ -204,8 +204,8 @@ present a full derivation of this static accumulator function.
 Let us reproduce an example from Zarchan and Musoff,\footnote{Zarchan and Musoff, \emph{Fundamentals of Kalman Filtering, A Practical
 Approach, Fourth Edition}, Ch. 4} to track the
 height of a falling object, with no aerodynamic drag. Handling drag requires an
-extended Kalman filter (EKF), subject part five of this series,\footnote{B. Beckman, \emph{Kalman Folding 5: Non-Linear Models and the EKF}, to appear.} because
-a model with drag is nonlinear.
+extended Kalman filter (EKF), subject of part five of this series,\footnote{B. Beckman, \emph{Kalman Folding 5: Non-Linear Models and the EKF}, to appear.}
+because a model with drag is nonlinear.
 
 We will need a dynamic Kalman filter, which applies an additional, linear
 dynamic model to the states. 
@@ -226,7 +226,7 @@ the time derivative of \(\mathbold{x}\) as
 \end{equation*}
 
 If the physical dimensions of \(\mathbold{x}\) are \(\mathcal{X}\) and the physical
-dimensions of \(t\) and \(\delta t\) are \(\mathcal{T}\), then the physical dimensions
+dimensions of \(t\) are \(\mathcal{T}\), then the physical dimensions
 of \(\mathbold{F}\,\mathbold{x}\) are \(\mathcal{X}/\mathcal{T}\). The various
 elements of \(\mathbold{F}\) have physical dimensions of various powers of
 \(1/\mathcal{T}\), so \(\mathbold{F}\) does not have a single physical dimension on
@@ -253,7 +253,8 @@ This is standard \emph{state-space form}\footnote{\url{https://en.wikipedia.org/
 differential equations. Solving these equations is beyond the scope of
 this paper, but suffice it to say that we need certain time integrals of
 \(\mathbold{F}\), \(\mathbold{G}\), and \(\mathbold{\xi}\) as inputs to the filter.
-These are
+We denote these integrals as \(\mathbold{\Phi}\), \(\mathbold{\Gamma}\), and
+\(\mathbold{\Xi}\). The first, \(\mathbold{\Phi}\), is defined as follows:
 
 \begin{equation}
 \label{eqn:definition-of-Phi}
@@ -272,7 +273,9 @@ Like \(\mathbold{F}\), \(\mathbold{\Phi}\) does not have a single
 physical dimension.
 Only applications of \(\mathbold{\Phi}\) to quantities including physical dimension
 \(\mathcal{X}\) make sense. For instance, in the application
-\(\mathbold{\Phi}\,\mathbold{x}\), \(\mathbold{\Phi}\) is dimensionless. 
+\(\mathbold{\Phi}\,\mathbold{x}\), \(\mathbold{\Phi}\) is dimensionless.
+
+The second integral, \(\mathbold{\Gamma}\), is defined as follows:
 
 \begin{equation}
 \label{eqn:definition-of-Gamma}
@@ -282,7 +285,9 @@ Only applications of \(\mathbold{\Phi}\) to quantities including physical dimens
 
 \noindent The physical dimensions of \(\mathbold{\Gamma}\) are defined only in
 combination with \(\mathbold{u}\): the product \(\mathbold{\Gamma}\cdot\mathbold{u}\)
-has physical dimensions \(\mathcal{X}\).
+has physical dimensions \(\mathcal{X}\). 
+
+The last integral, \(\mathbold{\Xi}\), is defined as follows:
 
 \begin{equation}
 \label{eqn:definition-of-Xi}
@@ -443,7 +448,7 @@ observation every tenth of a second, so \(\delta t={0.10}\,\textrm{s}\). We comp
 two states \(h(t)\) and \(\dot{h}(t)\) with ground truth and their residuals with
 the theoretical sum of squared residuals in the matrix \(\mathbold{P}\). The
 results are shown in figure \ref{fig:orgparagraph1}, showing good statistics over five
-consecutive runs and qualitatively matching the results in the reference.
+independent runs and qualitatively matching the results in the reference.
 
 The ground truth is
 
@@ -464,7 +469,7 @@ distribution of zero mean and standard deviation \(1,000\,\textrm{ft}\). We do n
 need process noise for this example. It's often added during debugging of a
 Kalman filter to compensate for underfitting or overfitting an inappropriate
 model. It's also appropriate when we know that the process is stochastic or
-noisy and have an estimate of its covariance.
+noisy and we have an estimate of its covariance.
 
 \section{Concluding Remarks}
 \label{sec:orgheadline8}
@@ -479,5 +484,4 @@ friendly environments where we have large memories and powerful debugging tools,
 then to deploy with confidence in unfriendly, real-world environments where we
 have small memories, asynchronous, real-time data delivery, and seldom more than
 logging for forensics.
-Emacs 24.5.1 (Org mode 8.3.4)
 \end{document}
