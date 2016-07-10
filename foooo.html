@@ -1,0 +1,36 @@
+In <i>Kalman Folding, Part 1</i>, we present basic, static Kalman filtering
+as a functional fold, highlighting the unique advantages of this form for
+deploying test-hardened code verbatim in harsh, mission-critical environments.
+In that paper, all examples folded over arrays in memory for convenience and
+repeatability. That is an example of developing filters in a friendly
+environment.
+</p>
+
+<p>
+Here, we prototype a couple of less friendly environments and demonstrate
+exactly the same Kalman accumulator function at work. These less friendly
+environments are
+</p>
+<ul>
+<li>lazy streams, where new observations are computed on demand but never fully
+realized in memory, thus not available for inspection in a debugger</li>
+<li>asynchronous observables, where new observations are delivered at arbitrary
+times from an external source, thus not available for replay once consumed by
+the filter</li>
+</ul>
+
+<p>
+Streams are a natural fit for integration of differential equations, which often
+arise in applications. As such, they enable unique modularization for all kinds
+of filters, including non-linear Extended Kalman Filters.
+</p>
+
+<p>
+The fact that the Kalman accumulator function gives bit-for-bit identical
+results in all cases gives us high confidence that code developed in friendly
+environments will behave as intended in unfriendly environments. This level of
+repeatability is available <i>only</i> because of functional decomposition, which
+minimizes the coupling between the accumulator function and the environment and
+makes it possible to deploy exactly the same code, without even recompilation,
+in all environments.
+</p>

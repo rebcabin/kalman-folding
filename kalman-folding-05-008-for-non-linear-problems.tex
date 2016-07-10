@@ -1,4 +1,4 @@
-% Created 2016-05-16 Mon 10:22
+% Created 2016-07-07 Thu 07:47
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -27,11 +27,11 @@
 \usepackage[euler-digits,euler-hat-accent]{eulervm}
 \author{Brian Beckman}
 \date{\textit{<2016-05-03 Tue>}}
-\title{Kalman Folding 5: Non-Linear Models and the EKF (REVIEWER'S DRAFT)\\\medskip
+\title{Kalman Folding 5: Non-Linear Models and the EKF (Review Draft)\\\medskip
 \large Extracting Models from Data, One Observation at a Time}
 \hypersetup{
  pdfauthor={Brian Beckman},
- pdftitle={Kalman Folding 5: Non-Linear Models and the EKF (REVIEWER'S DRAFT)},
+ pdftitle={Kalman Folding 5: Non-Linear Models and the EKF (Review Draft)},
  pdfkeywords={},
  pdfsubject={},
  pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
@@ -57,11 +57,11 @@ the vetted code verbatim, without even recompilation, from the lab to the field.
 \section{Background and Synopsis}
 \label{sec:orgheadline2}
 
-In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.} we present basic, static Kalman filtering
+In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, \url{http://vixra.org/abs/1606.0328}.} we present basic, static Kalman filtering
 as a functional fold, highlighting the unique advantages of this form for
 deploying test-hardened code verbatim in harsh, mission-critical environments.
 
-In \emph{Kalman Folding 2: Tracking},\footnote{B. Beckman, \emph{Kalman Folding 2: Tracking and System Dynamics}, to appear.} we reproduce a tracking example from
+In \emph{Kalman Folding 2: Tracking},\footnote{B. Beckman, \emph{Kalman Folding 2: Tracking and System Dynamics}, \url{http://vixra.org/abs/1606.0348}.} we reproduce a tracking example from
 the literature, showing that these advantages extend to linear
 models with time-evolving states. 
 
@@ -617,7 +617,7 @@ our current example, the differential equations do not depend explicitly on the
 time variable. It could be optimized out. The other members of the observation
 packet are the usual partials matrix \(\mathbold{A}\) and the observation itself
 \(\mathbold{z}\). This is standard Kalman folding as explained in the first paper
-in this series.\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, to appear.}
+in this series.\footnote{B. Beckman, \emph{Kalman Folding, Part 1}, \url{http://vixra.org/abs/1606.0328}.}
 
 The stream operator \texttt{last} forces the lazy integration stream to execute, albeit
 in constant memory, until it picks up and returns the final value produced by
@@ -724,5 +724,4 @@ writing EKFs as folds over lazy streams include high modularity, allowing
 efficient and accurate tuning and diagnosis, and the flexibility to deploy
 fragile floating-point code verbatim, without even recompilation, from the lab
 to the field.
-Emacs 24.5.1 (Org mode 8.3.4)
 \end{document}

@@ -924,8 +924,8 @@ covariance $\tilde{\mathbold{P}}$:
 \notag
 E
 \left[
-(\tilde{\mathbold{x}}-x)
-(\tilde{\mathbold{x}}-x)^\intercal
+(\tilde{\mathbold{x}}-\mathbold{x})
+(\tilde{\mathbold{x}}-\mathbold{x})^\intercal
 \right] &=
 E
 \left[
@@ -1043,7 +1043,7 @@ $\mathbold{z}$, one block of height $b$ of the observation equation is
 #+END_LaTeX
 
 If we divide each row $i$ by the standard deviation $\sigma_{z_i}$ of the \mbox{$i$-th}
-component of the observation $\mathbold{z}$, we get
+component $z_i$ of the observation $\mathbold{z}$, we get
 
 #+BEGIN_LaTeX
 \begin{equation}
@@ -1113,24 +1113,22 @@ completely to just
 This is remarkable. All information about the covariance of the noise is pulled
 into the (new, normalized) observation partials. 
 
-I remember, when working in the early 1980's at the Deep Space Network at JPL
-on direct measurement of tectonic
-drift,[fn:jplg] one difficulty was the wide disparity in uncertainties of
-horizontal measurments (right ascension and declination) and range. For
-instance, we knew the RA-dec position of the centroid of Saturn within 75 meters
-but its distance to no better than a million kilometers. That's a disparity of
-seven orders of magnitude (the situation is greatly improved, now, due to the
-accumulation of range data for multiple spacecraft coupled with decades of
-orbital mechanics[fn:folk]). At the time, this meant that we had to deal with
-error ellipsoids that were long, thin needles. That means covariance matrices
-with components differing by up to fourteen orders of magnitude, and that's not
-practical with floating-point computer arithmetic.
-One mitigation was
-de-dimensionalizing or normalizing, as described here, which brings the
-uncertainties of all
-components of an observation into the same numerical range, near unity. Another
-mitigation was Square Root Information Filtering (SRIF), the subject of another
-paper in this series.
+I remember, when working in the early 1980's at the Deep Space Network at JPL on
+direct measurement of tectonic drift,[fn:jplg] one difficulty was the wide
+disparity between uncertainties of horizontal measurments (right ascension and
+declination) and uncertainties in range. For instance, we knew the RA-dec
+position of the centroid of Saturn within 75 meters but its distance to no
+better than a million kilometers. That's a disparity of seven orders of
+magnitude (the situation is greatly improved, now, due to the accumulation of
+range data for multiple spacecraft coupled with decades of orbital
+mechanics[fn:folk]). At the time, this meant that we had to deal with error
+ellipsoids that were long, thin needles, covariance matrices with components
+differing by up to fourteen orders of magnitude. That's not practical with
+floating-point computer arithmetic. One mitigation was de-dimensionalizing or
+normalizing, as described here, which brings the uncertainties of all components
+of an observation into the same numerical range, near unity. Another mitigation
+was Square Root Information Filtering (SRIF), the subject of another paper in
+this series.
 
 In any event, for all subsequent calculations in this paper, we assume that the
 observation equation has been normalized and that $\mathbold{Z}=\mathbold{1}$. 
@@ -1141,7 +1139,7 @@ observation equation has been normalized and that $\mathbold{Z}=\mathbold{1}$.
 To effect incremental updates of $\mathbold{x}$ and $\mathbold{P}$, we need the
 posterior estimate $\hat{\mathbold{x}}$ and covariance $\hat{\mathbold{P}}$ in
 terms of the priors $\tilde{\mathbold{x}}$, $\tilde{\mathbold{P}}$, and the new
-partials $\mathbold{A}$ and observation $\mathbold{z}$, both of which are
+partials $\mathbold{A}$ and new observation $\mathbold{z}$, all  of which are
 matrices of known, concrete, non-random numbers. This is exactly what our
 /kalmanStatic/ function from equation \ref{eqn:kalman-cume-definition} does, of course,
 in functional form.  We derive the posteriors from scratch to seek
@@ -1339,7 +1337,7 @@ J_2(\mathbold{x})
 \label{eqn:def-of-posterior-estimate}
 &
 \text{if and only if}\quad
-x=\hat{x}
+\mathbold{x}=\hat{\mathbold{x}}
 \stackrel{\text{\tiny def}}{=}
 \left(
 {\tilde{\mathbold{A}}}^2 + 
@@ -1375,7 +1373,7 @@ to add to the current scaled observation $\mathbold{A}^\intercal\,\mathbold{z}$.
 We may regard ${\tilde{\mathbold{A}}^2}\,\tilde{\mathbold{x}}$ as a scaled
 observation because
 equations
-\ref{eqn:prior-covariance-convenient-form}
+\ref{eqn:prior-covariance-most-convenient-form}
 and
 \ref{eqn:estimate-of-the-priors}
 imply that
@@ -1702,7 +1700,7 @@ the /innovation/):
 \mathbold{D}^{-1} 
 \\
 \label{eqn:kalman-denominator-definition-2}
-\text{where }
+\text{where}\quad
 \mathbold{D}
 &= \mathbold{1} +
 \mathbold{A}\,

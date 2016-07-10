@@ -1,10 +1,10 @@
-#+TITLE: Kalman Folding 7: A Small Streams Library (WORKING DRAFT)
+#+TITLE: Kalman Folding 7: A Small Streams Library (Review Draft)
 #+SUBTITLE: Extracting Models from Data, One Observation at a Time
 #+AUTHOR: Brian Beckman
 #+DATE: <2016-05-03 Tue>
 #+EMAIL: bbeckman@34363bc84acc.ant.amazon.com
 #+OPTIONS: ':t *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t c:nil
-#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
 #+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:t
 #+OPTIONS: todo:t |:t
 #+SELECT_TAGS: export
@@ -602,13 +602,13 @@ matrix multiplication just by juxtaposing the matrices.
 matrix that commutes with all other products, therefore its left and right
 inverses are equal and can be written as a reciprocal; in fact, $\mathbold{D}$
 is a $1\times{1}$ matrix --- effectively a scalar --- in all examples in this paper
-[fn:klde] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
-[fn:klf1] B. Beckman, /Kalman Folding, Part 1/, to appear.
-[fn:klf2] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, to appear.
-[fn:klf3] B. Beckman, /Kalman Folding 3: Derivations/, to appear.
-[fn:klf4] B. Beckman, /Kalman Folding 4: Streams and Observable/, to appear.
 [fn:klf5] B. Beckman, /Kalman Folding 5: Non-Linear Models and the EKF/, to appear.
-[fn:klfl] B. Beckman, /Kalman Folding, Part 1/, to appear.
+[fn:klde] B. Beckman, /Kalman Folding 3: Derivations/, http://vixra.org/abs/1607.0059.
+[fn:klf1] B. Beckman, /Kalman Folding, Part 1/, http://vixra.org/abs/1606.0328.
+[fn:klf2] B. Beckman, /Kalman Folding 2: Tracking and System Dynamics/, http://vixra.org/abs/1606.0348.
+[fn:klf3] B. Beckman, /Kalman Folding 3: Derivations/, http://vixra.org/abs/1607.0059.
+[fn:klf4] B. Beckman, /Kalman Folding 4: Streams and Observables/, to appear.
+[fn:klfl] B. Beckman, /Kalman Folding, Part 1/, http://vixra.org/abs/1606.0328.
 [fn:layi] https://en.wikipedia.org/wiki/Fundamental_theorem_of_software_engineering
 [fn:lmbd] Many languages use the keyword /lambda/ for such expressions; Wolfram
 uses the name /Function/.
