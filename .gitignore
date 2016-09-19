@@ -163,3 +163,6 @@ pythontex-files-*/
 
 # Latexian
 TSWLatexianTemp*
+
+# Macintosh noise
+.DS_STORE

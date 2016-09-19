@@ -1,4 +1,4 @@
-% Created 2016-07-06 Wed 08:54
+% Created 2016-09-09 Fri 21:03
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -195,21 +195,23 @@ whether it's a column or row.
 
 
 Upper-case
-boldface symbols like \(\mathbold{M}\) denote matrices. Because vectors are
+boldface symbols like \(\mathbold{M}\) denote matrices. Our matrices are not
+always square. Because vectors are
 special cases of matrices, some matrices are also vectors. We may use an
 upper-case symbol to denote a vector, but we do not use a lower-case symbol to
 denote a non-vector matrix.
 
 Juxtaposition, as in
 \(\mathbold{A}\,\mathbold{x}\) or \(\mathbold{A}\,\mathbold{B}\), means matrix
-multiplication.
+multiplication. 
 When we write a product like
 \(\mathbold{A}\,\mathbold{B}\), we assume that the number of columns of
 \(\mathbold{A}\) matches the number of rows of \(\mathbold{B}\). 
 
 Matrix multiplication is non-commutative, meaning that
 \(\mathbold{A}\,\mathbold{B}\) does not, in general, equal
-\(\mathbold{B}\,\mathbold{A}\). However, if a matrix \(\mathbold{D}\) is diagonal,
+\(\mathbold{B}\,\mathbold{A}\). However, if a matrix \(\mathbold{D}\) is square and
+diagonal,
 meaning that it has non-zero entries only along its main diagonal from upper
 left to lower right, then \(\mathbold{A}\,\mathbold{D}\) does always equal
 \(\mathbold{D}\,\mathbold{A}\). We may freely use this fact without mentioning it
