@@ -370,7 +370,7 @@ a stream can be infinite in abstract length because the elements of the stream a
 concretized in memory when demanded by calling thunks.
 
 Streams are a natural fit for integrals of differential equations. We see in
-other papers of this series how we an use them to deeply modularize filters
+other papers of this series how we can use them to deeply modularize filters
 over rich non-linear models. In this paper, we show only how to fold a linear
 Kalman filter over a stream.
 
@@ -759,7 +759,7 @@ instances of that higher, parameterized type. This is a sensible question, and
 the answer leads to category theory and monads,[fn:mond] out of scope for this
 paper.
 
-This implementation isn't hygeinic: it uses global variables (suffixed with ~$~
+This implementation isn't hygienic: it uses global variables (suffixed with ~$~
 signs). It's just enough to test Kalman folding over observables.
 
 #+BEGIN_LaTeX
