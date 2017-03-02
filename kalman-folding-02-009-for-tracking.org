@@ -76,7 +76,6 @@ closure-like support in C to write the rest of the examples in that language.
 In /Kalman Folding/,[fn:klfl] we found the following elegant formulation for the
 accumulator function of a fold that implements the static Kalman filter:
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:kalman-cume-definition}
 \text{kalmanStatic}
@@ -107,11 +106,9 @@ accumulator function of a fold that implements the static Kalman filter:
 \mathbold{K}^\intercal
 \right\}
 \end{equation}
-#+END_LaTeX
 
 \noindent where
 
-#+BEGIN_LaTeX
 \begin{align}
 \label{eqn:kalman-gain-definition}
 \mathbold{K}
@@ -126,7 +123,6 @@ accumulator function of a fold that implements the static Kalman filter:
 \mathbold{P}\,
 \mathbold{A}^\intercal
 \end{align}
-#+END_LaTeX
 
 \noindent and all quantities are matrices:
 
@@ -156,7 +152,6 @@ $\left[\left[\mathbold{z}\right]\right]
 \stackrel{\text{\tiny def}}{=}
 (\mathcal{Z}, b\times{1})$, then
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:dimensional-breakdown}
 \begin{array}{lccccr}
@@ -169,7 +164,6 @@ $\left[\left[\mathbold{z}\right]\right]
 \left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
 \end{array}
 \end{equation}
-#+END_LaTeX
 
 \noindent In all examples in this paper, the observations $\mathbold{z}$ are
 $1\times{1}$ matrices, equivalent to scalars, so $b=1$, but the theory and code
@@ -190,7 +184,6 @@ $\mathbold{z}$.
 
 In Wolfram, this function is
 
-#+BEGIN_LaTeX
 \begin{verbatim}
 kalman[Zeta_][{x_, P_}, {A_, z_}] :=
  Module[{D, K},
@@ -198,12 +191,10 @@ kalman[Zeta_][{x_, P_}, {A_, z_}] :=
   K = P.Transpose[A].Inverse[D];
   {x2 + K.(z - A.x), P - K.D.Transpose[K]}]
 \end{verbatim}
-#+END_LaTeX
 
 #+BEGIN_COMMENT
 We can test it on a small case
 
-#+BEGIN_LaTeX
 \begin{verbatim}
 Fold[kalman[IdentityMatrix[1]],
   {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
@@ -215,9 +206,7 @@ Fold[kalman[IdentityMatrix[1]],
   ] // Chop
 ~~>
 \end{verbatim}
-#+END_LaTeX
 
-#+BEGIN_LaTeX
 \begin{align}
 \label{eqn:kalman-filter-results}
 \mathbold{x} &=
@@ -237,7 +226,6 @@ Fold[kalman[IdentityMatrix[1]],
  0 & -0.235882 & 0 & 0.0693839 \\
 \end{bmatrix}
 \end{align}
-#+END_LaTeX
 
 \noindent expecting results within one or two standard deviations of the ground
 truth $\aleph=\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal$, where the
@@ -271,11 +259,9 @@ be functions of time, but not of $\mathbold{x}$ lest the equations be
 non-linear. Write
 the time derivative of $\mathbold{x}$ as
 
-#+BEGIN_LaTeX
 \begin{equation*}
 {\dot{\mathbold{x}}}(t)=\mathbold{F}\,\mathbold{x}(t)+\mathbold{G}\,\mathbold{u}(t)
 \end{equation*}
-#+END_LaTeX
 
 If the physical dimensions of $\mathbold{x}$ are $\mathcal{X}$ and the physical
 dimensions of $t$ are $\mathcal{T}$, then the physical dimensions
@@ -286,16 +272,13 @@ its own.
 
 We often leave off the explicit denotation of time dependence for improved readability:
 
-#+BEGIN_LaTeX
 \begin{equation*}
 {\dot{\mathbold{x}}}=\mathbold{F}\,\mathbold{x}+\mathbold{G}\,\mathbold{u}
 \end{equation*}
-#+END_LaTeX
 
 Generalize by adding /random process/ noise $\mathbold{\xi}$ to the state
 derivative:
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:state-space-form}
 {\dot{\mathbold{x}}}=
@@ -303,7 +286,6 @@ derivative:
 \mathbold{G}\,\mathbold{u}+
 \mathbold{\xi}
 \end{equation}
-#+END_LaTeX
 
 This is standard /state-space form/[fn:stsp] for
 differential equations. Solving these equations is beyond the scope of
@@ -312,17 +294,16 @@ $\mathbold{F}$, $\mathbold{G}$, and $\mathbold{\xi}$ as inputs to the filter.
 We denote these integrals as $\mathbold{\Phi}$, $\mathbold{\Gamma}$, and
 $\mathbold{\Xi}$. The first, $\mathbold{\Phi}$, is defined as follows:
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:definition-of-Phi}
 \mathbold{\Phi}(\delta t)\stackrel{\text{\tiny def}}{=}
 e^{\mathbold{F}\,{\delta t}}=
 \mathbold{1}+
+\frac{\mathbold{F}  {\delta t  }}{1!}+
 \frac{\mathbold{F}^2{\delta t^2}}{2!}+
 \frac{\mathbold{F}^3{\delta t^3}}{3!}+
 \cdots
 \end{equation}
-#+END_LaTeX
 
 \noindent where $\delta t$ is an increment of time used to advance the filter
 discretely.
@@ -335,13 +316,11 @@ $\mathcal{X}$ make sense. For instance, in the application
 
 The second integral, $\mathbold{\Gamma}$, is defined as follows:
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:definition-of-Gamma}
 \mathbold{\Gamma}(\delta t)\stackrel{\text{\tiny def}}{=}
 \int_{0}^{\delta t}{\mathbold{\Phi}(\tau) \cdot \mathbold{G}\,\textrm{d}\tau } 
 \end{equation}
-#+END_LaTeX
 
 \noindent The physical dimensions of $\mathbold{\Gamma}$ are defined only in
 combination with $\mathbold{u}$: the product $\mathbold{\Gamma}\cdot\mathbold{u}$
@@ -349,7 +328,6 @@ has physical dimensions $\mathcal{X}$.
 
 The last integral, $\mathbold{\Xi}$, is defined as follows:
 
-#+BEGIN_LaTeX
 \begin{equation}
 \label{eqn:definition-of-Xi}
 \mathbold{\Xi}(\delta t)\stackrel{\text{\tiny def}}{=}
@@ -360,7 +338,6 @@ The last integral, $\mathbold{\Xi}$, is defined as follows:
       0 & \cdots  & E\left[\mathbold{ \xi  }\mathbold{ \xi  }^{ \intercal  }\right] 
 \end{pmatrix}\cdot\mathbold{\Phi}(\tau)^\intercal\,\textrm{d}\tau}
 \end{equation}
-#+END_LaTeX
 
 \noindent The physical dimensions of $\mathbold{\Xi}$ must be $\mathcal{X}^2$, and we
 accomplish this by accompanying the various zeros in the matrix in the integral
@@ -376,7 +353,6 @@ The transitions of a state (and its covariance) from time $t$ to the next state
 (and covariance) at time
 $t+\delta t$ follow these recurrences:
 
-#+BEGIN_LaTeX
 \begin{align}
 \label{eqn:transition-of-state}
 \mathbold{x}
@@ -392,7 +368,6 @@ $t+\delta t$ follow these recurrences:
 \mathbold{P}\,
 \mathbold{\Phi}^\intercal
 \end{align}
-#+END_LaTeX
 
 These equations appear plausible on inspection, and equation
 \ref{eqn:transition-of-state} has a particularly intuitive explanation. If
@@ -403,13 +378,11 @@ $\mathbold{x}(t)=e^{\mathbold{F}\,t}\,\mathbold{x}_0=\mathbold{\Phi}(t)\,\mathbo
 propagate the solution at any time $\mathbold{x}(t_1)$ forward to another time
 $\mathbold{x}(t_2)$ as follows:
 
-#+BEGIN_LaTeX
 \begin{align}
 \mathbold{x}(t_2)&=\mathbold{\Phi}(t_2-t_1)\,\mathbold{x}(t_1) \\
 \notag
 &=e^{\mathbold{F}\times(t_2-t_1)}\,e^{\mathbold{F}\,t_1}\mathbold{x}_0=e^{\mathbold{F}\,t_2}\mathbold{x}_0
 \end{align}
-#+END_LaTeX
 
 \noindent This is the first step in verifying that the recurrences satisfy
 equation \ref{eqn:state-space-form}. It also explains why we call
@@ -420,7 +393,6 @@ $\mathbold{\Phi}$ the /propagator matrix/.
 These tiny changes are all that is needed to add linear state evolution to the Kalman
 filter:
 
-#+BEGIN_LaTeX
 \begin{verbatim}
 kalman[Zeta_][{x_, P_}, {Xi_, Phi_, Gamma_, u_, A_, z_}] :=
  Module[{x2, P2, D, K},
@@ -430,13 +402,11 @@ kalman[Zeta_][{x_, P_}, {Xi_, Phi_, Gamma_, u_, A_, z_}] :=
   D = Zeta + A.P2.Transpose[A];
   K = P2.Transpose[A].inv[D];
   {x2 + K.(z - A.x2), P2 - K.D.Transpose[K]}]\end{verbatim}
-#+END_LaTeX
 
 *** COMMENT Test
 
 Check that it reproduces the test case above for the static filter:
 
-#+BEGIN_LaTeX
 \begin{verbatim}
 With[{ (* make some constant matrices *)
    Xi = zero[4], Zeta = id[1],
@@ -451,7 +421,6 @@ With[{ (* make some constant matrices *)
      {{{1, -2., 4., -8.}}, {  1.40488}}, 
      {{{1,  2., 4.,  8.}}, {-40.8079}}}]]]
 \end{verbatim}
-#+END_LaTeX
 
 ** Dynamics of a Falling Object
 
@@ -459,16 +428,13 @@ Let $h(t)$ be the height of
 the falling object, and let the state vector $\mathbold{x}(t)$ contain $h(t)$
 and its first derivative, $\dot{h}(t)$, the speed of descent.[fn:scnd]
 
-#+BEGIN_LaTeX
 \begin{equation*}
 \mathbold{x} = 
 \begin{bmatrix} { h } (t) \\ \dot { h } (t) \end{bmatrix}
 \end{equation*}
-#+END_LaTeX
 
 \noindent The system dynamics are elementary:
 
-#+BEGIN_LaTeX
 \begin{equation*}
 \begin{bmatrix} \dot { h } (t) \\ \ddot { h } (t) \end{bmatrix}
 =
@@ -481,13 +447,11 @@ and its first derivative, $\dot{h}(t)$, the speed of descent.[fn:scnd]
 \begin{bmatrix} 0 \\ 1 \end{bmatrix}
 \begin{bmatrix} g \end{bmatrix}
 \end{equation*}
-#+END_LaTeX
 
 \noindent where $g$ is the acceleration of Earth's gravitation, about
 $-32.2\textrm{ft}/{\textrm{s}}^2$ (note the minus sign). We read out the
 dynamics matrices:
 
-#+BEGIN_LaTeX
 \begin{equation*}
 \begin{matrix}
 \mathbold{F} = \begin{bmatrix}0 & 1 \\0 & 0\end{bmatrix}, &
@@ -495,12 +459,10 @@ dynamics matrices:
 \mathbold{u} = \begin{bmatrix} g \end{bmatrix}
 \end{matrix}
 \end{equation*}
-#+END_LaTeX
 
 \noindent and their integrals from equations \ref{eqn:definition-of-Phi},
 \ref{eqn:definition-of-Gamma}, and \ref{eqn:definition-of-Xi}
 
-#+BEGIN_LaTeX
 \begin{equation*}
 \begin{matrix}
 \mathbold{\Phi} =
@@ -521,7 +483,6 @@ E\left[\mathbold{ \xi  }\mathbold{ \xi  }^{ \intercal  }\right]
 \end{bmatrix}
 \end{matrix}
 \end{equation*}
-#+END_LaTeX
 
 #+CAPTION: Simulated tracking of a falling object
 #+NAME: fig:big-results
@@ -539,21 +500,17 @@ independent runs and qualitatively matching the results in the reference.
 
 The ground truth is
 
-#+BEGIN_LaTeX
 \begin{equation*}
 h(t) = h_0 + {\dot{h}}_0\,t + g\,t^2/2
 \end{equation*}
-#+END_LaTeX
 
 \noindent where
 
-#+BEGIN_LaTeX
 \begin{equation*}
 \begin{matrix}
 h_0 = 400,000\,\textrm{ft}, & {\dot{h}}_0 = -6,000\,\textrm{ft}/\textrm{sec}
 \end{matrix}
 \end{equation*}
-#+END_LaTeX
 
 \noindent and we generate fake noisy observations by sampling a Gaussian
 distribution of zero mean and standard deviation $1,000\,\textrm{ft}$. We do not
@@ -637,3 +594,6 @@ state vector.
 Approach, Fourth Edition/, Ch. 4
 
 
+
+* Change Log
+- <2017-03-01 Wed> Corrected missing linear term in equation 6.

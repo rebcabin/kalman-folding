@@ -1,8 +1,8 @@
-% Created 2016-07-02 Sat 08:29
+% Created 2017-03-01 Wed 15:48
+% Intended LaTeX compiler: pdflatex
 \documentclass[10pt,oneside,x11names]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{fixltx2e}
 \usepackage{graphicx}
 \usepackage{grffile}
 \usepackage{longtable}
@@ -34,7 +34,7 @@
  pdftitle={Kalman Folding 2: Tracking and System Dynamics (Review Draft)},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
+ pdfcreator={Emacs 25.1.1 (Org mode 9.0.4)}, 
  pdflang={English}}
 \begin{document}
 
@@ -44,9 +44,9 @@
 
 
 \section{Abstract}
-\label{sec:orgheadline1}
+\label{sec:org291167d}
 
-In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding Part 1}, \url{http://vixra.org/abs/1606.0328}.} we present basic, static Kalman filtering
+In \emph{Kalman Folding, Part 1},\footnote{B. Beckman, \emph{Kalman Folding Part 1}, \url{http://vixra.org/abs/1606.0328}.\label{org11d156c}} we present basic, static Kalman filtering
 as a functional fold, highlighting the unique advantages of this form for
 deploying test-hardened code verbatim in harsh, mission-critical environments.
 The examples in that paper are all static, meaning that the states of the model
@@ -61,7 +61,7 @@ series. Here, we reproduce a tracking example from a well known reference, but
 in functional form, highlighting the advantages of that form.
 
 \section{Kalman Folding in the Wolfram Language}
-\label{sec:orgheadline2}
+\label{sec:org03097f9}
 
 In this series of papers, we use the Wolfram language\footnote{\url{http://reference.wolfram.com/language/}} because it excels
 at concise expression of mathematical code. All examples in these papers can be
@@ -72,7 +72,7 @@ without full closures; function pointers will suffice, so they are easy to write
 in C. It's also not difficult to add extra arguments to simulate just enough
 closure-like support in C to write the rest of the examples in that language.
 
-In \emph{Kalman Folding},\footnotemark[1]{} we found the following elegant formulation for the
+In \emph{Kalman Folding},\textsuperscript{\ref{org11d156c}} we found the following elegant formulation for the
 accumulator function of a fold that implements the static Kalman filter:
 
 \begin{equation}
@@ -171,12 +171,12 @@ are
 carry over to multi-dimensional vector observations.
 
 The function in equation \ref{eqn:kalman-cume-definition}
-\emph{lambda-lifts}\footnote{\url{https://en.wikipedia.org/wiki/Lambda_lifting}} \(\mathbold{Z}\), meaning that it is necessary to call
+\emph{lambda-lifts}\footnote{\url{https://en.wikipedia.org/wiki/Lambda\_lifting}} \(\mathbold{Z}\), meaning that it is necessary to call
 \emph{kalmanStatic} with a constant \(\mathbold{Z}\) to get the actual accumulator
 function. Lambda lifting is desirable when \(\mathbold{Z}\) does not depend on
 the independent variable because it reduces coupling between the
 accumulator function and its calling environment. It is better to pass in an
-explicit constant than to implicitly close over\footnote{\url{https://en.wikipedia.org/wiki/Closure_(computer_programming)}} ambient
+explicit constant than to implicitly close over\footnote{\url{https://en.wikipedia.org/wiki/Closure\_(computer\_programming)}} ambient
 constants, and it is good to keep the number of parameters in the observation
 packet \(\{\mathbold{A}, \mathbold{z}\}\) as small as possible. In other
 applications, \(\mathbold{Z}\) can depend on the independent variable, in which
@@ -194,12 +194,12 @@ kalman[Zeta_][{x_, P_}, {A_, z_}] :=
 \end{verbatim}
 
 For details about this filter including walkthroughs of small test cases, see the first
-paper in the series, \emph{Kalman Folding, Part 1}.\footnotemark[1]{}
+paper in the series, \emph{Kalman Folding, Part 1}.\textsuperscript{\ref{org11d156c}}
 In another paper in this series, \emph{Kalman Folding 3: Derivations},\footnote{B. Beckman, \emph{Kalman Folding 3: Derivations}, to appear.} we
 present a full derivation of this static accumulator function.
 
 \section{A Tracking Example}
-\label{sec:orgheadline7}
+\label{sec:org1a803ae}
 
 Let us reproduce an example from Zarchan and Musoff,\footnote{Zarchan and Musoff, \emph{Fundamentals of Kalman Filtering, A Practical
 Approach, Fourth Edition}, Ch. 4} to track the
@@ -211,7 +211,7 @@ We will need a dynamic Kalman filter, which applies an additional, linear
 dynamic model to the states. 
 
 \subsection{Time-Evolving States}
-\label{sec:orgheadline3}
+\label{sec:org638a855}
 
 Suppose the states \(\mathbold{x}\) suffer time evolution by a linear
 transformation \(\mathbold{F}\) and an additional \emph{disturbance} or \emph{control} input
@@ -249,7 +249,7 @@ derivative:
 \mathbold{\xi}
 \end{equation}
 
-This is standard \emph{state-space form}\footnote{\url{https://en.wikipedia.org/wiki/State-space_representation}} for
+This is standard \emph{state-space form}\footnote{\url{https://en.wikipedia.org/wiki/State-space\_representation}} for
 differential equations. Solving these equations is beyond the scope of
 this paper, but suffice it to say that we need certain time integrals of
 \(\mathbold{F}\), \(\mathbold{G}\), and \(\mathbold{\xi}\) as inputs to the filter.
@@ -261,6 +261,7 @@ We denote these integrals as \(\mathbold{\Phi}\), \(\mathbold{\Gamma}\), and
 \mathbold{\Phi}(\delta t)\stackrel{\text{\tiny def}}{=}
 e^{\mathbold{F}\,{\delta t}}=
 \mathbold{1}+
+\frac{\mathbold{F}  {\delta t  }}{1!}+
 \frac{\mathbold{F}^2{\delta t^2}}{2!}+
 \frac{\mathbold{F}^3{\delta t^3}}{3!}+
 \cdots
@@ -309,7 +310,7 @@ Detailed dimensional analysis of these matrices is the subject of another paper
 in this series.
 
 \subsection{Recurrences for Dynamics}
-\label{sec:orgheadline4}
+\label{sec:org9e00059}
 
 The transitions of a state (and its covariance) from time \(t\) to the next state
 (and covariance) at time
@@ -351,7 +352,7 @@ equation \ref{eqn:state-space-form}. It also explains why we call
 \(\mathbold{\Phi}\) the \emph{propagator matrix}.
 
 \subsection{The Foldable Filter}
-\label{sec:orgheadline5}
+\label{sec:org666b374}
 
 These tiny changes are all that is needed to add linear state evolution to the Kalman
 filter:
@@ -367,7 +368,7 @@ kalman[Zeta_][{x_, P_}, {Xi_, Phi_, Gamma_, u_, A_, z_}] :=
   {x2 + K.(z - A.x2), P2 - K.D.Transpose[K]}]\end{verbatim}
 
 \subsection{Dynamics of a Falling Object}
-\label{sec:orgheadline6}
+\label{sec:org3601cc3}
 
 Let \(h(t)\) be the height of
 the falling object, and let the state vector \(\mathbold{x}(t)\) contain \(h(t)\)
@@ -433,10 +434,10 @@ E\left[\mathbold{ \xi  }\mathbold{ \xi  }^{ \intercal  }\right]
 \end{matrix}
 \end{equation*}
 
-\begin{figure}[htb]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=.9\linewidth]{BigResults.png}
-\caption{\label{fig:orgparagraph1}
+\caption{\label{fig:orgcba3673}
 Simulated tracking of a falling object}
 \end{figure}
 
@@ -447,7 +448,7 @@ to \(t=57.5\) sec, just before impact at \(h=0\,\textrm{ft}\). We take one
 observation every tenth of a second, so \(\delta t={0.10}\,\textrm{s}\). We compare the
 two states \(h(t)\) and \(\dot{h}(t)\) with ground truth and their residuals with
 the theoretical sum of squared residuals in the matrix \(\mathbold{P}\). The
-results are shown in figure \ref{fig:orgparagraph1}, showing good statistics over five
+results are shown in figure \ref{fig:orgcba3673}, showing good statistics over five
 independent runs and qualitatively matching the results in the reference.
 
 The ground truth is
@@ -472,7 +473,7 @@ model. It's also appropriate when we know that the process is stochastic or
 noisy and we have an estimate of its covariance.
 
 \section{Concluding Remarks}
-\label{sec:orgheadline8}
+\label{sec:orgaa400f7}
 
 It's easy to add system dynamics to a static Kalman filter. Expressed as the
 accumulator function for a fold, the filter is decoupled from the environment in
@@ -484,4 +485,12 @@ friendly environments where we have large memories and powerful debugging tools,
 then to deploy with confidence in unfriendly, real-world environments where we
 have small memories, asynchronous, real-time data delivery, and seldom more than
 logging for forensics.
+
+
+
+\section{Change Log}
+\label{sec:orgd428bd8}
+\begin{itemize}
+\item \textit{<2017-03-01 Wed> } Corrected missing linear term in equation 6.
+\end{itemize}
 \end{document}
