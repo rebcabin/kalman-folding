@@ -166,3 +166,6 @@ TSWLatexianTemp*
 
 # Macintosh noise
 .DS_STORE
+
+# Jupyter noise
+.ipynb_checkpoints
