@@ -24,6 +24,10 @@
 \usepackage{xfrac}
 \usepackage{nicefrac}
 \usepackage{faktor}
+
+\usepackage{listings}
+\usepackage{color}
+
 \usepackage[euler-digits,euler-hat-accent]{eulervm}
 \author{Brian Beckman}
 \date{\textit{<2016-06-29 Wed>}}
@@ -34,7 +38,7 @@
  pdftitle={Kalman Folding (REVIEWER'S DRAFT)},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)}, 
+ pdfcreator={Emacs 24.5.1 (Org mode 8.3.4)},
  pdflang={English}}
 \begin{document}
 
@@ -127,7 +131,7 @@ expense reports and solve for the distribution across categories.
 \item[{Geospatial}] we have models that predict images from terrain, surface (\emph{e.g.},
 terrain plus buildings) and entities (\emph{e.g.}, political boundaries). We
 observe images and solve for terrain, surface, and entities.
-\item[{Tomography}] we have models that predict spectral irradiance 
+\item[{Tomography}] we have models that predict spectral irradiance
 from geometry of reflective and absorptive surfaces and from
 states of radiation sources. We observe spectral irradiance and solve for
 geometry and source states.
@@ -163,7 +167,7 @@ separate paper.
 \label{sec:orgheadline20}
 
 Kalman Filtering is a natural extension of the \emph{running average}, a routine
-computation. 
+computation.
 
 \subsection{Four Preludes}
 \label{sec:orgheadline17}
@@ -212,7 +216,7 @@ variables to its caller. Reducing dependencies and coupling is almost always
 good.
 
 The second argument to \emph{Fold} is the initial accumulation, zero in the present
-case. 
+case.
 
 The third and final argument to \emph{Fold} is the list of observations.
 It is easy to implement fold over lazy streams or over asynchonous observables, and
@@ -231,7 +235,7 @@ empty), you might try
 
 \begin{verbatim}
 Fold[Function[{sum, z}, sum + z], 0, zs] /
-Fold[Function[{n,   z}, n   + 1], 0, zs] 
+Fold[Function[{n,   z}, n   + 1], 0, zs]
 ~~> 96
 \end{verbatim}
 
@@ -310,9 +314,9 @@ correction.\footnote{\url{https://en.wikipedia.org/wiki/Bessel's_correction}} Th
 
 You'll soon break up the sum of squared residuals with this ``school formula:''
 
-\begin{equation*}
+\begin{equation}
 \sum_{i=1}^n{(z_i-\bar{z})^2}=\sum_{i=1}^n{z_i^2}-n\,\bar{z}^2
-\end{equation*}
+\end{equation}
 
 \noindent where \(\bar{z}\stackrel{\text{\tiny def}}{=} \sum_{i=1}^nz/n\) is the
 mean. You write
@@ -343,18 +347,18 @@ we find a recurrence for the variance?
 \label{sec:orgheadline8}
 
 A recurrence should express the new variance as the old variance plus a
-correction depending only on old values. Start by seeking a
-recurrence for the sum of squared residuals 
+correction depending only on old values except for the one, new observation $z$.
+Start by seeking a recurrence for the sum of squared residuals
 
-\begin{equation*}
+\begin{equation}
 \Sigma\stackrel{\text{\tiny def}}{=}\sum_{i=1}^{n}(z_i-\bar{z})^2
-\end{equation*}
+\end{equation}
 
 \noindent This is not hard to find:
 
-\begin{equation*}
+\begin{equation}
 \Sigma \leftarrow \Sigma + K n (z-\bar{z})^2
-\end{equation*}
+\end{equation}
 
 \noindent remembering that \(K=1/(n+1)\).  Code this as an accumulator function:
 
@@ -374,12 +378,12 @@ sum of squared residuals. Getting rid of variables is almost always better.
 \item Welford's Variance, Catastrophic Cancellation, SRIF
 \label{sec:orgheadline9}
 
-We have discovered something equivalent to Welford's 
+We have discovered something equivalent to Welford's
 formula.\footnote{\url{http://tinyurl.com/nfz9fyo}}\textsuperscript{,}\,\footnote{\url{http://rebcabin.github.io/blog/2013/02/04/welfords-better-formula/}}
 
-\begin{equation*}
+\begin{equation}
 \Sigma \leftarrow \Sigma + (z-\bar{z}_n)(z-\bar{z}_{n+1})
-\end{equation*}
+\end{equation}
 
 Our recurrence and Welford's reduce the chances of catastrophic
 cancellation,\footnote{\url{https://en.wikipedia.org/wiki/Catastrophic_cancellation}} the chief numerical torment of variances. Welford's
@@ -394,8 +398,8 @@ but we point out places below where it might be employed.
 \item All Intermediate Results
 \label{sec:orgheadline10}
 
-If we want to see all intermediate results, which include the \emph{running}
-variance, mean, and count, you make one tiny change, calling
+To see all intermediate results, which include the \emph{running}
+variance, mean, and count,  make one tiny change, calling
 \emph{FoldList} instead of \emph{Fold}:
 
 \begin{verbatim}
@@ -410,7 +414,7 @@ $\begin{bmatrix}
 \end{bmatrix}$
 
 \noindent still in constant memory. \emph{FoldList}, often called \emph{scan} in other
-programming languages, produces a \emph{Sequence} of \emph{Accumulation}, thus has a
+programming languages, produces a \emph{Sequence} of \emph{Accumulations}, thus has a
 slightly different type to \emph{Fold}.
 
 \item Variance of the Mean
@@ -434,37 +438,37 @@ of the observation noise.
 Consider the \((n+1)\)-st estimate of the mean, \(\bar{z}_{n+1}\), where
 \(z\) is the current observation:
 
-\begin{equation*}
+\begin{equation}
 \bar{z}_{n+1} = \bar{z}_n + K (z-\bar{z}_n)
-\end{equation*}
+\end{equation}
 
 \noindent Its residual with respect to the unknown truth \(\aleph\) is
 
-\begin{equation*}
+\begin{equation}
 (\aleph-\bar{z}_{n+1}) = (\aleph-\bar{z}_n) - K (z-\bar{z}_n)
-\end{equation*}
+\end{equation}
 
 \noindent The observation \(z\) is the truth \(\aleph\) plus a sample \(\zeta_n\) of
 the random noise distribution:
 
-\begin{align*}
+\begin{align}
 (\aleph-\bar{z}_{n+1})
 &=
 (\aleph-\bar{z}_n) - K (\aleph+\zeta_n-\bar{z}_n) \\
 &=
 K\, n\, (\aleph - \bar{z}_n)-K\,\zeta_n
-\end{align*}
+\end{align}
 
 \noindent because \(K=1/(n+1)\). Squaring
 
-\begin{align*}
+\begin{align}
 (\aleph-\bar{z}_{n+1})^2
 &=
 \left(
 K\, n\, (\aleph - \bar{z}_n)
 \right)^2-
 2K^2\,n\,(\aleph - \bar{z}_n)\zeta_n+ (K\,\zeta_n)^2
-\end{align*}
+\end{align}
 
 \noindent Take the expectation value of this square over the distribution of
 \(\zeta\). This distribution must always have zero mean, so the middle term
@@ -472,18 +476,18 @@ vanishes. It has constant variance, which we write as capital zeta, \(Z\). Also
 write \(P_n\), a traditional notation, for \(E\left[(\aleph-\bar{z})^2\right]\). We
 get
 
-\begin{align*}
+\begin{align}
 P_{n+1}=K^2(n^2P_n+Z)
-\end{align*}
+\end{align}
 
 \noindent This recurrence has a closed-form solution for \(n>0\), that being
 \(P_n=Z/n\). It follows that
 
-\begin{align*}
+\begin{align}
 P_{n+1}=P_n-K^2D
-\end{align*}
+\end{align}
 
-where \(D\stackrel{\text{\tiny def}}{=}Z+P_n\). For \(n=0\), \(P_1=K^2Z\). 
+where \(D\stackrel{\text{\tiny def}}{=}Z+P_n\). For \(n=0\), \(P_1=K^2Z\).
 
 This is the preferred mathematical form for the variance of the mean because the
 correction is negative, reminding us that this variance decreases as
@@ -506,19 +510,19 @@ Kalman folding.
 
 In more depth, I want you to estimate a column vector of four unknowns:
 
-\begin{equation*}
+\begin{equation}
 \mathbold{x} =
 \begin{bmatrix}
  x_0 &
  x_1 &
  x_2 &
- x_3 
-\end{bmatrix} ^ \intercal
-\end{equation*}
+ x_3
+\end{bmatrix} ^ {\mathsf{T}}
+\end{equation}
 
 \noindent where the polynomial is the inner product of a row of powers of \(t\)
 
-\begin{equation*}
+\begin{equation}
 \mathbold{A}=
 \begin{bmatrix}
  1 & t & t^2 & t^3 \\
@@ -527,23 +531,24 @@ In more depth, I want you to estimate a column vector of four unknowns:
 \begin{bmatrix}
  t^0 & t^1 & t^2 & t^3 \\
 \end{bmatrix}
-\end{equation*}
+\end{equation}
 
 \noindent and \(\mathbold{x}\), and the observations are (values of) the
 polynomial plus noise \(\zeta\):
 
-\begin{equation*}
+\begin{equation}
 \mathbold{z}=\mathbold{A}\,\mathbold{x}=
 x_0 t^0 + x_1 t^1 + x_2 t^2 + x_3 t^3 + \zeta
-\end{equation*}
+\end{equation}
 
 \noindent The system is \emph{linear} in the \emph{model states}
 \(\mathbold{x}\) through the \emph{observation partials}, \(\mathbold{A}\). The
 partials are obviously nonlinear in \(t\), by design.
 
-An oracle gives you some specific values of \(t\) and noisy \(z\), in arbitrary order:
+Or an oracle gives you five specific values of \(t\) and noisy \(z\), in
+arbitrary order:
 
-\begin{equation*}
+\begin{equation}
 \begin{bmatrix}
  t_0 & z_0 \\
  t_1 & z_1 \\
@@ -559,7 +564,7 @@ An oracle gives you some specific values of \(t\) and noisy \(z\), in arbitrary 
  -2. & 1.40488 \\
  2. & -40.8079 \\
 \end{bmatrix}
-\end{equation*}
+\end{equation}
 
 \begin{figure}[htb]
 \centering
@@ -569,10 +574,11 @@ Model (solid line) and fake data (dots)}
 \end{figure}
 
 \noindent which plot as in figure \ref{fig:orgparagraph1}, where the solid line
-represents the true model only the oracle knows, and the dots represent the
-noisy observations the oracle gives you. Your job is to estimate the states
-\(\mathbold{x}\) so that your polynomial gets as close to the oracle's as the data
-allow. You must also produce the running covariance\footnote{We use the terms \emph{covariance} for matrices and \emph{variance} for scalars.} matrix
+represents the true model that only the oracle knows, and the dots represent the
+noisy observations that the oracle gives you. Your job is to estimate the states
+\(\mathbold{x}\) so that your polynomial gets as close to the oracle's as the
+data allow. You must also produce the running covariance\footnote{We use the
+  terms \emph{covariance} for matrices and \emph{variance} for scalars.} matrix
 \(\mathbold{P}\) along with the states so that we have a measure of their
 uncertainty.
 
@@ -593,11 +599,13 @@ multiplication.  Specifically:
 \begin{itemize}
 \item \(\mathbold{Z}\) is a \(1\times{1}\) matrix, the covariance of
 observation noise
-\item \(\mathbold{x}\) is a column \(4\)-vector, the model states
+\item \(\mathbold{x}\) is a column \(4\)-vector, a \(4\times{1}\) matrix, the
+  model states
 \item \(\mathbold{P}\) is a \(4\times{4}\) matrix, the theoretical
 covariance of \(\mathbold{x}\)
-\item \(\mathbold{A}\) is a row \(4\)-vector, the \emph{observation partials}
-\item \(\mathbold{z}\) is a \({1}\times{1}\) matrix, effectively a scalar
+\item \(\mathbold{A}\) is a row \(4\)-vector, a \(1\times{4}\) matrix, the
+  \emph{observation partials}
+\item \(\mathbold{z}\) is a \({1}\times{1}\) matrix, equivalent to  a scalar
 \item \(\mathbold{D}\) is a \({1}\times{1}\) matrix, generalization of the
 \emph{denominator} \(D\) we defined above in Prelude \#3
 \item \(\mathbold{K}\) is a column \(4\)-vector, the \emph{Kalman gain}, generalization of the
@@ -609,7 +617,7 @@ gain \(K\) from Prelude \#3
 \label{sec:orgheadline13}
 
 \noindent Recall Prelude \#3, where \(D\) is \(Z+P\). We see it here as
-\(\mathbold{Z}+\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\). We didn't see
+\(\mathbold{Z}+\mathbold{A}\,\mathbold{P}\,\mathbold{A}^{\mathsf{T}}\). We didn't see
 \(\mathbold{A}\) previously because our observations \(z\) were equal to the
 states. However, here we need two factors of
 \(\mathbold{A}\) to make the dimensions work out. We mean ``dimensions'' in two
@@ -623,47 +631,47 @@ senses:
 
 We see another factor of
 \(\mathbold{A}\) in  \(\mathbold{K}\), again required by
-dimensional analysis. 
+dimensional analysis.
 
 The requirement of dimensional consistency almost forces this Kalman
-accumulator function. 
-Here is the full dimensional breakdown. If the physical and matrix dimensions of 
-\(\mathbold{x}\) 
+accumulator function.
+Here is the full dimensional breakdown. If the physical and matrix dimensions of
+\(\mathbold{x}\)
 are
 \(\left[\left[\mathbold{x}\right]\right]
 \stackrel{\text{\tiny def}}{=}
 (\mathcal{X}, n\times{1})\)
-and of 
-\(\mathbold{z}\) 
+and of
+\(\mathbold{z}\)
 are
 \(\left[\left[\mathbold{z}\right]\right]
 \stackrel{\text{\tiny def}}{=}
 (\mathcal{Z}, b\times{1})\), then
 
-\begin{equation*}
+\begin{equation}
 \label{eqn:dimensional-breakdown}
 \begin{array}{lccccr}
 \left[\left[\mathbold{Z}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
 \left[\left[\mathbold{A}\right]\right]                                       &=& (&\mathcal{Z}/\mathcal{X}  & b\times{n}&) \\
 \left[\left[\mathbold{P}\right]\right]                                       &=& (&\mathcal{X}^2            & n\times{n}&) \\
-\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
+\left[\left[\mathbold{A}\,\mathbold{P}\,\mathbold{A}^{\mathsf{T}}\right]\right] &=& (&\mathcal{Z}^2            & b\times{b}&) \\
 \left[\left[\mathbold{D}\right]\right]                                       &=& (&\mathcal{Z}^2            & b\times{b}&) \\
-\left[\left[\mathbold{P}\,\mathbold{A}^\intercal\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
+\left[\left[\mathbold{P}\,\mathbold{A}^{\mathsf{T}}\right]\right]               &=& (&\mathcal{X}\,\mathcal{Z} & n\times{b}&) \\
 \left[\left[\mathbold{K}\right]\right]                                       &=& (&\mathcal{X}/\mathcal{Z}  & n\times{b}&)
 \end{array}
-\end{equation*}
+\end{equation}
 
 \noindent In all examples in this paper, the observations \(\mathbold{z}\) are
 \(1\times{1}\) matrices, equivalent to scalars, so \(b=1\), but the theory and code
 carry over to multi-dimensional vector observations.
 
-We can see \emph{by inspection} that the dimensions of the 
+We can see \emph{by inspection} that the dimensions of the
 estimate\footnote{We sometimes use the center dot or the \(\times\) symbols to clarify
 matrix multiplication. They have no other significance and we can always write
 matrix multiplication just by juxtaposing the matrices.}
 \(\mathbold{x}+\mathbold{K}\cdot(\mathbold{z}-\mathbold{A}\,\mathbold{x})\)
 and the  covariance
-\(\mathbold{P}-\mathbold{K}\,\mathbold{D}\,\mathbold{K}^\intercal\) are minimal
+\(\mathbold{P}-\mathbold{K}\,\mathbold{D}\,\mathbold{K}^{\mathsf{T}}\) are minimal
 and correct.
 This ``correct-by-inspection'' formulation is invaluable for checking
 mathematics and code.
@@ -676,9 +684,10 @@ it's constant for the lifetime of the filter. This means that you must
 call this \texttt{cume} once with a \(\mathbold{Z}\) to get the accumulator function.
 We've introduced one extra level of function-ness to avoid either
 \begin{itemize}
-\item coupling \texttt{cume} to an external value of \(\mathbold{Z}\) that is,
-\emph{closing}\footnote{\url{https://en.wikipedia.org/wiki/Closure_(computer_programming)}} over \(\mathbold{Z}\) (we insist on pure functional coupling
-only)
+\item coupling \texttt{cume} to an external value of \(\mathbold{Z}\); that is,
+  \emph{closing}\footnote{\url{https://en.wikipedia.org/wiki/Closure_(computer_programming)}}
+  over \(\mathbold{Z}\) (we insist on coupling only through explicit function
+  parameters and arguments)
 \item passing around a constant \(\mathbold{Z}\) in every observation packet \texttt{\{A, z\}}.
 Below, where we allow \(\mathbold{Z}\) to change with each observation, we will
 put it in the observation packet.
@@ -688,28 +697,28 @@ put it in the observation packet.
 \label{sec:orgheadline15}
 
 The effect of a \emph{Fold} or \emph{FoldList} with this \texttt{cume} is to incrementally
-replace the prior estimate, \(\mathbold{x}\), with 
+replace the prior estimate, \(\mathbold{x}\), with
 \(\mathbold{x} +
 \mathbold{K}\cdot
 \left(
-\mathbold{z}- 
-\mathbold{A}\, 
-\mathbold{x} 
-\right)\) 
-and to replace the prior covariance, \(\mathbold{P}\), with 
+\mathbold{z}-
+\mathbold{A}\,
+\mathbold{x}
+\right)\)
+and to replace the prior covariance, \(\mathbold{P}\), with
 \(\mathbold{P}-
 \mathbold{K}\,
 \mathbold{D}\,
-\mathbold{K}^\intercal\). 
+\mathbold{K}^{\mathsf{T}}\).
 
 Here is this \texttt{cume} in action. Assume an observation-noise covariance of \(1\). Our
 initial estimate for \(\mathbold{x}\) is the column vector
-\(\begin{bmatrix}0& 0& 0& 0\end{bmatrix}^\intercal\),
+\(\begin{bmatrix}0& 0& 0& 0\end{bmatrix}^{\mathsf{T}}\),
 meaning we
 know nothing, and our initial state covariance is a `practical' infinity of
-\(1,000\) on the diagonal, emphasizing that we know nothing. 
+\(1,000\) on the diagonal, emphasizing that we know nothing.
 
-\begin{equation*}
+\begin{equation}
 \mathbold{P}_0 =
 \begin{bmatrix}
  1000. & 0. & 0. & 0. \\
@@ -718,7 +727,7 @@ know nothing, and our initial state covariance is a `practical' infinity of
  0. & 0. & 0. & 1000. \\
 \end{bmatrix}
 =1000. \times \mathbold{1}_{4\times{4}}
-\end{equation*}
+\end{equation}
 
 Use \emph{Fold} rather than \emph{FoldList} because we want just the final result. \texttt{Chop}
 removes quantities within a floating-point quantum of zero.
@@ -726,10 +735,10 @@ removes quantities within a floating-point quantum of zero.
 \begin{verbatim}
 Fold[cume[IdentityMatrix[1]],
   {ColumnVector[{0, 0, 0, 0}], IdentityMatrix[4]*1000.0},
-  {{{{1,  0., 0.,  0.}}, { -2.28442}}, 
-   {{{1,  1., 1.,  1.}}, { -4.83168}}, 
-   {{{1, -1., 1., -1.}}, {-10.46010}}, 
-   {{{1, -2., 4., -8.}}, {  1.40488}}, 
+  {{{{1,  0., 0.,  0.}}, { -2.28442}},
+   {{{1,  1., 1.,  1.}}, { -4.83168}},
+   {{{1, -1., 1., -1.}}, {-10.46010}},
+   {{{1, -2., 4., -8.}}, {  1.40488}},
    {{{1,  2., 4.,  8.}}, {-40.8079}}}
   ] // Chop
 ~~>
@@ -763,7 +772,7 @@ Model (dark line), fake data (dots), and estimated model (light line)}
 \end{figure}
 
 Results are not bad: our oracle reveals that ground-truth is
-\(\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^\intercal\); compare
+\(\begin{bmatrix}-3& 9& -4& -5\end{bmatrix}^{\mathsf{T}}\); compare
 this to equation \ref{eqn:kalman-filter-results}.
 Figure \ref{fig:orgparagraph2} plots the solution.
 
@@ -771,12 +780,12 @@ To find out quantitatively how bad or how good,  inspect
 \(\mathbold{P}\). Its diagonal elements are the squares of the
 standard deviations of the estimated states. Those standard deviations are:
 
-\begin{equation*}
+\begin{equation}
 \begin{bmatrix}
 0.6967 & 0.9497 & 0.2672 & 0.2634
 \end{bmatrix}
-^\intercal
-\end{equation*}
+^{\mathsf{T}}
+\end{equation}
 
 All our estimates are within two standard deviations of
 ground truth, so we would expect worse performance in only \(5\) percent of
@@ -830,7 +839,7 @@ mathematical specification:
 \mathbold{P}-
 \mathbold{K}\,
 \mathbold{D}\,
-\mathbold{K}^\intercal
+\mathbold{K}^{\mathsf{T}}
 \right\}
 \end{equation}
 
@@ -841,14 +850,14 @@ mathematical specification:
 \mathbold{K}
 &=
 \mathbold{P}\,
-\mathbold{A}^\intercal\,
+\mathbold{A}^{\mathsf{T}}\,
 \mathbold{D}^{-1} \\
 \label{eqn:kalman-denominator-definition}
 \mathbold{D}
 &= \mathbold{Z} +
 \mathbold{A}\,
 \mathbold{P}\,
-\mathbold{A}^\intercal
+\mathbold{A}^{\mathsf{T}}
 \end{align}
 
 A good way to intuit this solution is to think of \(\mathbold{K}\) as the derivative
@@ -856,7 +865,7 @@ A good way to intuit this solution is to think of \(\mathbold{K}\) as the deriva
 physical dimensions of \(\mathbold{K}\) are the required
 \(\mathcal{X}/\mathcal{Z}\). Then, the update resembles
 
-\begin{equation*}
+\begin{equation}
 \mathbold{x}
 \leftarrow
 \mathbold{x} +
@@ -866,7 +875,7 @@ physical dimensions of \(\mathbold{K}\) are the required
 \mathbold{A}\,
 \mathbold{x}
 \right)
-\end{equation*}
+\end{equation}
 
 \noindent which looks like a differential update to the estimate
 \(\mathbold{x}\), where the differential of \(\mathbold{z}\) is the residual
@@ -877,25 +886,25 @@ prior estimate \(\mathbold{x}\).
 The gain \(\text{d}\mathbold{x}/\text{d}\mathbold{z}\) has the form, in a slight
 abuse of notation:
 
-\begin{equation*}
+\begin{equation}
 \mathbold{K}=
 \frac{
 \mathbold{P}\,
-\mathbold{A}^\intercal
+\mathbold{A}^{\mathsf{T}}
 }{
 \mathbold{Z}+
 \mathbold{A}\,
 \mathbold{P}\,
-\mathbold{A}^\intercal
+\mathbold{A}^{\mathsf{T}}
 }
-\end{equation*}
+\end{equation}
 
-An elegant but non-trivial derivation of this appears in a separate paper in this 
-series.\footnote{Beckman, \emph{Kalman Folding 3: Derivations}, to appear.} 
+An elegant but non-trivial derivation of this appears in a separate paper in this
+series.\footnote{Beckman, \emph{Kalman Folding 3: Derivations}, to appear.}
 Just remember that the \emph{denominator matrix},
 \(\mathbold{D}\), is \(\mathbold{Z}\) \emph{plus} a correction. Likewise, I do not know
 an easy demonstration that the new \(\mathbold{P}\) is the old \(\mathbold{P}\)
-minus \(\mathbold{K}\,\mathbold{D}\,\mathbold{K}^\intercal\). In this case, just
+minus \(\mathbold{K}\,\mathbold{D}\,\mathbold{K}^{\mathsf{T}}\). In this case, just
 remember the \emph{minus} sign. Intuitively, it's plausible that the new
 \(\mathbold{P}\) should be `less than' the old \(\mathbold{P}\) because the new
 observations add information and decrease uncertainty. That plausibility
@@ -910,10 +919,11 @@ between the environment and the Kalman code is function invocation.
 
 Why is this important? Because developers can test in friendly environments ---
 where observations are deterministic, pseudo-random, static, present in memory
-all at once, and where code can be stopped in a debugger. Once the code is
-hardened, developers can then deploy it with confidence in unfriendly,
-real-world environments --- where data are unpredictable, asynchronous,
-real-time, infinite in length, and logging is the only forensic tool.
+all at once, and where code can be stopped, stepped, and inspected in a
+debugger. Once the code is hardened, developers can then deploy it with
+confidence in unfriendly, real-world environments --- where data are
+unpredictable, asynchronous, real-time, infinite in length, and logging is the
+only forensic tool.
 
 This advantage can be critically important when detecting, diagnosing, and
 correcting numerical issues like catastrophic cancellation, as we see in the
@@ -934,7 +944,7 @@ to happen in deployment.
 Imagine an accelerometer that comes from the factory with unknown bias, scale,
 and drift errors. The user's manual instructs us to calibrate the instrument
 before fielding. That means estimating these errors so that we can subtract
-their effects in post-processing. 
+their effects in post-processing.
 
 In this example, we allow the observation covariance \(\mathbold{Z}\) to vary with
 independent variable, so we don't lambda-lift \(\mathbold{Z}\), but pass it into
@@ -948,43 +958,42 @@ even smaller, and we invite catastrophic cancellation into the filter, on
 purpose. We verified numerically that in all examples above, three,
 mathematically equivalent expressions for the covariance, namely
 
-\begin{align*}
+\begin{align}
 \mathbold{P} &\leftarrow
 \mathbold{L}\,
-\mathbold{P} 
+\mathbold{P}
 \\
 \mathbold{P} &\leftarrow
 \mathbold{L}\,
 \mathbold{P}\,
-\mathbold{L}^\intercal +
+\mathbold{L}^{\mathsf{T}} +
 \mathbold{K}\,
 \mathbold{Z}\,
-\mathbold{K}^\intercal
+\mathbold{K}^{\mathsf{T}}
 \\
 \mathbold{P} &\leftarrow
 \mathbold{P} -
 \mathbold{K}\,
 \mathbold{D}\,
-\mathbold{K}^\intercal
-\end{align*}
+\mathbold{K}^{\mathsf{T}}
+\end{align}
 
 \noindent where \(\mathbold{L}=\mathbold{1}-\mathbold{K}\,\mathbold{A}\),
-produce results identical to six significant 
-figures.\footnote{Derivations of these forms appear in part 3 of this series.} 
-This means high
-confidence that numerical issues are not important in these examples.
+produce results identical to six significant figures.\footnote{Derivations of
+  these forms appear in part 3 of this series.} This means high confidence that
+numerical issues are not important in those examples.
 
 However, in the present example, all three expressions produce different
 results: two converge with different numerical details, and one fails. The first
 two occasionally produce negative covariances, and the third produces mostly
 negative covariances, exhibiting catastrophic cancellation.
 
-Once a covariance produces bad values, the estimates soon follow because the
+Once a covariance produces bad values, the estimates soon degrade because the
 covariance feeds back through
-\(\mathbold{D}=\mathbold{Z}+\mathbold{A}\,\mathbold{P}\,\mathbold{A}^\intercal\)
-and then into \(\mathbold{K}=\mathbold{P}\,\mathbold{A}^\intercal/\mathbold{D}\).
+\(\mathbold{D}=\mathbold{Z}+\mathbold{A}\,\mathbold{P}\,\mathbold{A}^{\mathsf{T}}\)
+and then into \(\mathbold{K}=\mathbold{P}\,\mathbold{A}^{\mathsf{T}}/\mathbold{D}\).
 Once \(\mathbold{K}\) destabilizes, the estimates
-\(\mathbold{x}\leftarrow\mathbold{x}+\mathbold{K}(\mathbold{z}-\mathbold{A}\,\mathbold{x})\)
+\(\mathbold{x}\leftarrow\mathbold{x}+\mathbold{K}\cdot(\mathbold{z}-\mathbold{A}\,\mathbold{x})\)
 quickly become nonsense.
 
 This example was adapted from Zarchan and Musoff.\footnote{Zarchan and Musoff, \emph{Fundamentals of Kalman Filtering, A Practical
@@ -1025,10 +1034,10 @@ z &= b + s\, g\, \cos(\theta) + d\, g^2 \,\cos^2(\theta)
 \end{center}
 
 Our vector of states is
-\(\mathbold{x}=\begin{bmatrix}b&s&d\end{bmatrix}^\intercal\) and our partials are
-\(\mathbold{A}(\theta)=\begin{bmatrix}1&gc_\theta&g^2c^2_\theta\end{bmatrix}\)
+\(\mathbold{x}=\begin{bmatrix}b&s&d\end{bmatrix}^{\mathsf{T}}\) and our partials are
+\(\mathbold{A}(\theta)=\begin{bmatrix}1&gc_\theta&g^2c^2_\theta\end{bmatrix}\),
 
-\noindent where \(c_\theta=\cos(\theta)\). 
+\noindent where \(c_\theta=\cos(\theta)\).
 
 Our measurement rig delivers noisy angles, not noisy values of \(\cos(\theta)\),
 so we must translate angle noise \(\zeta_\theta\), of constant variance
@@ -1037,10 +1046,10 @@ variance \(\sigma_{c_\theta}\), and then into observation noise \(\zeta_z\) with
 variance \(\mathbold{Z}(\theta)\). We find
 
 \begin{equation}
-\mathbold{Z}(\theta) = \left(\sigma_\theta\,g\,\sin(\theta)\right)^2 
+\mathbold{Z}(\theta) = \left(\sigma_\theta\,g\,\sin(\theta)\right)^2
 \end{equation}
 
-Posit a ground truth for \(\mathbold{x}\) of 
+Posit a ground truth for \(\mathbold{x}\) of
 
 \begin{equation}
 \mathbold{\aleph} =
@@ -1068,32 +1077,40 @@ follows:
 Accelerometer calibration results, \(\mathbold{P}\leftarrow\mathbold{L}\,\mathbold{P}\)}
 \end{figure}
 
-We test three mathematically identical Kalman accumulator functions, 
+We test three mathematically identical Kalman accumulator functions,
 differing only in their formula for \(\mathbold{P}\). The first, illustrated in
 figure \ref{fig:orgparagraph3}, reproduces Zarchan and Musoff to six significant
 figures, including occasional negative variances. This produces acceptable
 results, near ground truth. Zarchan and Musoff's code for the filter is
-fully enmeshed with their code for constructing and delivering 
+fully enmeshed with their code for constructing and delivering
 observations, so there is no hope of extracting it without change into a
 deployment environment. Not so our code, which we can harden and move verbatim,
 according to the main message of this paper.
 
+\newpage
+
+%\begin{lstlisting}[language=Mathematica, caption={Foldable Kalman, new $\mathbold{Z}$ every observation}, captionpos=t]
+\begin{figure}
 \begin{verbatim}
 kalman[{x_, P_}, {Zeta_, A_, z_}] :=
   Module[{D, K, L},
    D = Zeta + A.P.Transpose[A];
-   K = P.Transpose[A].inv[D];
-   L = (id[len[P]] - K.A);
-   {x + K.(z - A.x), L.P}]; 
-                     (* also L.P.Transpose[L] + K.Zeta.Transpoe[K] *)
-                     (* or   P - K.D.Transpose[K] *)
+   K = P.Transpose[A].Inverse[D];
+   L = (IdentityMatrix[len[P]] - K.A);
+   {x + K.(z - A.x), L.P}];
+             (* also L.P.Transpose[L] + K.Zeta.Transpoe[K] *)
+             (* or   P - K.D.Transpose[K] *)
 \end{verbatim}
+\caption{Foldable Kalman, new $\mathbold{Z}$ every observation}
+\end{figure}
+%\end{lstlisting}
+
 
 \begin{figure}[htb]
 \centering
 \includegraphics[width=.9\linewidth]{zarchan_musoff_2.png}
 \caption{\label{fig:orgparagraph4}
-Accelerometer calibration results, \(\mathbold{P} \leftarrow\mathbold{L}\,\mathbold{P}\,\mathbold{L}^\intercal +\mathbold{K}\,\mathbold{Z}\,\mathbold{K}^\intercal\)}
+Accelerometer calibration results, \(\mathbold{P} \leftarrow\mathbold{L}\,\mathbold{P}\,\mathbold{L}^{\mathsf{T}} +\mathbold{K}\,\mathbold{Z}\,\mathbold{K}^{\mathsf{T}}\)}
 \end{figure}
 
 The second filter produces similar and acceptable results but with totally
@@ -1106,7 +1123,7 @@ be necessary in a safety-critical or mission-critical application.
 \centering
 \includegraphics[width=.9\linewidth]{zarchan_musoff_3.png}
 \caption{\label{fig:orgparagraph5}
-Accelerometer calibration failure, \(\mathbold{P}\leftarrow\mathbold{P} -\mathbold{K}\,\mathbold{D}\,\mathbold{K}^\intercal\)}
+Accelerometer calibration failure, \(\mathbold{P}\leftarrow\mathbold{P} -\mathbold{K}\,\mathbold{D}\,\mathbold{K}^{\mathsf{T}}\)}
 \end{figure}
 
 We would be advised to move to the SRIF family of filters after seeing this much
@@ -1131,9 +1148,9 @@ easy movement between testing and deployment.
 
 The basic Kalman filter statistically inverts the basic model
 
-\begin{equation*}
+\begin{equation}
 \mathbold{z} = \mathbold{A}\,\mathbold{x}
-\end{equation*}
+\end{equation}
 
 \noindent yielding a sequence of estimates of \(\mathbold{x}\), which may
 additionally evolve over time according to a linear state-transition model.
